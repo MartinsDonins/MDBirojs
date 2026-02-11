@@ -1,4 +1,4 @@
-FROM serversideup/php:8.3-fpm-nginx-alpine
+FROM serversideup/php:8.3-fpm-nginx
 
 # Set working directory to standard location for this image
 WORKDIR /var/www/html
@@ -13,9 +13,10 @@ USER root
 # Install additional dependencies
 # git and unzip are needed for composer
 # Install dependencies for composer
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     git \
-    unzip
+    unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions using the built-in helper
 # This automatically handles build dependencies and binaries
