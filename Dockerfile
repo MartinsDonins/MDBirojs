@@ -1,4 +1,4 @@
-FROM serversideup/php:8.3-fpm-nginx
+FROM serversideup/php:8.3-fpm-nginx-bookworm
 
 # Set working directory to standard location for this image
 WORKDIR /var/www/html
@@ -12,20 +12,15 @@ USER root
 
 # Install additional dependencies
 # git and unzip are needed for composer
-# Install dependencies for composer and intl extension
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
-    libicu-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Manually install intl to control concurrency and avoid race conditions
-# install-php-extensions fell back to compilation and failed with -jN
-RUN docker-php-ext-configure intl \
-    && docker-php-ext-install -j1 intl
-
-# Install other extensions using the built-in helper
-RUN install-php-extensions gd zip pdo_pgsql
+# Install PHP extensions using the built-in helper
+# We specify 'intl' here - on Debian Bookworm (stable), this should fetch pre-built binaries
+# avoiding the compilation race conditions and memory issues seen on Trixie/Alpine.
+RUN install-php-extensions intl gd zip pdo_pgsql
 
 
 # Checking documentation: pdo_pgsql is included.
