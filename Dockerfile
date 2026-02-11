@@ -10,6 +10,8 @@ USER root
 # We add generic ones just in case, but serversideup has curl/wget/zip/pgsql
 RUN apt-get update && apt-get install -y \
     git \
+    curl \
+    wget \
     unzip \
     libpq-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
