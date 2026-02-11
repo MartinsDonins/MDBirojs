@@ -1,4 +1,4 @@
-FROM serversideup/php:8.4-fpm-nginx-alpine
+FROM serversideup/php:8.4-fpm-nginx-bookworm
 
 WORKDIR /var/www/html
 
@@ -7,15 +7,15 @@ EXPOSE 3000
 
 USER root
 
-# Install additional dependencies via apk
+# Install additional dependencies
 # git and unzip are needed for composer
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     git \
-    unzip
+    unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions using the built-in helper
-# install-php-extensions handles dependencies and binaries automatically
-# We use this instead of apk to ensure extensions are linked to the correct PHP binary
+# install-php-extensions handles dependencies automatically
 RUN install-php-extensions intl gd zip pdo_pgsql
 
 # Copy composer from official image
@@ -24,8 +24,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Update composer lock file for PHP 8.4 compatibility, then install
+# The lock file was created with PHP 8.2 and has incompatible symfony/* packages
+RUN composer update --no-interaction --optimize-autoloader --no-dev
 
 # Fix permissions for the web user (www-data is default in this image)
 RUN chown -R www-data:www-data /var/www/html
