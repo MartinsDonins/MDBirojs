@@ -12,15 +12,21 @@ USER root
 
 # Install additional dependencies
 # git and unzip are needed for composer
+# libicu-dev is needed for intl extension
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
+    libicu-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions using the built-in helper
-# We specify 'intl' here - on Debian Bookworm (stable), this should fetch pre-built binaries
-# avoiding the compilation race conditions and memory issues seen on Trixie/Alpine.
-RUN install-php-extensions intl gd zip pdo_pgsql
+# Manually install intl to control concurrency and avoid race conditions / OOM
+# install-php-extensions defaults to parallel compilation which caused OOM on build
+RUN docker-php-ext-configure intl \
+    && docker-php-ext-install -j1 intl
+
+# Install other extensions using the built-in helper
+# We use install-php-extensions for complex modules to handle dependencies automatically
+RUN install-php-extensions gd zip pdo_pgsql
 
 
 # Checking documentation: pdo_pgsql is included.
