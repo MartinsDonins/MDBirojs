@@ -18,14 +18,12 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     libpq-dev \
-    libicu-dev \
-    libpng-dev \
-    libzip-dev \
+    php8.4-intl \
+    php8.4-gd \
+    php8.4-zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-configure intl \
-    && docker-php-ext-install intl gd zip
+# (Extensions installed via apt-get above, removing manual compilation steps)
 
 # Install extensions if missing from base (pdo_pgsql is usually included but we verify)
 # serversideup images have docker-php-ext-install available
