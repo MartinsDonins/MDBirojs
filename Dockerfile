@@ -31,6 +31,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
+# Install PHP dependencies
+RUN composer install --no-interaction --optimize-autoloader --no-dev
+
 # Fix permissions for the web user (www-data is default in this image)
 RUN chown -R www-data:www-data /var/www/html
 
