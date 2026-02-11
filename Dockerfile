@@ -3,6 +3,9 @@ FROM serversideup/php:8.4-fpm-nginx
 # Set working directory to standard location for this image
 WORKDIR /var/www/html
 
+# Switch to root to install dependencies
+USER root
+
 # Install additional dependencies if needed (most are included)
 # We add generic ones just in case, but serversideup has curl/wget/zip/pgsql
 RUN apt-get update && apt-get install -y \
