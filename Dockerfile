@@ -1,36 +1,23 @@
-FROM serversideup/php:8.3-fpm-nginx-bookworm
+FROM serversideup/php:8.3-fpm-nginx-alpine
 
-# Set working directory to standard location for this image
 WORKDIR /var/www/html
 
-# Configure image to listen on port 3000 (matches Coolify default)
 ENV WEB_PORT=3000
 EXPOSE 3000
 
-# Switch to root to install dependencies
 USER root
 
-# Install additional dependencies
+# Install additional dependencies via apk (Alpine)
 # git and unzip are needed for composer
-# libicu-dev is needed for intl extension
-RUN apt-get update && apt-get install -y \
+# intl, gd, zip, pdo_pgsql extensions are installed via packages to avoid compilation
+RUN apk add --no-cache \
     git \
     unzip \
-    libicu-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Manually install intl to control concurrency and avoid race conditions / OOM
-# install-php-extensions defaults to parallel compilation which caused OOM on build
-RUN docker-php-ext-configure intl \
-    && docker-php-ext-install -j1 intl
-
-# Install other extensions using the built-in helper
-# We use install-php-extensions for complex modules to handle dependencies automatically
-RUN install-php-extensions gd zip pdo_pgsql
-
-
-# Checking documentation: pdo_pgsql is included.
-# We can skip explicit install unless we need something exotic.
+    icu-data-full \
+    php83-intl \
+    php83-gd \
+    php83-zip \
+    php83-pdo_pgsql
 
 # Copy composer from official image
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -54,9 +41,6 @@ ENV PHP_DISPLAY_ERRORS=On
 ENV LOG_STDERR=On
 
 # Run optimization commands 
-# Note: In production, these should ideally be run as part of the build or entrypoint script.
-# serversideup image executes /etc/s6-overlay/s6-rc.d/init-laravel-automations/run 
-# so we can hook into that or just let it be.
-# But manually caching config helps catch errors early.
+# Note: Manually caching config helps catch errors early.
 RUN php artisan config:clear && php artisan cache:clear
 
