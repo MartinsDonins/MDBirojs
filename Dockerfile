@@ -1,20 +1,11 @@
-FROM serversideup/php:8.4-fpm-nginx-bookworm
+# Use pre-built base image with PHP extensions already compiled
+# To rebuild base: docker build -f Dockerfile.base -t ghcr.io/martinsdonins/mdbirojs-base:latest . && docker push ghcr.io/martinsdonins/mdbirojs-base:latest
+FROM ghcr.io/martinsdonins/mdbirojs-base:latest
 
 WORKDIR /var/www/html
 
 ENV WEB_PORT=3000
 EXPOSE 3000
-
-USER root
-
-# Install git/unzip for composer
-RUN apt-get update && apt-get install -y git unzip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install PHP extensions with single-thread compilation to prevent OOM
-# IPE_PROCESSOR_COUNT=1 limits make -j to 1 core (prevents memory exhaustion)
-# This is a separate RUN so Docker caches it after first successful build
-RUN IPE_PROCESSOR_COUNT=1 install-php-extensions intl gd
 
 # Copy composer from official image
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

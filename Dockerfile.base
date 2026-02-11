@@ -1,0 +1,15 @@
+# Base image with PHP extensions pre-compiled
+# Build once, push to GHCR, use in main Dockerfile
+#
+# Build:  docker build -f Dockerfile.base -t ghcr.io/martinsdonins/mdbirojs-base:latest .
+# Push:   docker push ghcr.io/martinsdonins/mdbirojs-base:latest
+
+FROM serversideup/php:8.4-fpm-nginx-bookworm
+
+USER root
+
+# Install git/unzip for composer + PHP extensions
+# This takes ~2-3 minutes but only needs to run ONCE
+RUN apt-get update && apt-get install -y git unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && install-php-extensions intl gd
