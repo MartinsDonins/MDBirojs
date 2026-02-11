@@ -26,8 +26,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY . .
 
 # Fix permissions for the web user (www-data is default in this image)
-RUN chown -R webuser:webuser /var/www/html
+RUN chown -R www-data:www-data /var/www/html
 
 # Switch to non-root user
-USER webuser
+USER www-data
 
