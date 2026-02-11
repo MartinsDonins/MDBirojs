@@ -153,6 +153,21 @@ class TransactionResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\BulkAction::make('run_rules')
+                        ->label('Run Rules')
+                        ->icon('heroicon-o-play')
+                        ->action(function (Illuminate\Database\Eloquent\Collection $records, App\Services\RuleEngineService $ruleEngine) {
+                            $count = 0;
+                            foreach ($records as $record) {
+                                if ($ruleEngine->applyRules($record)) {
+                                    $count++;
+                                }
+                            }
+                            Filament\Notifications\Notification::make()
+                                ->title("Rules applied to {$count} transactions")
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ])
             ->defaultSort('occurred_at', 'desc');
