@@ -12,22 +12,14 @@ USER root
 
 # Install additional dependencies
 # git and unzip are needed for composer
-# Build dependencies for PHP extensions: icu-dev, libpng-dev, libzip-dev, postgresql-dev
+# Install dependencies for composer
 RUN apk add --no-cache \
     git \
-    curl \
-    wget \
-    unzip \
-    icu-dev \
-    libpng-dev \
-    libzip-dev \
-    postgresql-dev
+    unzip
 
-# Install PHP extensions manually
-# Use -j1 for intl to prevent "mkdir ... File exists" race condition during compilation
-RUN docker-php-ext-configure intl \
-    && docker-php-ext-install -j1 intl \
-    && docker-php-ext-install gd zip pdo_pgsql
+# Install PHP extensions using the built-in helper
+# This automatically handles build dependencies and binaries
+RUN install-php-extensions intl gd zip pdo_pgsql
 
 # Checking documentation: pdo_pgsql is included.
 # We can skip explicit install unless we need something exotic.
