@@ -1,4 +1,4 @@
-FROM serversideup/php:8.3-fpm-nginx
+FROM serversideup/php:8.3-fpm-nginx-alpine
 
 # Set working directory to standard location for this image
 WORKDIR /var/www/html
