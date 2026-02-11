@@ -10,23 +10,22 @@ EXPOSE 3000
 # Switch to root to install dependencies
 USER root
 
-# Install additional dependencies if needed (most are included)
-# We add generic ones just in case, but serversideup has curl/wget/zip/pgsql
-RUN apt-get update && apt-get install -y \
+# Install additional dependencies
+# git and unzip are needed for composer
+RUN apk add --no-cache \
     git \
     curl \
     wget \
-    unzip \
-    libpq-dev \
-    php8.3-intl \
-    php8.3-gd \
-    php8.3-zip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    unzip
 
-# (Extensions installed via apt-get above, removing manual compilation steps)
+# Install PHP extensions using the helper script included in the image
+# This handles all required dependencies automatically
+RUN install-php-extensions \
+    intl \
+    gd \
+    zip \
+    pdo_pgsql
 
-# Install extensions if missing from base (pdo_pgsql is usually included but we verify)
-# serversideup images have docker-php-ext-install available
 # Checking documentation: pdo_pgsql is included.
 # We can skip explicit install unless we need something exotic.
 
