@@ -1,4 +1,4 @@
-FROM serversideup/php:8.4-fpm-nginx
+FROM serversideup/php:8.3-fpm-nginx
 
 # Set working directory to standard location for this image
 WORKDIR /var/www/html
@@ -18,15 +18,12 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     libpq-dev \
-    libicu-dev \
-    libpng-dev \
-    libzip-dev \
+    php8.3-intl \
+    php8.3-gd \
+    php8.3-zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions manually (standard docker-php workflow)
-# We use -j1 to ensure stability and avoid race conditions during 'intl' build
-RUN docker-php-ext-configure intl \
-    && docker-php-ext-install -j1 intl gd zip
+# (Extensions installed via apt-get above, removing manual compilation steps)
 
 # Install extensions if missing from base (pdo_pgsql is usually included but we verify)
 # serversideup images have docker-php-ext-install available
