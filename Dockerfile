@@ -18,12 +18,15 @@ RUN apt-get update && apt-get install -y \
     libwebp-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Configure and install PHP extensions with single-thread compilation
-# to avoid OOM on low-memory build servers
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && MAKEFLAGS="-j1" docker-php-ext-install -j1 intl gd
+# Build extensions one at a time with single-thread to avoid OOM
+# intl extension
+RUN docker-php-ext-install -j1 intl
 
-# Install remaining extensions (zip and pdo_pgsql are already pre-installed in this image)
+# gd extension
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j1 gd
+
+# zip and pdo_pgsql are already pre-installed in this image
 RUN install-php-extensions zip pdo_pgsql
 
 # Copy composer from official image
@@ -32,9 +35,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
+# Create minimal .env for build if not present (excluded by .dockerignore)
+RUN if [ ! -f .env ]; then \
+    cp .env.example .env 2>/dev/null || echo "APP_KEY=base64:$(head -c 32 /dev/urandom | base64)" > .env; \
+    fi
+
+# Generate APP_KEY if not set
+RUN php artisan key:generate --force 2>/dev/null || true
+
 # Update composer lock file for PHP 8.4 compatibility, then install
-# The lock file was created with PHP 8.2 and has incompatible symfony/* packages
-RUN composer update --no-interaction --optimize-autoloader --no-dev
+RUN COMPOSER_MEMORY_LIMIT=-1 composer update --no-interaction --optimize-autoloader --no-dev
 
 # Fix permissions for the web user (www-data is default in this image)
 RUN chown -R www-data:www-data /var/www/html
@@ -48,7 +58,5 @@ ENV PHP_MAX_EXECUTION_TIME=300
 ENV PHP_DISPLAY_ERRORS=On
 ENV LOG_STDERR=On
 
-# Run optimization commands 
-# Note: Manually caching config helps catch errors early.
+# Run optimization commands
 RUN php artisan config:clear && php artisan cache:clear
-
