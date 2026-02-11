@@ -18,11 +18,15 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     libpq-dev \
+    libicu-dev \
+    libpng-dev \
+    libzip-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions using mlocati installer (faster and more robust than compilation)
-COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
-RUN install-php-extensions intl gd zip
+# Install PHP extensions manually (standard docker-php workflow)
+# We use -j1 to ensure stability and avoid race conditions during 'intl' build
+RUN docker-php-ext-configure intl \
+    && docker-php-ext-install -j1 intl gd zip
 
 # Install extensions if missing from base (pdo_pgsql is usually included but we verify)
 # serversideup images have docker-php-ext-install available
