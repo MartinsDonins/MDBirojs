@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mdbirojs-app
+    container_name: mdbirojs-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    networks:
+      - mdbirojs-network
+    depends_on:
+      - postgres
+      - redis
+
+  # Nginx Service to serve the app
+  nginx:
+    image: nginx:alpine
+    container_name: mdbirojs-nginx
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - mdbirojs-network
+    depends_on:
+      - app
+
+  # Queue Worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mdbirojs-worker
+    container_name: mdbirojs-worker
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work --tries=3
+    volumes:
+      - ./:/var/www
+    networks:
+      - mdbirojs-network
+    depends_on:
+      - app
+      - redis
+      - postgres
+
+  # Task Scheduler
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mdbirojs-scheduler
+    container_name: mdbirojs-scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan schedule:work
+    volumes:
+      - ./:/var/www
+    networks:
+      - mdbirojs-network
+    depends_on:
+      - app
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: mdbirojs-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-mdbirojs}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mdbirojs-network
+
+  redis:
+    image: redis:alpine
+    container_name: mdbirojs-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mdbirojs-network
+
+  # Mailpit for email testing
+  mailpit:
+    image: axllent/mailpit
+    container_name: mdbirojs-mailpit
+    restart: unless-stopped
+    ports:
+      - "1026:1025"
+      - "8026:8025"
+    networks:
+      - mdbirojs-network
+
+networks:
+  mdbirojs-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
