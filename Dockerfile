@@ -7,16 +7,24 @@ EXPOSE 3000
 
 USER root
 
-# Install additional dependencies
-# git and unzip are needed for composer
+# Install system dependencies and PHP extension build dependencies
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
+    libicu-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    libwebp-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions using the built-in helper
-# install-php-extensions handles dependencies automatically
-RUN install-php-extensions intl gd zip pdo_pgsql
+# Configure and install PHP extensions with single-thread compilation
+# to avoid OOM on low-memory build servers
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && MAKEFLAGS="-j1" docker-php-ext-install -j1 intl gd
+
+# Install remaining extensions (zip and pdo_pgsql are already pre-installed in this image)
+RUN install-php-extensions zip pdo_pgsql
 
 # Copy composer from official image
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
