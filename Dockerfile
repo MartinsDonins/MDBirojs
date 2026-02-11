@@ -3,6 +3,10 @@ FROM serversideup/php:8.4-fpm-nginx
 # Set working directory to standard location for this image
 WORKDIR /var/www/html
 
+# Configure image to listen on port 3000 (matches Coolify default)
+ENV WEB_PORT=3000
+EXPOSE 3000
+
 # Switch to root to install dependencies
 USER root
 

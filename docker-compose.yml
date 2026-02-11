@@ -12,7 +12,7 @@ services:
     volumes:
       - ./:/var/www/html
     ports:
-      - "8001:80"
+      - "8001:3000"
     networks:
       - mdbirojs-network
     depends_on:
