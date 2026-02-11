@@ -18,12 +18,11 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     libpq-dev \
-    php8.4-intl \
-    php8.4-gd \
-    php8.4-zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# (Extensions installed via apt-get above, removing manual compilation steps)
+# Install PHP extensions using mlocati installer (faster and more robust than compilation)
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+RUN install-php-extensions intl gd zip
 
 # Install extensions if missing from base (pdo_pgsql is usually included but we verify)
 # serversideup images have docker-php-ext-install available
