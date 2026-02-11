@@ -47,3 +47,16 @@ RUN chown -R www-data:www-data /var/www/html
 # Switch to non-root user
 USER www-data
 
+# Increase PHP memory limit and execution time for heavy tasks
+ENV PHP_MEMORY_LIMIT=512M
+ENV PHP_MAX_EXECUTION_TIME=300
+ENV PHP_DISPLAY_ERRORS=On
+ENV LOG_STDERR=On
+
+# Run optimization commands 
+# Note: In production, these should ideally be run as part of the build or entrypoint script.
+# serversideup image executes /etc/s6-overlay/s6-rc.d/init-laravel-automations/run 
+# so we can hook into that or just let it be.
+# But manually caching config helps catch errors early.
+RUN php artisan config:clear && php artisan cache:clear
+
