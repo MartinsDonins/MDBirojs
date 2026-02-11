@@ -1,34 +1,30 @@
-FROM php:8.4-fpm
+FROM serversideup/php:8.4-fpm-nginx
 
-# Install system dependencies
+# Set working directory to standard location for this image
+WORKDIR /var/www/html
+
+# Install additional dependencies if needed (most are included)
+# We add generic ones just in case, but serversideup has curl/wget/zip/pgsql
 RUN apt-get update && apt-get install -y \
     git \
-    curl \
-    wget \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
     unzip \
     libpq-dev \
-    libzip-dev \
-    libicu-dev
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install extensions if missing from base (pdo_pgsql is usually included but we verify)
+# serversideup images have docker-php-ext-install available
+# Checking documentation: pdo_pgsql is included.
+# We can skip explicit install unless we need something exotic.
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd intl zip
-
-# Get latest Composer
+# Copy composer from official image
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
-WORKDIR /var/www
+# Copy application files
+COPY . .
 
-# Copy existing application directory contents
-COPY . /var/www
+# Fix permissions for the web user (www-data is default in this image)
+RUN chown -R webuser:webuser /var/www/html
 
-# Expose port 9000 and start php-fpm server
-EXPOSE 9000
-CMD ["php-fpm"]
+# Switch to non-root user
+USER webuser
+

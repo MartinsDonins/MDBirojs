@@ -8,29 +8,16 @@ services:
     image: mdbirojs-app
     container_name: mdbirojs-app
     restart: unless-stopped
-    working_dir: /var/www
+    working_dir: /var/www/html
     volumes:
-      - ./:/var/www
+      - ./:/var/www/html
+    ports:
+      - "8001:80"
     networks:
       - mdbirojs-network
     depends_on:
       - postgres
       - redis
-
-  # Nginx Service to serve the app
-  nginx:
-    image: nginx:alpine
-    container_name: mdbirojs-nginx
-    restart: unless-stopped
-    ports:
-      - "8001:80"
-    volumes:
-      - ./:/var/www
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d
-    networks:
-      - mdbirojs-network
-    depends_on:
-      - app
 
   # Queue Worker
   worker:
