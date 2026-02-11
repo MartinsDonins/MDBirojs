@@ -1,4 +1,4 @@
-FROM serversideup/php:8.3-fpm-nginx-alpine
+FROM serversideup/php:8.4-fpm-nginx-alpine
 
 WORKDIR /var/www/html
 
@@ -7,17 +7,16 @@ EXPOSE 3000
 
 USER root
 
-# Install additional dependencies via apk (Alpine)
+# Install additional dependencies via apk
 # git and unzip are needed for composer
-# intl, gd, zip, pdo_pgsql extensions are installed via packages to avoid compilation
 RUN apk add --no-cache \
     git \
-    unzip \
-    icu-data-full \
-    php83-intl \
-    php83-gd \
-    php83-zip \
-    php83-pdo_pgsql
+    unzip
+
+# Install PHP extensions using the built-in helper
+# install-php-extensions handles dependencies and binaries automatically
+# We use this instead of apk to ensure extensions are linked to the correct PHP binary
+RUN install-php-extensions intl gd zip pdo_pgsql
 
 # Copy composer from official image
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
