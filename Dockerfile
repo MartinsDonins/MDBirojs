@@ -12,16 +12,20 @@ USER root
 
 # Install additional dependencies
 # git and unzip are needed for composer
-# Install dependencies and specific PHP 8.3 extensions
-# We use apt-get directly to utilize Debian binaries and separate from image-provided helper if failing
+# Install dependencies for composer and intl extension
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
-    php8.3-intl \
-    php8.3-gd \
-    php8.3-zip \
-    php8.3-pgsql \
+    libicu-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Manually install intl to control concurrency and avoid race conditions
+# install-php-extensions fell back to compilation and failed with -jN
+RUN docker-php-ext-configure intl \
+    && docker-php-ext-install -j1 intl
+
+# Install other extensions using the built-in helper
+RUN install-php-extensions gd zip pdo_pgsql
 
 
 # Checking documentation: pdo_pgsql is included.
