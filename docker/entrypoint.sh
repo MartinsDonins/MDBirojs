@@ -11,9 +11,9 @@ else
     echo "==> APP_KEY already set"
 fi
 
-# Run normal migrations (SAFE: does NOT wipe data)
-echo "==> Running migrate --force..."
-php artisan migrate --force --no-interaction
+# Run fresh migrations (WIPES DATA - use only for first deployment fix)
+echo "==> Running migrate:fresh --force..."
+php artisan migrate:fresh --force --no-interaction
 
 # Seed admin user if needed (seeds should be idempotent)
 echo "==> Seeding database..."
