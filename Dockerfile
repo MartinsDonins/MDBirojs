@@ -70,8 +70,8 @@ COPY --from=assets /app/public/build public/build
 
 # Create required directories and set permissions
 RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+    && chown -R www-data:www-data storage bootstrap/cache public \
+    && chmod -R 775 storage bootstrap/cache public
 
 # Copy production entrypoint
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
