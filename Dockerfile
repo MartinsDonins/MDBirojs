@@ -17,8 +17,10 @@ RUN npm run build
 FROM composer:latest AS composer
 
 WORKDIR /app
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
+COPY composer.json ./
+RUN composer config platform.php 8.3.30 \
+    && composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs \
+    && rm -f vendor/composer/platform_check.php
 
 COPY . .
 RUN composer dump-autoload --optimize
@@ -26,7 +28,7 @@ RUN composer dump-autoload --optimize
 ###############################################
 # Stage 3: Production image (PHP-FPM + Nginx)
 ###############################################
-FROM php:8.4-fpm-alpine
+FROM php:8.3-fpm-alpine
 
 # Install system dependencies and PHP extensions using install-php-extensions (faster)
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/

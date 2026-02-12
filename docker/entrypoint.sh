@@ -29,14 +29,14 @@ echo "==> Seeding database..."
 php artisan db:seed --force --no-interaction || echo "WARNING: Seeder failed, continuing startup..."
 
 # Cache config/routes/views for production
-echo "==> Caching configuration..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+# echo "==> Caching configuration..."
+# php artisan config:cache
+# php artisan route:cache
+# php artisan view:cache
 
 # Publish Spatie permissions if needed
 php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" --no-interaction 2>/dev/null || true
-php artisan filament:upgrade --no-interaction 2>/dev/null || true
+# php artisan filament:upgrade --no-interaction 2>/dev/null || true
 
 echo "==> All ready! Starting services..."
 

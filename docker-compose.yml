@@ -11,6 +11,7 @@ services:
     working_dir: /var/www/html
     volumes:
       - ./:/var/www/html
+      - /var/www/html/vendor
       - ./docker/entrypoint.sh:/usr/local/bin/entrypoint.sh
     ports:
       - "8001:3000"
@@ -28,10 +29,11 @@ services:
     image: mdbirojs-worker
     container_name: mdbirojs-worker
     restart: unless-stopped
-    working_dir: /var/www
+    working_dir: /var/www/html
     command: php artisan queue:work --tries=3
     volumes:
-      - ./:/var/www
+      - ./:/var/www/html
+      - /var/www/html/vendor
     networks:
       - mdbirojs-network
     depends_on:
@@ -47,10 +49,11 @@ services:
     image: mdbirojs-scheduler
     container_name: mdbirojs-scheduler
     restart: unless-stopped
-    working_dir: /var/www
+    working_dir: /var/www/html
     command: php artisan schedule:work
     volumes:
-      - ./:/var/www
+      - ./:/var/www/html
+      - /var/www/html/vendor
     networks:
       - mdbirojs-network
     depends_on:
