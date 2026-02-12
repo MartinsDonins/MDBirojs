@@ -24,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
         if (app()->environment('production') || env('APP_ENV') === 'local') {
             URL::forceScheme('https');
             URL::forceRootUrl(config('app.url'));
+            
+            // Temporary fix: Clear cache to ensure new URL config takes effect
+            // \Illuminate\Support\Facades\Artisan::call('optimize:clear');
         }
     }
 }
