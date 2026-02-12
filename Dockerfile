@@ -1,34 +1,84 @@
-# Use pre-built base image with PHP extensions already compiled
-# To rebuild base: docker build -f Dockerfile.base -t ghcr.io/martinsdonins/mdbirojs-base:latest . && docker push ghcr.io/martinsdonins/mdbirojs-base:latest
-FROM ghcr.io/martinsdonins/mdbirojs-base:latest
+###############################################
+# Stage 1: Build frontend assets
+###############################################
+FROM node:22-alpine AS assets
 
+WORKDIR /app
+COPY package.json ./
+RUN npm install
+COPY vite.config.js ./
+COPY resources/ resources/
+COPY public/ public/
+RUN npm run build
+
+###############################################
+# Stage 2: Install PHP dependencies
+###############################################
+FROM composer:latest AS composer
+
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
+
+COPY . .
+RUN composer dump-autoload --optimize
+
+###############################################
+# Stage 3: Production image (PHP-FPM + Nginx)
+###############################################
+FROM php:8.4-fpm-alpine
+
+# Install system dependencies and PHP extensions using install-php-extensions (faster)
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+
+RUN apk add --no-cache \
+    nginx \
+    supervisor \
+    curl \
+    bash \
+    && install-php-extensions \
+    intl \
+    gd \
+    zip \
+    pdo_mysql \
+    pdo_pgsql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    opcache
+
+# PHP production configuration
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+COPY docker/php.ini "$PHP_INI_DIR/conf.d/99-custom.ini"
+
+# Nginx configuration
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+RUN mkdir -p /run/nginx
+
+# Supervisor configuration
+RUN mkdir -p /var/log/supervisor
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Set working directory
 WORKDIR /var/www/html
 
-ENV WEB_PORT=3000
-EXPOSE 3000
-
-# Copy composer from official image
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copy application files
+# Copy application
+COPY --from=composer /app/vendor vendor
 COPY . .
+COPY --from=assets /app/public/build public/build
 
-# Create .env for build (excluded by .dockerignore)
-RUN cp .env.example .env 2>/dev/null || echo "APP_KEY=base64:$(head -c 32 /dev/urandom | base64)" > .env
-RUN php artisan key:generate --force 2>/dev/null || true
+# Create required directories and set permissions
+RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
-# Install dependencies
-RUN COMPOSER_MEMORY_LIMIT=-1 composer update --no-interaction --optimize-autoloader --no-dev
+# Copy production entrypoint
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
 
-# Fix permissions
-RUN chown -R www-data:www-data /var/www/html
+EXPOSE 80 3000
 
-USER www-data
-
-ENV PHP_MEMORY_LIMIT=512M
-ENV PHP_MAX_EXECUTION_TIME=300
-ENV PHP_DISPLAY_ERRORS=On
-ENV LOG_STDERR=On
-
-# Cache optimization
-RUN php artisan config:clear && php artisan cache:clear
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
