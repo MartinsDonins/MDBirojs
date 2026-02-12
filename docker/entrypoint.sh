@@ -15,6 +15,15 @@ fi
 echo "==> Running migrate --force..."
 php artisan migrate --force --no-interaction
 
+# Upgrade Filament (publishes assets, runs migrations if needed)
+echo "==> Running filament:upgrade..."
+php artisan filament:upgrade --no-interaction || echo "WARNING: filament:upgrade failed"
+
+# Explicitly publish assets to be safe
+echo "==> Publishing Filament & Livewire assets..."
+php artisan filament:assets --force --no-interaction
+php artisan livewire:publish --assets --force --no-interaction
+
 # Seed admin user if needed (seeds should be idempotent)
 echo "==> Seeding database..."
 php artisan db:seed --force --no-interaction || echo "WARNING: Seeder failed, continuing startup..."
