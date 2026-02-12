@@ -11,13 +11,14 @@ services:
     working_dir: /var/www/html
     volumes:
       - ./:/var/www/html
+      - ./docker/entrypoint.sh:/usr/local/bin/entrypoint.sh
     ports:
       - "8001:3000"
     networks:
       - mdbirojs-network
     depends_on:
       - postgres
-      - redis
+
 
   # Queue Worker
   worker:
@@ -35,7 +36,7 @@ services:
       - mdbirojs-network
     depends_on:
       - app
-      - redis
+
       - postgres
 
   # Task Scheduler
@@ -65,22 +66,13 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - mdbirojs-network
 
-  redis:
-    image: redis:alpine
-    container_name: mdbirojs-redis
-    restart: unless-stopped
-    ports:
-      - "6380:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - mdbirojs-network
+
 
   # Mailpit for email testing
   mailpit:
