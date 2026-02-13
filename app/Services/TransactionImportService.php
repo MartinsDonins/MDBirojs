@@ -10,10 +10,14 @@ use Illuminate\Support\Facades\Log;
 class TransactionImportService
 {
     protected TransactionNormalizationService $normalizationService;
+    protected AutoApprovalService $autoApprovalService;
 
-    public function __construct(TransactionNormalizationService $normalizationService)
-    {
+    public function __construct(
+        TransactionNormalizationService $normalizationService,
+        AutoApprovalService $autoApprovalService
+    ) {
         $this->normalizationService = $normalizationService;
+        $this->autoApprovalService = $autoApprovalService;
     }
 
     /**
@@ -37,6 +41,7 @@ class TransactionImportService
         $stats = [
             'imported' => 0,
             'skipped' => 0,
+            'auto_approved' => 0,
             'errors' => [],
         ];
 
@@ -61,8 +66,13 @@ class TransactionImportService
                     }
 
                     // Create transaction
-                    Transaction::create($normalized);
+                    $transaction = Transaction::create($normalized);
                     $stats['imported']++;
+
+                    // Try auto-approval
+                    if ($this->autoApprovalService->processTransaction($transaction)) {
+                        $stats['auto_approved']++;
+                    }
 
                 } catch (\Exception $e) {
                     $stats['errors'][] = [

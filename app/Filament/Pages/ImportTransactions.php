@@ -87,6 +87,10 @@ class ImportTransactions extends Page
             // Show success notification
             $message = "Import completed: {$stats['imported']} imported, {$stats['skipped']} skipped";
             
+            if (!empty($stats['auto_approved'])) {
+                $message .= ", {$stats['auto_approved']} auto-approved";
+            }
+            
             if (!empty($stats['errors'])) {
                 $message .= ", " . count($stats['errors']) . " errors";
                 
