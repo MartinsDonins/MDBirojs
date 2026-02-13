@@ -25,8 +25,8 @@ class IncomeExpenseJournal extends Page implements HasTable
     
     protected static ?int $navigationSort = 3;
 
-    public ?int $selectedYear = null;
-    public ?int $selectedMonth = null; // null = show year summary, 1-12 = show month detail
+    public ?int $selectedYear = null; // null = show year list
+    public ?int $selectedMonth = null; // null = show year summary (if year selected), 1-12 = show month detail
     
     public array $summary = [
         'total_income' => 0,
@@ -34,14 +34,16 @@ class IncomeExpenseJournal extends Page implements HasTable
         'balance' => 0,
     ];
     
+    public array $yearlySummary = [];
     public array $monthlySummary = [];
 
     public function mount(): void
     {
-        $this->selectedYear = (int) date('Y');
-        $this->selectedMonth = null; // Start with year summary
-        $this->calculateSummary();
-        $this->calculateMonthlySummary();
+        // Start with overview of all years
+        $this->selectedYear = null; 
+        $this->selectedMonth = null;
+        
+        $this->calculateYearlySummary();
     }
 
     public function table(Table $table): Table
@@ -84,9 +86,6 @@ class IncomeExpenseJournal extends Page implements HasTable
             ->paginated([25, 50, 100]);
     }
 
-
-
-
     protected function getMonthDetailQuery(): Builder
     {
         return Transaction::query()
@@ -97,8 +96,51 @@ class IncomeExpenseJournal extends Page implements HasTable
             ->whereMonth('occurred_at', $this->selectedMonth);
     }
 
+    protected function calculateYearlySummary(): void
+    {
+        $yearlyData = Transaction::query()
+            ->where('status', 'COMPLETED')
+            ->selectRaw('
+                EXTRACT(YEAR FROM occurred_at) as year,
+                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as income,
+                SUM(CASE WHEN type = ? THEN ABS(amount) ELSE 0 END) as expense
+            ', ['INCOME', 'EXPENSE'])
+            ->groupBy('year')
+            ->orderBy('year', 'asc') // Calculate chronologically for running balance
+            ->get();
+
+        $this->yearlySummary = [];
+        $runningBalance = 0;
+
+        foreach ($yearlyData as $data) {
+            $income = $data->income ?? 0;
+            $expense = $data->expense ?? 0;
+            $annualResult = $income - $expense;
+            $runningBalance += $annualResult;
+
+            // Prepend to array to show newest first, but keep running balance correct
+            array_unshift($this->yearlySummary, [
+                'year' => (int) $data->year,
+                'income' => $income,
+                'expense' => $expense,
+                'result' => $annualResult,
+                'end_balance' => $runningBalance,
+            ]);
+        }
+    }
+
     protected function calculateMonthlySummary(): void
     {
+        if (!$this->selectedYear) return;
+
+        // 1. Calculate Opening Balance for the year
+        $openingBalance = Transaction::query()
+            ->where('status', 'COMPLETED')
+            ->whereYear('occurred_at', '<', $this->selectedYear)
+            ->selectRaw('SUM(CASE WHEN type = ? THEN amount WHEN type = ? THEN -ABS(amount) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
+            ->value('balance') ?? 0;
+
+        // 2. Get monthly data for selected year
         $monthlyData = Transaction::query()
             ->where('status', 'COMPLETED')
             ->whereYear('occurred_at', $this->selectedYear)
@@ -118,7 +160,7 @@ class IncomeExpenseJournal extends Page implements HasTable
         ];
 
         $this->monthlySummary = [];
-        $runningBalance = 0;
+        $runningBalance = $openingBalance;
 
         for ($month = 1; $month <= 12; $month++) {
             $data = $monthlyData->firstWhere('month_number', $month);
@@ -140,6 +182,8 @@ class IncomeExpenseJournal extends Page implements HasTable
 
     protected function calculateSummary(): void
     {
+        if (!$this->selectedYear) return;
+
         $summary = Transaction::query()
             ->where('status', 'COMPLETED')
             ->whereYear('occurred_at', $this->selectedYear)
@@ -149,11 +193,29 @@ class IncomeExpenseJournal extends Page implements HasTable
             ', ['INCOME', 'EXPENSE'])
             ->first();
 
+        // Calculate opening balance again for the summary card's total balance
+        $openingBalance = Transaction::query()
+            ->where('status', 'COMPLETED')
+            ->whereYear('occurred_at', '<', $this->selectedYear)
+            ->selectRaw('SUM(CASE WHEN type = ? THEN amount WHEN type = ? THEN -ABS(amount) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
+            ->value('balance') ?? 0;
+
+        $totalIncome = $summary->total_income ?? 0;
+        $totalExpense = $summary->total_expense ?? 0;
+
         $this->summary = [
-            'total_income' => $summary->total_income ?? 0,
-            'total_expense' => $summary->total_expense ?? 0,
-            'balance' => ($summary->total_income ?? 0) - ($summary->total_expense ?? 0),
+            'total_income' => $totalIncome,
+            'total_expense' => $totalExpense,
+            'balance' => $openingBalance + $totalIncome - $totalExpense,
         ];
+    }
+
+    public function selectYear(int $year): void
+    {
+        $this->selectedYear = $year;
+        $this->selectedMonth = null;
+        $this->calculateSummary();
+        $this->calculateMonthlySummary();
     }
 
     public function viewMonthDetails(int $month): void
@@ -166,31 +228,47 @@ class IncomeExpenseJournal extends Page implements HasTable
         $this->selectedMonth = null;
     }
 
+    public function backToAllYears(): void
+    {
+        $this->selectedYear = null;
+        $this->selectedMonth = null;
+        $this->calculateYearlySummary();
+    }
+
     protected function getHeaderActions(): array
     {
         $actions = [];
 
-        // Back button when viewing month details
         if ($this->selectedMonth !== null) {
+            // View: Month Details -> Back to Year Summary
             $actions[] = \Filament\Actions\Action::make('back')
-                ->label('Atpakaļ uz gada kopsavilkumu')
+                ->label('Atpakaļ uz ' . $this->selectedYear . '. gada kopsavilkumu')
                 ->icon('heroicon-o-arrow-left')
                 ->color('gray')
                 ->action('backToYearSummary');
+        } elseif ($this->selectedYear !== null) {
+            // View: Year Summary -> Back to All Years
+            $actions[] = \Filament\Actions\Action::make('back_all')
+                ->label('Atpakaļ uz gadu sarakstu')
+                ->icon('heroicon-o-arrow-left')
+                ->color('gray')
+                ->action('backToAllYears');
         }
 
-        // Export actions (placeholders)
-        $actions[] = \Filament\Actions\Action::make('export_excel')
-            ->label('Eksportēt Excel')
-            ->icon('heroicon-o-document-arrow-down')
-            ->color('success')
-            ->action('exportExcel');
-            
-        $actions[] = \Filament\Actions\Action::make('export_pdf')
-            ->label('Eksportēt PDF')
-            ->icon('heroicon-o-document-text')
-            ->color('danger')
-            ->action('exportPdf');
+        // Export actions available only when a year is selected
+        if ($this->selectedYear !== null) {
+            $actions[] = \Filament\Actions\Action::make('export_excel')
+                ->label('Eksportēt Excel')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('success')
+                ->action('exportExcel');
+                
+            $actions[] = \Filament\Actions\Action::make('export_pdf')
+                ->label('Eksportēt PDF')
+                ->icon('heroicon-o-document-text')
+                ->color('danger')
+                ->action('exportPdf');
+        }
 
         return $actions;
     }
@@ -224,6 +302,10 @@ class IncomeExpenseJournal extends Page implements HasTable
             return $monthNames[$this->selectedMonth] . ' ' . $this->selectedYear;
         }
 
-        return 'Saimnieciskās darbības ieņēmumu un izdevumu uzskaites žurnāls - ' . $this->selectedYear . '. gads';
+        if ($this->selectedYear !== null) {
+            return 'Saimnieciskās darbības ieņēmumu un izdevumu uzskaites žurnāls - ' . $this->selectedYear . '. gads';
+        }
+
+        return 'Saimnieciskās darbības ieņēmumu un izdevumu uzskaites žurnāls (Gadu Pārskats)';
     }
 }

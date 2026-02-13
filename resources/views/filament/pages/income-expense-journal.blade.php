@@ -1,14 +1,69 @@
 <x-filament-panels::page>
-    @if($selectedMonth === null)
+    @if($selectedYear === null)
+        {{-- All Years View --}}
+        <div class="mb-6">
+            <div class="text-center mb-4">
+                <h2 class="text-2xl font-bold">
+                    GADU PĀRSKATS
+                </h2>
+                <p class="text-lg text-gray-600 dark:text-gray-400">
+                    Saimnieciskās darbības ieņēmumu un izdevumu žurnāls
+                </p>
+            </div>
+            
+            <div class="fi-ta-ctn rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden">
+                <table class="fi-ta-table w-full text-start divide-y divide-gray-200 dark:divide-white/5">
+                    <thead class="bg-gray-50 dark:bg-white/5">
+                        <tr>
+                            <th class="px-4 py-3 text-start text-sm font-medium text-gray-950 dark:text-white">Gads</th>
+                            <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Ieņēmumi</th>
+                            <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Izdevumi</th>
+                            <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Rezultāts</th>
+                            <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Atlikums gada beigās</th>
+                            <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white w-20"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-white/5">
+                        @foreach($yearlySummary as $yearData)
+                            <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+                                <td class="px-4 py-3 text-sm font-bold text-gray-950 dark:text-white">
+                                    {{ $yearData['year'] }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-end text-success-600 dark:text-success-400">
+                                    {{ number_format($yearData['income'], 2, ',', ' ') }} €
+                                </td>
+                                <td class="px-4 py-3 text-sm text-end text-danger-600 dark:text-danger-400">
+                                    {{ number_format($yearData['expense'], 2, ',', ' ') }} €
+                                </td>
+                                <td class="px-4 py-3 text-sm text-end font-medium {{ $yearData['result'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
+                                    {{ number_format($yearData['result'], 2, ',', ' ') }} €
+                                </td>
+                                <td class="px-4 py-3 text-sm text-end font-bold {{ $yearData['end_balance'] >= 0 ? 'text-gray-950 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
+                                    {{ number_format($yearData['end_balance'], 2, ',', ' ') }} €
+                                </td>
+                                <td class="px-4 py-3 text-end">
+                                    <x-filament::button
+                                        size="sm"
+                                        icon="heroicon-o-eye"
+                                        wire:click="selectYear({{ $yearData['year'] }})"
+                                    >
+                                        Atvērt
+                                    </x-filament::button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    @elseif($selectedMonth === null)
         {{-- Year Summary View --}}
         <div class="mb-6">
             <div class="text-center mb-4">
                 <h2 class="text-2xl font-bold">
-                    SAIMNIECISKĀS DARBĪBAS IEŅĒMUMU UN IZDEVUMU UZSKAITES ŽURNĀLS
+                    {{ $selectedYear }}. GADS
                 </h2>
-                <p class="text-lg text-gray-600 dark:text-gray-400">
-                    Par {{ $selectedYear }}. gadu
-                </p>
             </div>
 
             {{-- Summary Cards --}}
@@ -33,9 +88,9 @@
 
                 <x-filament::card>
                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Bilance {{ $selectedYear }}. gadā
+                        Atlikums uz {{ $selectedYear }}. gada beigām
                     </div>
-                    <div class="text-2xl font-bold {{ $summary['balance'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }} mt-2">
+                    <div class="text-2xl font-bold {{ $summary['balance'] >= 0 ? 'text-gray-950 dark:text-white' : 'text-danger-600 dark:text-danger-400' }} mt-2">
                         {{ number_format($summary['balance'], 2, ',', ' ') }} EUR
                     </div>
                 </x-filament::card>
@@ -66,7 +121,7 @@
                             <td class="px-4 py-3 text-sm text-end text-gray-950 dark:text-white">
                                 {{ number_format($summary['expense'], 2, ',', ' ') }} €
                             </td>
-                            <td class="px-4 py-3 text-sm text-end font-medium {{ $summary['balance'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
+                            <td class="px-4 py-3 text-sm text-end font-medium {{ $summary['balance'] >= 0 ? 'text-gray-950 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
                                 {{ number_format($summary['balance'], 2, ',', ' ') }} €
                             </td>
                             <td class="px-4 py-3 text-sm text-end">
@@ -84,14 +139,14 @@
                     
                     {{-- Total Row --}}
                     <tr class="bg-gray-50 dark:bg-white/5 font-bold">
-                        <td class="px-4 py-3 text-sm text-gray-950 dark:text-white">KOPĀ</td>
+                        <td class="px-4 py-3 text-sm text-gray-950 dark:text-white">GADA KOPĀ</td>
                         <td class="px-4 py-3 text-sm text-end text-success-600 dark:text-success-400">
                             {{ number_format(collect($monthlySummary)->sum('income'), 2, ',', ' ') }} €
                         </td>
                         <td class="px-4 py-3 text-sm text-end text-danger-600 dark:text-danger-400">
                             {{ number_format(collect($monthlySummary)->sum('expense'), 2, ',', ' ') }} €
                         </td>
-                        <td class="px-4 py-3 text-sm text-end {{ collect($monthlySummary)->last()['balance'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
+                        <td class="px-4 py-3 text-sm text-end {{ collect($monthlySummary)->last()['balance'] >= 0 ? 'text-gray-950 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
                             {{ number_format(collect($monthlySummary)->last()['balance'] ?? 0, 2, ',', ' ') }} €
                         </td>
                         <td></td>
@@ -136,10 +191,10 @@
 
                     <x-filament::card>
                         <div class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Bilance
+                            Bilance (Mēneša beigās)
                         </div>
-                        <div class="text-2xl font-bold {{ ($monthData['income'] - $monthData['expense']) >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }} mt-2">
-                            {{ number_format($monthData['income'] - $monthData['expense'], 2, ',', ' ') }} EUR
+                        <div class="text-2xl font-bold {{ $monthData['balance'] >= 0 ? 'text-gray-950 dark:text-white' : 'text-danger-600 dark:text-danger-400' }} mt-2">
+                            {{ number_format($monthData['balance'], 2, ',', ' ') }} EUR
                         </div>
                     </x-filament::card>
                 </div>
