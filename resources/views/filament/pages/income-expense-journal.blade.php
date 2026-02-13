@@ -202,53 +202,53 @@
         </div>
 
         {{-- VID Format Transactions Table (Full 24 Columns) --}}
-        <div class="overflow-x-auto">
-            <table class="w-full text-xs border-collapse border border-gray-300 dark:border-gray-700">
+        <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg">
+            <table class="w-full border-collapse border-2 border-gray-400 dark:border-gray-600" style="font-size: 10px;">
                 <thead>
-                    <tr class="bg-orange-200 dark:bg-orange-900">
-                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700">Ieraksta kārtas numurs</th>
-                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700">Datums</th>
-                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700">Dokumenta numurs (rēķina, personas vārds, uzvārds)</th>
-                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700">Saimnieciskā darbība (apraksts)</th>
-                        <th colspan="8" class="px-2 py-2 border border-gray-300 dark:border-gray-700 bg-green-100 dark:bg-green-900">Ieņēmumi, euro</th>
-                        <th colspan="13" class="px-2 py-2 border border-gray-300 dark:border-gray-700 bg-red-100 dark:bg-red-900">Izdevumi, euro</th>
+                    <tr class="bg-orange-200 dark:bg-orange-800">
+                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 40px;">Nr.</th>
+                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 70px;">Datums</th>
+                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 100px;">Dok. nr. (rēķ., pers. vārds)</th>
+                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 150px;">Saimn. darbība</th>
+                        <th colspan="8" class="px-1 py-2 border border-gray-400 dark:border-gray-600 bg-green-100 dark:bg-green-900 text-gray-900 dark:text-gray-100 font-bold">Ieņēmumi, euro</th>
+                        <th colspan="13" class="px-1 py-2 border border-gray-400 dark:border-gray-600 bg-red-100 dark:bg-red-900 text-gray-900 dark:text-gray-100 font-bold">Izdevumi, euro</th>
                     </tr>
-                    <tr class="bg-orange-100 dark:bg-orange-800 text-xs">
-                        {{-- Ieņēmumi --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Kase</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Maks. konts</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Citi maks. līdz.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Kopā</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Nav attiec.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Subsīd.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Neapl.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Nesaist.</th>
-                        {{-- Izdevumi --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Kase</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Maks. konts</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Citi maks. līdz.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Kopā</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Nav attiec.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Subsīd.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Nav saist.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Preces</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Pakalpoj.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Pamatl.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Nemat.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Darba sam.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Citi</th>
+                    <tr class="bg-orange-100 dark:bg-orange-700">
+                        {{-- Ieņēmumi kolonnas --}}
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Kase</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Maks. konts</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Citi maks.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nav attiec.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Subsīd.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Neapl.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nesaist.</th>
+                        {{-- Izdevumi kolonnas --}}
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Kase</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Maks. konts</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Citi maks.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nav attiec.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Subsīd.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nav saist.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Preces</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Pakalpoj.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Pamatl.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nemat.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Darba sam.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Citi</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="bg-white dark:bg-gray-900">
                     @foreach($vidMonthDetail as $row)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-center">{{ $row['entry_number'] }}</td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 whitespace-nowrap">{{ $row['date'] }}</td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700">{{ $row['account'] }}</td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700">
+                        <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center">{{ $row['entry_number'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap">{{ $row['date'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700">{{ $row['account'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700">
                                 <div>{{ $row['description'] }}</div>
                                 @if($row['category'])
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $row['category'] }}</div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">{{ $row['category'] }}</div>
                                 @endif
                             </td>
                             {{-- Ieņēmumi kolonnas 4-11 --}}
@@ -278,10 +278,10 @@
                     @endforeach
                     
                     {{-- Monthly Totals --}}
-                    <tr class="bg-gray-100 dark:bg-gray-800 font-bold">
-                        <td colspan="4" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">KOPĀ:</td>
+                    <tr class="bg-gray-200 dark:bg-gray-700 font-bold text-gray-900 dark:text-gray-100">
+                        <td colspan="4" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-right">KOPĀ:</td>
                         @for($col = 4; $col <= 24; $col++)
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                            <td class="px-1 py-1 border border-gray-400 dark:border-gray-600 text-right">
                                 {{ number_format(collect($vidMonthDetail)->where('vid_column', $col)->sum(fn($r) => $col >= 12 ? abs($r['amount']) : $r['amount']), 2, ',', ' ') }}
                             </td>
                         @endfor
