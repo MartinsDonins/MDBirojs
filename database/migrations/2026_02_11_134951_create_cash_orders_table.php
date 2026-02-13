@@ -13,11 +13,16 @@ return new class extends Migration
     {
         Schema::create('cash_orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('transaction_id')->unique()->constrained('transactions')->cascadeOnDelete();
-            $table->string('number'); // KIO-2024-001
-            $table->string('type'); // INCOME, EXPENSE
-            $table->string('basis')->nullable(); // Pamatojums
+            $table->foreignId('transaction_id')->nullable()->unique()->constrained('transactions')->nullOnDelete();
+            $table->foreignId('account_id')->constrained('accounts')->cascadeOnDelete(); // Kases konts
+            $table->string('number')->unique(); // KIO-2024-001 or KII-2024-001
+            $table->enum('type', ['INCOME', 'EXPENSE']); // Ienākums vai Izdevums
+            $table->decimal('amount', 15, 2); // Summa
+            $table->string('currency', 3)->default('EUR');
+            $table->date('date'); // Orderu datums
+            $table->text('basis')->nullable(); // Pamatojums
             $table->string('person')->nullable(); // Kam/No kā
+            $table->text('notes')->nullable(); // Papildu piezīmes
             $table->timestamps();
         });
     }
