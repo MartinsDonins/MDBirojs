@@ -201,22 +201,42 @@
             @endif
         </div>
 
-        {{-- VID Format Transactions Table --}}
+        {{-- VID Format Transactions Table (Full 24 Columns) --}}
         <div class="overflow-x-auto">
-            <table class="w-full text-sm border-collapse border border-gray-300 dark:border-gray-700">
+            <table class="w-full text-xs border-collapse border border-gray-300 dark:border-gray-700">
                 <thead>
-                    <tr class="bg-gray-100 dark:bg-gray-800">
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">Nr.</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">Datums</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">Apraksts</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">12<br>Maks. konts</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">13<br>Bizness ieņ.</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">14<br>Citi maks.</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">17<br>Neapl. ieņ.</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">19<br>Bizness izd.</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">20<br>Pakalpoj.</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">21<br>Citi izd.</th>
-                        <th class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-xs">23<br>Neapl. izd.</th>
+                    <tr class="bg-orange-200 dark:bg-orange-900">
+                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700">Ieraksta kārtas numurs</th>
+                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700">Datums</th>
+                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700">Dokumenta numurs (rēķina, personas vārds, uzvārds)</th>
+                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700">Saimnieciskā darbība (apraksts)</th>
+                        <th colspan="8" class="px-2 py-2 border border-gray-300 dark:border-gray-700 bg-green-100 dark:bg-green-900">Ieņēmumi, euro</th>
+                        <th colspan="13" class="px-2 py-2 border border-gray-300 dark:border-gray-700 bg-red-100 dark:bg-red-900">Izdevumi, euro</th>
+                    </tr>
+                    <tr class="bg-orange-100 dark:bg-orange-800 text-xs">
+                        {{-- Ieņēmumi --}}
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Kase</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Maks. konts</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Citi maks. līdz.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Nav attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Subsīd.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Neapl.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-800">Nesaist.</th>
+                        {{-- Izdevumi --}}
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Kase</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Maks. konts</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Citi maks. līdz.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Nav attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Subsīd.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Nav saist.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Preces</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Pakalpoj.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Pamatl.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Nemat.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Darba sam.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-800">Citi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -224,82 +244,47 @@
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                             <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-center">{{ $row['entry_number'] }}</td>
                             <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 whitespace-nowrap">{{ $row['date'] }}</td>
+                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700">{{ $row['account'] }}</td>
                             <td class="px-2 py-2 border border-gray-300 dark:border-gray-700">
-                                <div class="text-xs">{{ $row['description'] }}</div>
+                                <div>{{ $row['description'] }}</div>
                                 @if($row['category'])
                                     <div class="text-xs text-gray-500 dark:text-gray-400">{{ $row['category'] }}</div>
                                 @endif
                             </td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">
-                                @if($row['vid_column'] == 12)
-                                    {{ number_format(abs($row['amount']), 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-success-600 dark:text-success-400">
-                                @if($row['vid_column'] == 13)
-                                    {{ number_format($row['amount'], 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">
-                                @if($row['vid_column'] == 14)
-                                    {{ number_format(abs($row['amount']), 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-success-600 dark:text-success-400">
-                                @if($row['vid_column'] == 17)
-                                    {{ number_format($row['amount'], 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-danger-600 dark:text-danger-400">
-                                @if($row['vid_column'] == 19)
-                                    {{ number_format(abs($row['amount']), 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-danger-600 dark:text-danger-400">
-                                @if($row['vid_column'] == 20)
-                                    {{ number_format(abs($row['amount']), 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">
-                                @if($row['vid_column'] == 21)
-                                    {{ number_format(abs($row['amount']), 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">
-                                @if($row['vid_column'] == 23)
-                                    {{ number_format(abs($row['amount']), 2, ',', ' ') }}
-                                @endif
-                            </td>
+                            {{-- Ieņēmumi kolonnas 4-11 --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 4){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 5){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 6){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 7){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 8){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 9){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 10){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 11){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
+                            {{-- Izdevumi kolonnas 12-24 --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 12){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 13){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 14){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 15){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 16){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 17){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 18){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 19){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 20){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 21){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 22){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 23){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 24){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
                         </tr>
                     @endforeach
                     
                     {{-- Monthly Totals --}}
                     <tr class="bg-gray-100 dark:bg-gray-800 font-bold">
-                        <td colspan="3" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">KOPĀ:</td>
-                        <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">
-                            {{ number_format(collect($vidMonthDetail)->where('vid_column', 12)->sum(fn($r) => abs($r['amount'])), 2, ',', ' ') }}
-                        </td>
-                        <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-success-600 dark:text-success-400">
-                            {{ number_format(collect($vidMonthDetail)->where('vid_column', 13)->sum('amount'), 2, ',', ' ') }}
-                        </td>
-                        <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">
-                            {{ number_format(collect($vidMonthDetail)->where('vid_column', 14)->sum(fn($r) => abs($r['amount'])), 2, ',', ' ') }}
-                        </td>
-                        <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-success-600 dark:text-success-400">
-                            {{ number_format(collect($vidMonthDetail)->where('vid_column', 17)->sum('amount'), 2, ',', ' ') }}
-                        </td>
-                        <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-danger-600 dark:text-danger-400">
-                            {{ number_format(collect($vidMonthDetail)->where('vid_column', 19)->sum(fn($r) => abs($r['amount'])), 2, ',', ' ') }}
-                        </td>
-                        <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-danger-600 dark:text-danger-400">
-                            {{ number_format(collect($vidMonthDetail)->where('vid_column', 20)->sum(fn($r) => abs($r['amount'])), 2, ',', ' ') }}
-                        </td>
-                        <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">
-                            {{ number_format(collect($vidMonthDetail)->where('vid_column', 21)->sum(fn($r) => abs($r['amount'])), 2, ',', ' ') }}
-                        </td>
-                        <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">
-                            {{ number_format(collect($vidMonthDetail)->where('vid_column', 23)->sum(fn($r) => abs($r['amount'])), 2, ',', ' ') }}
-                        </td>
+                        <td colspan="4" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">KOPĀ:</td>
+                        @for($col = 4; $col <= 24; $col++)
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                                {{ number_format(collect($vidMonthDetail)->where('vid_column', $col)->sum(fn($r) => $col >= 12 ? abs($r['amount']) : $r['amount']), 2, ',', ' ') }}
+                            </td>
+                        @endfor
                     </tr>
                 </tbody>
             </table>
