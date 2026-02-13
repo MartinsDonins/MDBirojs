@@ -19,8 +19,7 @@ FROM composer:latest AS composer
 WORKDIR /app
 COPY composer.json ./
 RUN composer config platform.php 8.3.30 \
-    && composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs \
-    && rm -f vendor/composer/platform_check.php
+    && composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
 
 COPY . .
 RUN composer dump-autoload --optimize
