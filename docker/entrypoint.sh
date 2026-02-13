@@ -21,8 +21,8 @@ echo "==> Running filament:upgrade..."
 
 # Explicitly publish assets to be safe
 echo "==> Publishing Filament & Livewire assets..."
-# php artisan filament:assets --force --no-interaction
-# php artisan livewire:publish --assets --force --no-interaction
+php artisan filament:assets --no-interaction
+php artisan livewire:publish --assets --no-interaction
 
 # Seed admin user if needed (seeds should be idempotent)
 echo "==> Seeding database..."
