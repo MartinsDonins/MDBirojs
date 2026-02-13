@@ -31,8 +31,9 @@ class TransactionNormalizationService
 
     protected function normalizeSwedbank(array $row): array
     {
-        // Example mapping based on common Swedbank CSV CSV structure
-        // 'Datums', 'Saņēmējs/Maksātājs', 'Apraksts', 'Summa', 'Valūta'
+        // Mapping for both CSV and XML formats
+        // CSV: 'Datums', 'Saņēmējs/Maksātājs', 'Apraksts', 'Summa', 'Valūta', 'Maksājuma atsauce'
+        // XML: Same keys from TransactionImportService parsing
         
         $amount = $this->parseAmount($row['Summa'] ?? 0);
         $currency = $row['Valūta'] ?? 'EUR';
@@ -44,6 +45,7 @@ class TransactionNormalizationService
             'currency' => $currency,
             'amount_eur' => $this->currencyService->convert($amount, $currency, 'EUR', $date),
             'counterparty_name' => $row['Saņēmējs/Maksātājs'] ?? null,
+            'counterparty_account' => $row['Kontrahenta konts'] ?? null,
             'description' => $row['Apraksts'] ?? null,
             'reference' => $row['Maksājuma atsauce'] ?? null,
             'type' => $amount > 0 ? 'INCOME' : 'EXPENSE',
