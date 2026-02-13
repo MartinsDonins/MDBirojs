@@ -55,7 +55,7 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->renderHook('panels::footer', function () {
-                $version = 'v' . trim(exec('git log -1 --format="%h (%cd)" --date=short') ?: '0.0.0');
+                $version = 'v0.1.0 (' . date('Y-m-d') . ')';
                 return view('filament.hooks.footer', ['version' => $version]);
             });
     }

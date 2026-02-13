@@ -43,7 +43,62 @@
         </div>
 
         {{-- Monthly Summary Table --}}
-        {{ $this->table }}
+        <div class="fi-ta-ctn rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden">
+            <table class="fi-ta-table w-full text-start divide-y divide-gray-200 dark:divide-white/5">
+                <thead class="bg-gray-50 dark:bg-white/5">
+                    <tr>
+                        <th class="px-4 py-3 text-start text-sm font-medium text-gray-950 dark:text-white">Mēnesis</th>
+                        <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Ieņēmumi (EUR)</th>
+                        <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Izdevumi (EUR)</th>
+                        <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Bilance (EUR)</th>
+                        <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white w-10"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-white/5">
+                    @foreach($monthlySummary as $summary)
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+                            <td class="px-4 py-3 text-sm text-gray-950 dark:text-white">
+                                {{ $summary['month'] }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-end text-gray-950 dark:text-white">
+                                {{ number_format($summary['income'], 2, ',', ' ') }} €
+                            </td>
+                            <td class="px-4 py-3 text-sm text-end text-gray-950 dark:text-white">
+                                {{ number_format($summary['expense'], 2, ',', ' ') }} €
+                            </td>
+                            <td class="px-4 py-3 text-sm text-end font-medium {{ $summary['balance'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
+                                {{ number_format($summary['balance'], 2, ',', ' ') }} €
+                            </td>
+                            <td class="px-4 py-3 text-sm text-end">
+                                <x-filament::button
+                                    size="xs"
+                                    color="gray"
+                                    icon="heroicon-o-eye"
+                                    wire:click="viewMonthDetails({{ $summary['month_number'] }})"
+                                >
+                                    Skatīt
+                                </x-filament::button>
+                            </td>
+                        </tr>
+                    @endforeach
+                    
+                    {{-- Total Row --}}
+                    <tr class="bg-gray-50 dark:bg-white/5 font-bold">
+                        <td class="px-4 py-3 text-sm text-gray-950 dark:text-white">KOPĀ</td>
+                        <td class="px-4 py-3 text-sm text-end text-success-600 dark:text-success-400">
+                            {{ number_format(collect($monthlySummary)->sum('income'), 2, ',', ' ') }} €
+                        </td>
+                        <td class="px-4 py-3 text-sm text-end text-danger-600 dark:text-danger-400">
+                            {{ number_format(collect($monthlySummary)->sum('expense'), 2, ',', ' ') }} €
+                        </td>
+                        <td class="px-4 py-3 text-sm text-end {{ collect($monthlySummary)->last()['balance'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
+                            {{ number_format(collect($monthlySummary)->last()['balance'] ?? 0, 2, ',', ' ') }} €
+                        </td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
     @else
         {{-- Month Detail View --}}

@@ -46,55 +46,6 @@ class IncomeExpenseJournal extends Page implements HasTable
 
     public function table(Table $table): Table
     {
-        // If month is selected, show detailed transactions
-        if ($this->selectedMonth !== null) {
-            return $this->getMonthDetailTable($table);
-        }
-        
-        // Otherwise show monthly summary
-        return $this->getMonthlySummaryTable($table);
-    }
-
-    protected function getMonthlySummaryTable(Table $table): Table
-    {
-        return $table
-            ->query(
-                // Dummy query - we'll use custom data
-                Transaction::query()->whereRaw('1 = 0')
-            )
-            ->columns([
-                Tables\Columns\TextColumn::make('month')
-                    ->label('Mēnesis')
-                    ->sortable(false),
-                    
-                Tables\Columns\TextColumn::make('income')
-                    ->label('Ieņēmumi (EUR)')
-                    ->money('EUR')
-                    ->alignEnd(),
-                    
-                Tables\Columns\TextColumn::make('expense')
-                    ->label('Izdevumi (EUR)')
-                    ->money('EUR')
-                    ->alignEnd(),
-                    
-                Tables\Columns\TextColumn::make('balance')
-                    ->label('Bilance (EUR)')
-                    ->money('EUR')
-                    ->alignEnd()
-                    ->color(fn ($state) => $state >= 0 ? 'success' : 'danger'),
-            ])
-            ->actions([
-                Tables\Actions\Action::make('view_details')
-                    ->label('Skatīt')
-                    ->icon('heroicon-o-eye')
-                    ->action(fn ($record) => $this->viewMonthDetails($record['month_number'])),
-            ])
-            ->paginated(false)
-            ->records(fn () => $this->monthlySummary);
-    }
-
-    protected function getMonthDetailTable(Table $table): Table
-    {
         return $table
             ->query($this->getMonthDetailQuery())
             ->columns([
@@ -132,6 +83,9 @@ class IncomeExpenseJournal extends Page implements HasTable
             ->defaultSort('occurred_at', 'asc')
             ->paginated([25, 50, 100]);
     }
+
+
+
 
     protected function getMonthDetailQuery(): Builder
     {
