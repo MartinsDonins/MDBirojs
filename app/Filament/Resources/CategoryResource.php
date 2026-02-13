@@ -31,6 +31,20 @@ class CategoryResource extends Resource
                         'INCOME' => 'Income',
                         'EXPENSE' => 'Expense',
                     ]),
+                Forms\Components\Select::make('vid_column')
+                    ->label('VID Kolonna')
+                    ->options([
+                        12 => '12 - Maksājumu konts',
+                        13 => '13 - Ieņēmumi no saimnieciskās darbības',
+                        14 => '14 - Citi maksājuma līdzekļi',
+                        17 => '17 - Ieņēmumi, kas nav apliekami',
+                        19 => '19 - Izdevumi no saimnieciskās darbības',
+                        20 => '20 - Izdevumi par pakalpojumiem',
+                        21 => '21 - Citi izdevumi',
+                        23 => '23 - Izdevumi, kas nav apliekami',
+                    ])
+                    ->nullable()
+                    ->helperText('VID žurnāla kolonnas numurs'),
                 Forms\Components\Select::make('parent_id')
                     ->relationship('parent', 'name')
                     ->searchable()
@@ -51,6 +65,11 @@ class CategoryResource extends Resource
                         'success' => 'INCOME',
                         'danger' => 'EXPENSE',
                     ]),
+                Tables\Columns\TextColumn::make('vid_column')
+                    ->label('VID Kolonna')
+                    ->badge()
+                    ->color('info')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('parent.name')
                     ->label('Parent Category')
                     ->sortable(),
