@@ -147,14 +147,6 @@ class TransactionResource extends Resource
                     ->selectablePlaceholder(false)
                     ->sortable(),
             ])
-            ->contentGrid([
-                'md' => 2,
-                'xl' => 3,
-            ])
-            ->expandableRowContent(fn (Transaction $record): string => view(
-                'filament.resources.transaction-resource.expandable-row',
-                ['record' => $record],
-            ))
             ->filters([
                 Tables\Filters\SelectFilter::make('account')
                     ->label('Konts')
@@ -180,7 +172,7 @@ class TransactionResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
-            ->recordAction(Tables\Actions\ExpandAction::class)
+            ->recordAction('view')
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
