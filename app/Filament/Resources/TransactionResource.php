@@ -164,10 +164,10 @@ class TransactionResource extends Resource
                     Tables\Actions\BulkAction::make('run_rules')
                         ->label('Run Rules')
                         ->icon('heroicon-o-play')
-                        ->action(function (Illuminate\Database\Eloquent\Collection $records, \App\Services\RuleEngineService $ruleEngine) {
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records, \App\Services\AutoApprovalService $autoApprovalService) {
                             $count = 0;
                             foreach ($records as $record) {
-                                if ($ruleEngine->applyRules($record)) {
+                                if ($autoApprovalService->processTransaction($record)) {
                                     $count++;
                                 }
                             }
