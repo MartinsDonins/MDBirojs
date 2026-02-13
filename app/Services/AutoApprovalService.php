@@ -32,6 +32,11 @@ class AutoApprovalService
             return true;
         }
 
+        if ($this->isBankFee($transaction)) {
+            $this->applyRuleAndApprove($transaction, 'bank_fee');
+            return true;
+        }
+
         if ($similarTransaction = $this->findSimilarTransaction($transaction)) {
             $this->applyRuleAndApprove($transaction, 'similar_transaction', $similarTransaction);
             return true;
@@ -146,6 +151,17 @@ class AutoApprovalService
                 $transaction->category_id = $category->id;
                 break;
 
+            case 'bank_fee':
+                $transaction->status = 'COMPLETED';
+                $transaction->type = 'EXPENSE'; // Ensure it's expense
+                
+                $category = \App\Models\Category::firstOrCreate(
+                    ['name' => 'Bankas komisijas'],
+                    ['type' => 'EXPENSE'] // Create as Expense category
+                );
+                $transaction->category_id = $category->id;
+                break;
+
             case 'similar_transaction':
                 if ($similarTransaction && $similarTransaction->category_id) {
                     $transaction->status = 'COMPLETED';
@@ -192,5 +208,28 @@ class AutoApprovalService
         }
 
         return $stats;
+    }
+
+    /**
+     * Check if transaction is a bank fee.
+     */
+    protected function isBankFee(Transaction $transaction): bool
+    {
+        // 1. Check raw payload for bank code
+        if (isset($transaction->raw_payload['Bankas_kods']) && $transaction->raw_payload['Bankas_kods'] === 'KOM') {
+            return true;
+        }
+
+        // 2. Check description for keywords
+        $description = strtolower($transaction->description ?? '');
+        $feeKeywords = ['komisija', 'commission', 'apkalpošanas maksa', 'service fee', 'bankas pakalpojumi', 'komisija par'];
+        
+        foreach ($feeKeywords as $keyword) {
+            if (str_contains($description, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

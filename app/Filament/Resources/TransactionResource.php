@@ -127,15 +127,21 @@ class TransactionResource extends Resource
                 Tables\Columns\TextColumn::make('category.name')
                     ->badge()
                     ->color('gray'),
-                Tables\Columns\TextColumn::make('type')
-                    ->badge(),
-                Tables\Columns\TextColumn::make('status')
-                    ->badge()
-                    ->colors([
-                        'warning' => 'DRAFT',
-                        'success' => 'COMPLETED',
-                        'danger' => 'NEEDS_REVIEW',
-                    ]),
+                Tables\Columns\SelectColumn::make('type')
+                    ->options([
+                        'INCOME' => 'Income',
+                        'EXPENSE' => 'Expense',
+                        'TRANSFER' => 'Transfer',
+                        'FEE' => 'Fee',
+                    ])
+                    ->sortable(),
+                Tables\Columns\SelectColumn::make('status')
+                    ->options([
+                        'DRAFT' => 'Draft',
+                        'COMPLETED' => 'Completed',
+                        'NEEDS_REVIEW' => 'Needs Review',
+                    ])
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('account')
@@ -148,8 +154,10 @@ class TransactionResource extends Resource
                     ]),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
+            ->recordAction(fn (Transaction $record) => 'view') // Click row to view details
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

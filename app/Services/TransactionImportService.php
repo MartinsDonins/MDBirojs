@@ -162,6 +162,10 @@ class TransactionImportService
                 // Reference
                 $reference = (string) ($txDtls->xpath('camt:Refs/camt:EndToEndId')[0] ?? '');
             }
+
+            // Extract Bank Transaction Code (Prtry/Cd)
+            // Path: BkTxCd -> Prtry -> Cd
+            $bankCode = (string) ($ntry->xpath('camt:BkTxCd/camt:Prtry/camt:Cd')[0] ?? '');
             
             // Build entry array
             $entries[] = [
@@ -172,6 +176,7 @@ class TransactionImportService
                 'Valūta' => $currency,
                 'Maksājuma atsauce' => $reference,
                 'Kontrahenta konts' => $counterpartyAccount,
+                'Bankas_kods' => $bankCode,
             ];
         }
         

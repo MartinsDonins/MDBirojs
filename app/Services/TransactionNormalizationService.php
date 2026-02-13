@@ -50,7 +50,7 @@ class TransactionNormalizationService
             'reference' => $row['Maksājuma atsauce'] ?? null,
             'type' => $amount > 0 ? 'INCOME' : 'EXPENSE',
             'status' => 'DRAFT',
-            'raw_payload' => $row,
+            'raw_payload' => array_merge($row, ['Bankas_kods' => $row['Bankas_kods'] ?? null]),
             'fingerprint' => $this->generateFingerprint($row),
         ];
     }
