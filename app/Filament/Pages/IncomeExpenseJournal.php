@@ -75,23 +75,13 @@ class IncomeExpenseJournal extends Page implements HasTable
                     ->label('Ieņēmumi (EUR)')
                     ->money('EUR')
                     ->getStateUsing(fn ($record) => $record->type === 'INCOME' ? $record->amount : null)
-                    ->alignEnd()
-                    ->summarize([
-                        Tables\Columns\Summarizers\Sum::make()
-                            ->money('EUR')
-                            ->label('Kopā ieņēmumi'),
-                    ]),
+                    ->alignEnd(),
                     
                 Tables\Columns\TextColumn::make('expense')
                     ->label('Izdevumi (EUR)')
                     ->money('EUR')
                     ->getStateUsing(fn ($record) => $record->type === 'EXPENSE' ? abs($record->amount) : null)
-                    ->alignEnd()
-                    ->summarize([
-                        Tables\Columns\Summarizers\Sum::make()
-                            ->money('EUR')
-                            ->label('Kopā izdevumi'),
-                    ]),
+                    ->alignEnd(),
                     
                 Tables\Columns\TextColumn::make('account.name')
                     ->label('Konts')
