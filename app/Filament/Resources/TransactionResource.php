@@ -128,36 +128,59 @@ class TransactionResource extends Resource
                     ->badge()
                     ->color('gray'),
                 Tables\Columns\SelectColumn::make('type')
+                    ->label('Tips')
                     ->options([
-                        'INCOME' => 'Income',
-                        'EXPENSE' => 'Expense',
-                        'TRANSFER' => 'Transfer',
-                        'FEE' => 'Fee',
+                        'INCOME' => 'Ieņēmumi',
+                        'EXPENSE' => 'Izdevumi',
+                        'TRANSFER' => 'Pārskaitījums',
+                        'FEE' => 'Komisija',
                     ])
+                    ->selectablePlaceholder(false)
                     ->sortable(),
                 Tables\Columns\SelectColumn::make('status')
+                    ->label('Statuss')
                     ->options([
-                        'DRAFT' => 'Draft',
-                        'COMPLETED' => 'Completed',
-                        'NEEDS_REVIEW' => 'Needs Review',
+                        'DRAFT' => 'Melnraksts',
+                        'COMPLETED' => 'Pabeigts',
+                        'NEEDS_REVIEW' => 'Jāpārskata',
                     ])
+                    ->selectablePlaceholder(false)
                     ->sortable(),
             ])
+            ->contentGrid([
+                'md' => 2,
+                'xl' => 3,
+            ])
+            ->expandableRowContent(fn (Transaction $record): string => view(
+                'filament.resources.transaction-resource.expandable-row',
+                ['record' => $record],
+            ))
             ->filters([
                 Tables\Filters\SelectFilter::make('account')
+                    ->label('Konts')
                     ->relationship('account', 'name'),
                 Tables\Filters\SelectFilter::make('type')
+                    ->label('Tips')
                     ->options([
-                        'INCOME' => 'Income',
-                        'EXPENSE' => 'Expense',
-                        'TRANSFER' => 'Transfer',
+                        'INCOME' => 'Ieņēmumi',
+                        'EXPENSE' => 'Izdevumi',
+                        'TRANSFER' => 'Pārskaitījums',
+                        'FEE' => 'Komisija',
                     ]),
+                Tables\Filters\SelectFilter::make('status')
+                    ->label('Statuss')
+                    ->options([
+                        'DRAFT' => 'Melnraksts',
+                        'COMPLETED' => 'Pabeigts',
+                        'NEEDS_REVIEW' => 'Jāpārskata',
+                    ])
+                    ->default('DRAFT'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
-            ->recordAction(fn (Transaction $record) => 'view') // Click row to view details
+            ->recordAction(Tables\Actions\ExpandAction::class)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
@@ -171,7 +194,7 @@ class TransactionResource extends Resource
                                     $count++;
                                 }
                             }
-                            Filament\Notifications\Notification::make()
+                            \Filament\Notifications\Notification::make()
                                 ->title("Rules applied to {$count} transactions")
                                 ->success()
                                 ->send();
@@ -180,10 +203,10 @@ class TransactionResource extends Resource
                         ->label('Generate Cash Orders')
                         ->icon('heroicon-o-banknotes')
                         ->requiresConfirmation()
-                        ->action(function (Illuminate\Database\Eloquent\Collection $records, \App\Services\CashOrderService $cashOrderService) {
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records, \App\Services\CashOrderService $cashOrderService) {
                             $cashOrders = $cashOrderService->generateBatch($records->pluck('id')->toArray());
                             
-                            Filament\Notifications\Notification::make()
+                            \Filament\Notifications\Notification::make()
                                 ->title("Generated {count} cash orders", ['count' => count($cashOrders)])
                                 ->success()
                                 ->send();
