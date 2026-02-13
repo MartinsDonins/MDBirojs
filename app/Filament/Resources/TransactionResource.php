@@ -168,6 +168,19 @@ class TransactionResource extends Resource
                                 ->success()
                                 ->send();
                         }),
+                    Tables\Actions\BulkAction::make('generate_cash_orders')
+                        ->label('Generate Cash Orders')
+                        ->icon('heroicon-o-banknotes')
+                        ->requiresConfirmation()
+                        ->action(function (Illuminate\Database\Eloquent\Collection $records, App\Services\CashOrderService $cashOrderService) {
+                            $cashOrders = $cashOrderService->generateBatch($records->pluck('id')->toArray());
+                            
+                            Filament\Notifications\Notification::make()
+                                ->title("Generated {count} cash orders", ['count' => count($cashOrders)])
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                 ]),
             ])
             ->defaultSort('occurred_at', 'desc');
