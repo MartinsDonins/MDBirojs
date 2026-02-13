@@ -156,7 +156,7 @@ class TransactionResource extends Resource
                     Tables\Actions\BulkAction::make('run_rules')
                         ->label('Run Rules')
                         ->icon('heroicon-o-play')
-                        ->action(function (Illuminate\Database\Eloquent\Collection $records, App\Services\RuleEngineService $ruleEngine) {
+                        ->action(function (Illuminate\Database\Eloquent\Collection $records, \App\Services\RuleEngineService $ruleEngine) {
                             $count = 0;
                             foreach ($records as $record) {
                                 if ($ruleEngine->applyRules($record)) {
@@ -172,7 +172,7 @@ class TransactionResource extends Resource
                         ->label('Generate Cash Orders')
                         ->icon('heroicon-o-banknotes')
                         ->requiresConfirmation()
-                        ->action(function (Illuminate\Database\Eloquent\Collection $records, App\Services\CashOrderService $cashOrderService) {
+                        ->action(function (Illuminate\Database\Eloquent\Collection $records, \App\Services\CashOrderService $cashOrderService) {
                             $cashOrders = $cashOrderService->generateBatch($records->pluck('id')->toArray());
                             
                             Filament\Notifications\Notification::make()
