@@ -207,46 +207,46 @@
                 <thead>
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center">
                         {{-- 1. Ieraksta Identifikācija --}}
-                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10" style="min-width: 30px;">Nr.</th>
-                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-8 bg-gray-100 dark:bg-gray-800 z-10" style="min-width: 65px;">Datums</th>
-                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom" style="min-width: 100px;">Dok. nr.<br>un datums</th>
-                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom" style="min-width: 120px;">Partneris</th>
-                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom" style="min-width: 150px;">Apraksts</th>
-                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom" style="min-width: 80px;">Kategorija</th>
-                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom">Sasaite</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-8 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 65px;">Datums</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 100px;">Dok. nr.<br>un datums</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 120px;">Partneris</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 150px;">Apraksts</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 80px;">Kategorija</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100">Sasaite</th>
 
                         {{-- 2. Konti (Atlikums) --}}
                         @foreach($accounts as $acc)
-                            <th colspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30">{{ $acc->name }}</th>
+                            <th colspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 text-gray-900 dark:text-gray-100">{{ $acc->name }}</th>
                         @endforeach
 
                         {{-- 3. Ieņēmumu Analīze --}}
-                        <th colspan="5" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30">Ieņēmumi (EUR)</th>
+                        <th colspan="5" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-gray-100">Ieņēmumi (EUR)</th>
 
                         {{-- 4. Izdevumu Analīze --}}
-                        <th colspan="5" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30">Izdevumi (EUR)</th>
+                        <th colspan="5" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-gray-900 dark:text-gray-100">Izdevumi (EUR)</th>
                     </tr>
                     <tr class="bg-gray-50 dark:bg-gray-800/50 text-center text-[10px]">
                         {{-- Kontu apakškolonnas --}}
                         @foreach($accounts as $acc)
                             <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-green-600">Ieņ.</th>
                             <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-red-600">Izd.</th>
-                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800">Atlikums</th>
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Atlikums</th>
                         @endforeach
 
                         {{-- Ieņēmumu apakškolonnas --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Ieņēmumi no saimnieciskās darbības">Saimn.<br>darb.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Apgrozījums">Apgroz.<br>(12-14)</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Neapliekamie ieņēmumi">Neapl.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Ieņēmumi no saimnieciskās darbības">Saimn.<br>darb.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Apgrozījums">Apgroz.<br>(12-14)</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Neapliekamie ieņēmumi">Neapl.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">Kopā</th>
 
                         {{-- Izdevumu apakškolonnas --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Saistīti ar saimniecisko darbību">Saistīti<br>ar SD</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Proporcionāli sadalāmie">Prop.<br>sadal.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Nesaistītās izmaksas">Nesaist.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Saistīti ar saimniecisko darbību">Saistīti<br>ar SD</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Proporcionāli sadalāmie">Prop.<br>sadal.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Nesaistītās izmaksas">Nesaist.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">Kopā</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-900">
@@ -265,14 +265,25 @@
                             @click="expandedRows.includes({{ $row['entry_number'] }}) ? expandedRows = expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : expandedRows.push({{ $row['entry_number'] }})">
                             
                             {{-- 1. Identifikācija --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center sticky left-0 bg-inherit z-10 font-mono">{{ $row['entry_number'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center sticky left-0 bg-inherit z-10 font-mono font-bold text-xs" title="Ieraksta Nr.">{{ $row['entry_number'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-8 bg-inherit z-10">{{ $row['date'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all">{{ $row['document_details'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[100px]" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[150px]" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px]">{{ $row['category'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center">
+                            
+                            {{-- Kategorija (Interactive) --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 hover:underline"
+                                wire:click.stop="mountAction('editCategory', { transaction_id: {{ $row['transaction_id'] }} })"
+                                title="Klikšķiniet, lai mainītu kategoriju">
+                                {{ $row['category'] ?? '---' }}
+                            </td>
+                            
+                            {{-- Sasaite (Interactive) --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center hover:bg-gray-100 dark:hover:bg-gray-700"
+                                wire:click.stop="mountAction('editTransaction', { transaction_id: {{ $row['transaction_id'] }} })"
+                                title="Klikšķiniet, lai rediģētu darījuma detaļas">
                                 @if($row['category'] == 'Pārskaitījums') <span class="text-xs text-blue-500">↔</span> @endif
+                                <span class="text-[8px] text-gray-400 opacity-50 hover:opacity-100">✏️</span>
                             </td>
 
                             {{-- 2. Konti --}}

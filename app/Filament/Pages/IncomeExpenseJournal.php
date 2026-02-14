@@ -11,9 +11,15 @@ use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
-class IncomeExpenseJournal extends Page implements HasTable
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Actions\Action;
+use Filament\Forms;
+
+class IncomeExpenseJournal extends Page implements HasTable, HasActions
 {
     use InteractsWithTable;
+    use InteractsWithActions;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     
@@ -140,6 +146,7 @@ class IncomeExpenseJournal extends Page implements HasTable
             }
 
             $row = [
+                'transaction_id' => $transaction->id,
                 'entry_number' => $runningEntryNumber++,
                 'date' => $transaction->occurred_at->format('d.m.Y'),
                 'document_details' => $transaction->reference, // Document name/number
@@ -306,9 +313,82 @@ class IncomeExpenseJournal extends Page implements HasTable
         $this->calculateMonthData();
     }
 
-    public function backToYearSummary(): void
+    public function editCategoryAction(): Action
     {
-        $this->selectedMonth = null;
+        return Action::make('editCategory')
+            ->label('Mainīt kategoriju')
+            ->modalWidth('md')
+            ->form([
+                Forms\Components\Select::make('category_id')
+                    ->label('Kategorija')
+                    ->options(\App\Models\Category::query()->pluck('name', 'id'))
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('name')
+                            ->required()
+                            ->label('Nosaukums'),
+                        Forms\Components\Select::make('type')
+                            ->options([
+                                'INCOME' => 'Ieņēmumi',
+                                'EXPENSE' => 'Izdevumi',
+                            ])
+                            ->label('Veids'),
+                        Forms\Components\TextInput::make('vid_column')
+                            ->numeric()
+                            ->label('VID Kolonna (cipars)')
+                    ])
+                    ->createOptionUsing(function (array $data) {
+                        return \App\Models\Category::create($data)->id;
+                    }),
+            ])
+            ->fillForm(fn (array $arguments) => [
+                'category_id' => \App\Models\Transaction::find($arguments['transaction_id'])?->category_id,
+            ])
+            ->action(function (array $data, array $arguments) {
+                $transaction = \App\Models\Transaction::find($arguments['transaction_id']);
+                if ($transaction) {
+                    $transaction->update(['category_id' => $data['category_id']]);
+                    $this->calculateMonthData();
+                    
+                    \Filament\Notifications\Notification::make()
+                        ->title('Kategorija atjaunota')
+                        ->success()
+                        ->send();
+                }
+            });
+    }
+
+    public function editTransactionAction(): Action
+    {
+        return Action::make('editTransaction')
+            ->label('Rediģēt darījumu')
+            ->modalWidth('md')
+            ->form([
+                Forms\Components\TextInput::make('counterparty_name')
+                    ->label('Partneris'),
+                Forms\Components\TextInput::make('description')
+                    ->label('Apraksts')
+                    ->required(),
+                Forms\Components\TextInput::make('reference')
+                    ->label('Dokumenta detaļas'),
+                Forms\Components\TextInput::make('notes')
+                    ->label('Piezīmes (Sasaite)'),
+            ])
+            ->fillForm(fn (array $arguments) => \App\Models\Transaction::find($arguments['transaction_id'])?->toArray())
+            ->action(function (array $data, array $arguments) {
+                $transaction = \App\Models\Transaction::find($arguments['transaction_id']);
+                if ($transaction) {
+                    $transaction->update($data);
+                    $this->calculateMonthData();
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('Darījums saglabāts')
+                        ->success()
+                        ->send();
+                }
+            });
     }
 
     public function backToAllYears(): void
