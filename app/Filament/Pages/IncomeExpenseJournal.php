@@ -36,12 +36,15 @@ class IncomeExpenseJournal extends Page implements HasTable
     
     public array $yearlySummary = [];
     public array $monthlySummary = [];
+    public $accounts;
 
     public function mount(): void
     {
         // Start with overview of all years
         $this->selectedYear = null; 
         $this->selectedMonth = null;
+        
+        $this->accounts = \App\Models\Account::all();
         
         $this->calculateYearlySummary();
     }
@@ -112,12 +115,10 @@ class IncomeExpenseJournal extends Page implements HasTable
             $periodEnd = now()->endOfMonth();
         }
 
-        // Get all active accounts
-        $accounts = \App\Models\Account::all();
         
         // 1. Calculate Opening Balances for this period
         $openingBalances = [];
-        foreach($accounts as $acc) {
+        foreach($this->accounts as $acc) {
             // Sum of all transactions before period start
             $openingBalances[$acc->id] = Transaction::where('account_id', $acc->id)
                 ->where('occurred_at', '<', $periodStart)
@@ -169,7 +170,8 @@ class IncomeExpenseJournal extends Page implements HasTable
 
         return [
             'rows' => $data,
-            'accounts' => $accounts,
+            'rows' => $data,
+            'accounts' => $this->accounts,
             'opening_balances' => $openingBalances,
             'closing_balances' => $currentBalances,
         ];
