@@ -89,38 +89,30 @@ class IncomeExpenseJournal extends Page implements HasTable
             ->paginated([25, 50, 100]);
     }
 
-    public function getData(): array
-    {
-        $query = Transaction::query()
-            ->with(['account', 'category'])
-            ->orderBy('occurred_at')
-            ->orderBy('id');
+    public array $rows = [];
+    public array $opening_balances = [];
+    public array $closing_balances = [];
 
-        if ($this->selectedYear && $this->selectedMonth) {
-            $startDate = \Carbon\Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1)->startOfMonth();
-            $endDate = $startDate->copy()->endOfMonth();
-            
-            // We need to fetch all transactions before the end of the selected month 
-            // to correctly calculate running balances up to that point.
-            // However, for display, we only show rows from the selected month.
-            // A clearer approach: 
-            // 1. Get opening balances for all accounts at start of month
-            // 2. Get transactions for the month
-            
-            $periodStart = $startDate;
-            $periodEnd = $endDate;
-        } else {
-            // Default to current month if not selected
-            $periodStart = now()->startOfMonth();
-            $periodEnd = now()->endOfMonth();
+    public function calculateMonthData(): void
+    {
+        if (!$this->selectedYear || !$this->selectedMonth) {
+            $this->rows = [];
+            $this->opening_balances = [];
+            $this->closing_balances = [];
+            return;
         }
 
+        $startDate = \Carbon\Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1)->startOfMonth();
+        $endDate = $startDate->copy()->endOfMonth();
         
+        $periodStart = $startDate;
+        $periodEnd = $endDate;
+
         // 1. Calculate Opening Balances for this period
-        $openingBalances = [];
+        $this->opening_balances = [];
         foreach($this->accounts as $acc) {
             // Sum of all transactions before period start
-            $openingBalances[$acc->id] = Transaction::where('account_id', $acc->id)
+            $this->opening_balances[$acc->id] = Transaction::where('account_id', $acc->id)
                 ->where('occurred_at', '<', $periodStart)
                 ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN amount ELSE -amount END"));
         }
@@ -134,10 +126,10 @@ class IncomeExpenseJournal extends Page implements HasTable
             ->get();
 
         $data = [];
-        $runningEntryNumber = 1; // TODO: Should this be sequential from start of year? For now, relative to view.
+        $runningEntryNumber = 1; 
         
         // Initialize running balances with opening balances
-        $currentBalances = $openingBalances;
+        $currentBalances = $this->opening_balances;
 
         foreach ($transactions as $transaction) {
             // Update balance for the specific account
@@ -168,13 +160,13 @@ class IncomeExpenseJournal extends Page implements HasTable
             $data[] = $row;
         }
 
-        return [
-            'rows' => $data,
-            'rows' => $data,
-            'accounts' => $this->accounts,
-            'opening_balances' => $openingBalances,
-            'closing_balances' => $currentBalances,
-        ];
+        $this->rows = $data;
+        $this->closing_balances = $currentBalances;
+    }
+
+    protected function getViewData(): array
+    {
+        return [];
     }
 
     protected function getMonthDetailQuery(): Builder
@@ -311,6 +303,7 @@ class IncomeExpenseJournal extends Page implements HasTable
     public function viewMonthDetails(int $month): void
     {
         $this->selectedMonth = $month;
+        $this->calculateMonthData();
     }
 
     public function backToYearSummary(): void
