@@ -86,18 +86,94 @@ class IncomeExpenseJournal extends Page implements HasTable
             ->paginated([25, 50, 100]);
     }
 
-    protected function getMonthDetailQuery(): Builder
+    public function getData(): array
     {
-        return Transaction::query()
-            ->with(['category', 'account'])
-            ->where('status', 'COMPLETED')
-            ->whereIn('type', ['INCOME', 'EXPENSE'])
-            ->whereYear('occurred_at', $this->selectedYear)
-            ->whereMonth('occurred_at', $this->selectedMonth);
-    }
+        $query = Transaction::query()
+            ->with(['account', 'category'])
+            ->orderBy('occurred_at')
+            ->orderBy('id');
 
-    protected function calculateYearlySummary(): void
-    {
+        if ($this->selectedYear && $this->selectedMonth) {
+            $startDate = \Carbon\Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1)->startOfMonth();
+            $endDate = $startDate->copy()->endOfMonth();
+            
+            // We need to fetch all transactions before the end of the selected month 
+            // to correctly calculate running balances up to that point.
+            // However, for display, we only show rows from the selected month.
+            // A clearer approach: 
+            // 1. Get opening balances for all accounts at start of month
+            // 2. Get transactions for the month
+            
+            $periodStart = $startDate;
+            $periodEnd = $endDate;
+        } else {
+            // Default to current month if not selected
+            $periodStart = now()->startOfMonth();
+            $periodEnd = now()->endOfMonth();
+        }
+
+        // Get all active accounts
+        $accounts = \App\Models\Account::all();
+        
+        // 1. Calculate Opening Balances for this period
+        $openingBalances = [];
+        foreach($accounts as $acc) {
+            // Sum of all transactions before period start
+            $openingBalances[$acc->id] = Transaction::where('account_id', $acc->id)
+                ->where('occurred_at', '<', $periodStart)
+                ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN amount ELSE -amount END"));
+        }
+
+        // 2. Get transactions for the selected period
+        $transactions = Transaction::with(['account', 'category'])
+            ->where('occurred_at', '>=', $periodStart)
+            ->where('occurred_at', '<=', $periodEnd)
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->get();
+
+        $data = [];
+        $runningEntryNumber = 1; // TODO: Should this be sequential from start of year? For now, relative to view.
+        
+        // Initialize running balances with opening balances
+        $currentBalances = $openingBalances;
+
+        foreach ($transactions as $transaction) {
+            // Update balance for the specific account
+            if ($transaction->type === 'INCOME') {
+                $currentBalances[$transaction->account_id] += $transaction->amount;
+            } else {
+                 $currentBalances[$transaction->account_id] -= abs($transaction->amount);
+            }
+
+            $row = [
+                'entry_number' => $runningEntryNumber++,
+                'date' => $transaction->occurred_at->format('d.m.Y'),
+                'document_details' => $transaction->reference, // Document name/number
+                'partner' => $transaction->counterparty_name,
+                'description' => $transaction->description,
+                'category' => $transaction->category?->name,
+                'category_vid_column' => $transaction->category?->vid_column,
+                
+                // Account specific data
+                'transaction_account_id' => $transaction->account_id,
+                'transaction_amount' => $transaction->amount,
+                'transaction_type' => $transaction->type,
+                
+                // Snapshot of balances AFTER this transaction
+                'account_balances' => $currentBalances, 
+            ];
+            
+            $data[] = $row;
+        }
+
+        return [
+            'rows' => $data,
+            'accounts' => $accounts,
+            'opening_balances' => $openingBalances,
+            'closing_balances' => $currentBalances,
+        ];
+    }
         $yearlyData = Transaction::query()
             ->where('status', 'COMPLETED')
             ->selectRaw('

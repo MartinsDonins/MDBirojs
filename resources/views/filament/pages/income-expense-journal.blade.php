@@ -201,90 +201,176 @@
             @endif
         </div>
 
-        {{-- VID Format Transactions Table (Full 24 Columns) --}}
-        <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg">
-            <table class="w-full border-collapse border-2 border-gray-400 dark:border-gray-600" style="font-size: 10px;">
+        {{-- Dynamic Account Journal Table --}}
+        <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm" x-data="{ expandedRows: [] }">
+            <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                 <thead>
-                    <tr class="bg-orange-200 dark:bg-orange-800">
-                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 40px;">1<br>Nr.</th>
-                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 70px;">2<br>Datums</th>
-                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 100px;">3<br>Dok. nr.</th>
-                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 150px;">4<br>Apraksts</th>
-                        <th colspan="8" class="px-1 py-2 border border-gray-400 dark:border-gray-600 bg-green-100 dark:bg-green-900 text-gray-900 dark:text-gray-100 font-bold">Ieņēmumi, euro</th>
-                        <th colspan="13" class="px-1 py-2 border border-gray-400 dark:border-gray-600 bg-red-100 dark:bg-red-900 text-gray-900 dark:text-gray-100 font-bold">Izdevumi, euro</th>
+                    <tr class="bg-gray-100 dark:bg-gray-800 text-center">
+                        {{-- 1. Ieraksta Identifikācija --}}
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10" style="min-width: 30px;">Nr.</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-8 bg-gray-100 dark:bg-gray-800 z-10" style="min-width: 65px;">Datums</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom" style="min-width: 100px;">Dok. nr.<br>un datums</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom" style="min-width: 120px;">Partneris</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom" style="min-width: 150px;">Apraksts</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom" style="min-width: 80px;">Kategorija</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom">Sasaite</th>
+
+                        {{-- 2. Konti (Atlikums) --}}
+                        @foreach($accounts as $acc)
+                            <th colspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30">{{ $acc->name }}</th>
+                        @endforeach
+
+                        {{-- 3. Ieņēmumu Analīze --}}
+                        <th colspan="5" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30">Ieņēmumi (EUR)</th>
+
+                        {{-- 4. Izdevumu Analīze --}}
+                        <th colspan="5" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30">Izdevumi (EUR)</th>
                     </tr>
-                    <tr class="bg-orange-100 dark:bg-orange-700">
-                        {{-- Ieņēmumi kolonnas --}}
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">5<br>Kase</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">6<br>Maks. konts</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">7<br>Citi maks.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">8<br>Kopā</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">9<br>Nav attiec.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">10<br>Subsīd.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">11<br>Neapl.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">12<br>Nesaist.</th>
-                        {{-- Izdevumi kolonnas --}}
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">13<br>Kase</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">14<br>Maks. konts</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">15<br>Citi maks.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">16<br>Kopā</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">17<br>Nav attiec.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">18<br>Subsīd.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">19<br>Nav saist.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">20<br>Preces</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">21<br>Pakalpoj.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">22<br>Pamatl.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">23<br>Nemat.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">24<br>Darba sam.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">25<br>Citi</th>
+                    <tr class="bg-gray-50 dark:bg-gray-800/50 text-center text-[10px]">
+                        {{-- Kontu apakškolonnas --}}
+                        @foreach($accounts as $acc)
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-green-600">Ieņ.</th>
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-red-600">Izd.</th>
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800">Atlikums</th>
+                        @endforeach
+
+                        {{-- Ieņēmumu apakškolonnas --}}
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Ieņēmumi no saimnieciskās darbības">Saimn.<br>darb.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Apgrozījums">Apgroz.<br>(12-14)</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Neapliekamie ieņēmumi">Neapl.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold">Kopā</th>
+
+                        {{-- Izdevumu apakškolonnas --}}
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Saistīti ar saimniecisko darbību">Saistīti<br>ar SD</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Proporcionāli sadalāmie">Prop.<br>sadal.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Nesaistītās izmaksas">Nesaist.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold">Kopā</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-900">
-                    @foreach($vidMonthDetail as $row)
-                        <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center">{{ $row['entry_number'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap">{{ $row['date'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700">{{ $row['account'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700">
-                                <div>{{ $row['description'] }}</div>
-                                @if($row['category'])
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">{{ $row['category'] }}</div>
+                    {{-- Opening Balances Row --}}
+                    <tr class="bg-yellow-50 dark:bg-yellow-900/10 font-bold text-gray-700 dark:text-gray-300">
+                        <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">Sākuma atlikums:</td>
+                        @foreach($accounts as $acc)
+                            <td colspan="2" class="border border-gray-300 dark:border-gray-700"></td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">{{ number_format($opening_balances[$acc->id] ?? 0, 2, ',', ' ') }}</td>
+                        @endforeach
+                        <td colspan="10" class="border border-gray-300 dark:border-gray-700"></td>
+                    </tr>
+
+                    @foreach($rows as $row)
+                        <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" 
+                            @click="expandedRows.includes({{ $row['entry_number'] }}) ? expandedRows = expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : expandedRows.push({{ $row['entry_number'] }})">
+                            
+                            {{-- 1. Identifikācija --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center sticky left-0 bg-inherit z-10 font-mono">{{ $row['entry_number'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-8 bg-inherit z-10">{{ $row['date'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all">{{ $row['document_details'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[100px]" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[150px]" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px]">{{ $row['category'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center">
+                                @if($row['category'] == 'Pārskaitījums') <span class="text-xs text-blue-500">↔</span> @endif
+                            </td>
+
+                            {{-- 2. Konti --}}
+                            @foreach($accounts as $acc)
+                                {{-- Ieņēmumi (Ja šis konts un IN) --}}
+                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-green-600 dark:text-green-400">
+                                    @if($row['transaction_account_id'] == $acc->id && $row['transaction_type'] == 'INCOME')
+                                        {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
+                                    @endif
+                                </td>
+                                {{-- Izdevumi (Ja šis konts un EXP) --}}
+                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-red-600 dark:text-red-400">
+                                    @if($row['transaction_account_id'] == $acc->id && $row['transaction_type'] == 'EXPENSE')
+                                        {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
+                                    @endif
+                                </td>
+                                {{-- Running Balance --}}
+                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold bg-gray-50 dark:bg-gray-800/50 {{ ($row['account_balances'][$acc->id] ?? 0) < 0 ? 'text-red-600' : 'text-gray-700 dark:text-gray-300' }}">
+                                    {{ number_format($row['account_balances'][$acc->id] ?? 0, 2, ',', ' ') }}
+                                </td>
+                            @endforeach
+
+                            {{-- 3. Ieņēmumu Analīze (Logic mapping) --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                                @if($row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], [4,5,6])) {{-- Saimn. darb. --}}
+                                    {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
-                            {{-- Ieņēmumi kolonnas 4-11 --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 4){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 5){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 6){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 7){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 8){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 9){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 10){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 11){{ number_format($row['amount'], 2, ',', ' ') }}@endif</td>
-                            {{-- Izdevumi kolonnas 12-24 --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 12){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 13){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 14){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 15){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 16){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 17){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 18){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 19){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 20){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 21){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 22){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 23){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">@if($row['vid_column'] == 24){{ number_format(abs($row['amount']), 2, ',', ' ') }}@endif</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                                {{-- Apgrozījums logic? --}}
+                            </td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                                @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 10) {{-- Neapl --}}
+                                    {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
+                                @endif
+                            </td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                                @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 8) {{-- Nav attiec --}}
+                                    {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
+                                @endif
+                            </td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-green-600">
+                                @if($row['transaction_type'] == 'INCOME')
+                                    {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
+                                @endif
+                            </td>
+
+                            {{-- 4. Izdevumu Analīze (Logic mapping) --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                                @if($row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], [19,20,21,22])) {{-- Saistīti ar SD --}}
+                                    {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
+                                @endif
+                            </td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                                {{-- Prop. sadal. --}}
+                            </td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                                @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 18) {{-- Nesaist --}}
+                                    {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
+                                @endif
+                            </td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                                @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 16) {{-- Nav attiec --}}
+                                    {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
+                                @endif
+                            </td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-red-600">
+                                @if($row['transaction_type'] == 'EXPENSE')
+                                    {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
+                                @endif
+                            </td>
+                        </tr>
+                        
+                        {{-- Expandable Detail Row --}}
+                        <tr x-show="expandedRows.includes({{ $row['entry_number'] }})" class="bg-blue-50/50 dark:bg-blue-900/10">
+                            <td colspan="{{ 7 + (count($accounts) * 3) + 10 }}" class="px-4 py-2 border border-gray-300 dark:border-gray-700">
+                                <div class="grid grid-cols-2 gap-4 text-xs">
+                                    <div>
+                                        <strong>Pilns apraksts:</strong> {{ $row['description'] }}
+                                    </div>
+                                    <div>
+                                        <strong>Bankas info:</strong> {{ $row['partner'] }} ({{ $row['document_details'] }})
+                                    </div>
+                                </div>
+                            </td>
                         </tr>
                     @endforeach
                     
-                    {{-- Monthly Totals --}}
-                    <tr class="bg-gray-200 dark:bg-gray-700 font-bold text-gray-900 dark:text-gray-100">
-                        <td colspan="4" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-right">KOPĀ:</td>
-                        @for($col = 4; $col <= 24; $col++)
-                            <td class="px-1 py-1 border border-gray-400 dark:border-gray-600 text-right">
-                                {{ number_format(collect($vidMonthDetail)->where('vid_column', $col)->sum(fn($r) => $col >= 12 ? abs($r['amount']) : $r['amount']), 2, ',', ' ') }}
+                    {{-- Closing Balances Row --}}
+                    <tr class="bg-yellow-100 dark:bg-yellow-900/20 font-bold text-gray-800 dark:text-gray-200 border-t-2 border-gray-400">
+                        <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">Beigu atlikums:</td>
+                        @foreach($accounts as $acc)
+                            <td colspan="2" class="border border-gray-300 dark:border-gray-700"></td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right {{ ($closing_balances[$acc->id] ?? 0) < 0 ? 'text-red-600' : '' }}">
+                                {{ number_format($closing_balances[$acc->id] ?? 0, 2, ',', ' ') }}
                             </td>
-                        @endfor
+                        @endforeach
+                        <td colspan="10" class="border border-gray-300 dark:border-gray-700"></td>
                     </tr>
                 </tbody>
             </table>
