@@ -309,7 +309,6 @@ class IncomeExpenseJournal extends Page implements HasTable
     public function viewMonthDetails(int $month): void
     {
         $this->selectedMonth = $month;
-        $this->calculateVidMonthDetail();
     }
 
     public function backToYearSummary(): void
@@ -396,40 +395,5 @@ class IncomeExpenseJournal extends Page implements HasTable
         }
 
         return 'Saimnieciskās darbības ieņēmumu un izdevumu uzskaites žurnāls (Gadu Pārskats)';
-    }
-
-    public array $vidMonthDetail = [];
-
-    protected function calculateVidMonthDetail(): void
-    {
-        if (!$this->selectedYear || !$this->selectedMonth) {
-            $this->vidMonthDetail = [];
-            return;
-        }
-
-        $transactions = Transaction::query()
-            ->with(['category', 'account'])
-            ->where('status', 'COMPLETED')
-            ->whereYear('occurred_at', $this->selectedYear)
-            ->whereMonth('occurred_at', $this->selectedMonth)
-            ->orderBy('occurred_at', 'asc')
-            ->get();
-
-        $this->vidMonthDetail = [];
-        $entryNumber = 1;
-
-        foreach ($transactions as $transaction) {
-            $vidColumn = $transaction->category?->vid_column;
-            
-            $this->vidMonthDetail[] = [
-                'entry_number' => $entryNumber++,
-                'date' => $transaction->occurred_at->format('d.m.Y'),
-                'description' => $transaction->description ?? $transaction->counterparty_name,
-                'account' => $transaction->account?->name,
-                'amount' => $transaction->amount,
-                'vid_column' => $vidColumn,
-                'category' => $transaction->category?->name,
-            ];
-        }
     }
 }
