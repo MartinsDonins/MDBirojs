@@ -234,18 +234,18 @@
                         @endforeach
 
                         {{-- Ieņēmumu apakškolonnas --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Ieņēmumi no saimnieciskās darbības">Saimn.<br>darb.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Apgrozījums">Apgroz.<br>(12-14)</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Neapliekamie ieņēmumi">Neapl.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Ieņēmumi no saimnieciskās darbības">Saimn.<br>darb.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Apgrozījums">Apgroz.<br>(12-14)</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Neapliekamie ieņēmumi">Neapl.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-green-50 dark:bg-green-900 text-gray-900 dark:text-gray-100">Kopā</th>
 
                         {{-- Izdevumu apakškolonnas --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Saistīti ar saimniecisko darbību">Saistīti<br>ar SD</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Proporcionāli sadalāmie">Prop.<br>sadal.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Nesaistītās izmaksas">Nesaist.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Saistīti ar saimniecisko darbību">Saistīti<br>ar SD</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Proporcionāli sadalāmie">Prop.<br>sadal.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nesaistītās izmaksas">Nesaist.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-red-50 dark:bg-red-900 text-gray-900 dark:text-gray-100">Kopā</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-900">
@@ -260,7 +260,7 @@
                     </tr>
 
                     @foreach($rows as $row)
-                        <tr class="group hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" 
+                        <tr wire:key="row-{{ $row['entry_number'] }}" class="group hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" 
                             @click="expandedRows.includes({{ $row['entry_number'] }}) ? expandedRows = expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : expandedRows.push({{ $row['entry_number'] }})">
                             
                             {{-- 1. Identifikācija --}}
@@ -285,8 +285,10 @@
                                 <span class="text-[8px] text-gray-400 opacity-50 hover:opacity-100">✏️</span>
                             </td>
 
-                            {{-- Statuss --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center">
+                            {{-- Statuss (Interactive) --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                                wire:click.stop="mountAction('editStatus', { transaction_id: {{ $row['transaction_id'] }} })"
+                                title="Klikšķiniet, lai mainītu statusu">
                                 @if($row['status'] === 'COMPLETED')
                                     <span class="text-green-600 dark:text-green-400 text-lg" title="Apstiprināts">✓</span>
                                 @elseif($row['status'] === 'NEEDS_REVIEW')

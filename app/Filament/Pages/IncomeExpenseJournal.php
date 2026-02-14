@@ -455,6 +455,39 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
             ->send();
     }
 
+    public function editStatusAction(): Action
+    {
+        return Action::make('editStatus')
+            ->label('Mainīt statusu')
+            ->modalWidth('sm')
+            ->form([
+                Forms\Components\Select::make('status')
+                    ->label('Statuss')
+                    ->options([
+                        'DRAFT' => 'Melnraksts',
+                        'COMPLETED' => 'Apstiprināts',
+                        'NEEDS_REVIEW' => 'Nepieciešama pārbaude',
+                    ])
+                    ->required()
+                    ->native(false),
+            ])
+            ->fillForm(fn (array $arguments) => [
+                'status' => Transaction::find($arguments['transaction_id'])?->status,
+            ])
+            ->action(function (array $data, array $arguments) {
+                $transaction = Transaction::find($arguments['transaction_id']);
+                if ($transaction) {
+                    $transaction->update(['status' => $data['status']]);
+                    $this->calculateMonthData();
+                    
+                    \Filament\Notifications\Notification::make()
+                        ->title('Statuss mainīts')
+                        ->success()
+                        ->send();
+                }
+            });
+    }
+
     public function getTitle(): string
     {
         if ($this->selectedMonth !== null) {
