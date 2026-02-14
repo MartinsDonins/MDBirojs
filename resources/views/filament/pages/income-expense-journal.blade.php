@@ -228,8 +228,8 @@
                     <tr class="bg-gray-50 dark:bg-gray-800/50 text-center text-[10px]">
                         {{-- Kontu apakškolonnas --}}
                         @foreach($accounts as $acc)
-                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-green-600">Ieņ.</th>
-                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-red-600">Izd.</th>
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-green-600 dark:text-green-400 bg-gray-100 dark:bg-gray-800">Ieņ.</th>
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-red-600 dark:text-red-400 bg-gray-100 dark:bg-gray-800">Izd.</th>
                             <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Atlikums</th>
                         @endforeach
 
@@ -299,25 +299,25 @@
                             {{-- 2. Konti --}}
                             @foreach($accounts as $acc)
                                 {{-- Ieņēmumi (Ja šis konts un IN) --}}
-                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-green-600 dark:text-green-400">
+                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-green-600 dark:text-green-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
                                     @if($row['transaction_account_id'] == $acc->id && $row['transaction_type'] == 'INCOME')
                                         {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                     @endif
                                 </td>
                                 {{-- Izdevumi (Ja šis konts un EXP) --}}
-                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-red-600 dark:text-red-400">
+                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-red-600 dark:text-red-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
                                     @if($row['transaction_account_id'] == $acc->id && $row['transaction_type'] == 'EXPENSE')
                                         {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                     @endif
                                 </td>
                                 {{-- Running Balance --}}
-                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold bg-gray-50 dark:bg-gray-800/50 {{ ($row['account_balances'][$acc->id] ?? 0) < 0 ? 'text-red-600' : 'text-gray-700 dark:text-gray-300' }}">
+                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold bg-gray-50 dark:bg-gray-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 {{ ($row['account_balances'][$acc->id] ?? 0) < 0 ? 'text-red-600' : 'text-gray-900 dark:text-gray-100' }}">
                                     {{ number_format($row['account_balances'][$acc->id] ?? 0, 2, ',', ' ') }}
                                 </td>
                             @endforeach
 
                             {{-- 3. Ieņēmumu Analīze (Logic mapping) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
                                 @if($row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], [4,5,6])) {{-- Saimn. darb. --}}
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
@@ -325,24 +325,24 @@
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 {{-- Apgrozījums logic? --}}
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
                                 @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 10) {{-- Neapl --}}
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
                                 @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 8) {{-- Nav attiec --}}
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-green-600">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-green-600 dark:text-green-400">
                                 @if($row['transaction_type'] == 'INCOME')
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
 
                             {{-- 4. Izdevumu Analīze (Logic mapping) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
                                 @if($row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], [19,20,21,22])) {{-- Saistīti ar SD --}}
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
@@ -350,17 +350,17 @@
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 {{-- Prop. sadal. --}}
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
                                 @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 18) {{-- Nesaist --}}
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
                                 @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 16) {{-- Nav attiec --}}
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-red-600">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-red-600 dark:text-red-400">
                                 @if($row['transaction_type'] == 'EXPENSE')
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
