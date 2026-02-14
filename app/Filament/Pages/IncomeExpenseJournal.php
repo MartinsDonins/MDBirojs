@@ -174,6 +174,8 @@ class IncomeExpenseJournal extends Page implements HasTable
             'closing_balances' => $currentBalances,
         ];
     }
+    protected function calculateYearlySummary(): void
+    {
         $yearlyData = Transaction::query()
             ->where('status', 'COMPLETED')
             ->selectRaw('
