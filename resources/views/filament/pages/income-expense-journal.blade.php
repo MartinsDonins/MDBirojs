@@ -205,8 +205,6 @@
         <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm" x-data="{ expandedRows: [] }">
             <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                 <thead>
-                    <tr class="bg-gray-100 dark:bg-gray-800 text-center">
-                        {{-- 1. Ieraksta Identifikācija --}}
                         <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
                         <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-8 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 65px;">Datums</th>
                         <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 100px;">Dok. nr.<br>un datums</th>
@@ -214,6 +212,7 @@
                         <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 150px;">Apraksts</th>
                         <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 80px;">Kategorija</th>
                         <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100">Sasaite</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 40px;">Statuss</th>
 
                         {{-- 2. Konti (Atlikums) --}}
                         @foreach($accounts as $acc)
@@ -261,29 +260,40 @@
                     </tr>
 
                     @foreach($rows as $row)
-                        <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" 
+                        <tr class="group hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" 
                             @click="expandedRows.includes({{ $row['entry_number'] }}) ? expandedRows = expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : expandedRows.push({{ $row['entry_number'] }})">
                             
                             {{-- 1. Identifikācija --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center sticky left-0 bg-inherit z-10 font-mono font-bold text-xs" title="Ieraksta Nr.">{{ $row['entry_number'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-8 bg-inherit z-10">{{ $row['date'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all">{{ $row['document_details'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[100px]" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[150px]" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Ieraksta Nr.">{{ $row['entry_number'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-8 z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['date'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all text-gray-900 dark:text-gray-100">{{ $row['document_details'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[100px] text-gray-900 dark:text-gray-100" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[150px] text-gray-900 dark:text-gray-100" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
                             
                             {{-- Kategorija (Interactive) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 hover:underline"
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
                                 wire:click.stop="mountAction('editCategory', { transaction_id: {{ $row['transaction_id'] }} })"
                                 title="Klikšķiniet, lai mainītu kategoriju">
                                 {{ $row['category'] ?? '---' }}
                             </td>
                             
                             {{-- Sasaite (Interactive) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center hover:bg-gray-100 dark:hover:bg-gray-700"
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                                 wire:click.stop="mountAction('editTransaction', { transaction_id: {{ $row['transaction_id'] }} })"
                                 title="Klikšķiniet, lai rediģētu darījuma detaļas">
                                 @if($row['category'] == 'Pārskaitījums') <span class="text-xs text-blue-500">↔</span> @endif
                                 <span class="text-[8px] text-gray-400 opacity-50 hover:opacity-100">✏️</span>
+                            </td>
+
+                            {{-- Statuss --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center">
+                                @if($row['status'] === 'COMPLETED')
+                                    <span class="text-green-600 dark:text-green-400 text-lg" title="Apstiprināts">✓</span>
+                                @elseif($row['status'] === 'NEEDS_REVIEW')
+                                    <span class="text-orange-500 text-lg" title="Nepieciešama pārbaude">?</span>
+                                @else
+                                    <span class="text-gray-400 text-lg" title="Melnraksts">•</span>
+                                @endif
                             </td>
 
                             {{-- 2. Konti --}}
@@ -307,20 +317,20 @@
                             @endforeach
 
                             {{-- 3. Ieņēmumu Analīze (Logic mapping) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 @if($row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], [4,5,6])) {{-- Saimn. darb. --}}
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 {{-- Apgrozījums logic? --}}
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 10) {{-- Neapl --}}
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 8) {{-- Nav attiec --}}
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
@@ -332,20 +342,20 @@
                             </td>
 
                             {{-- 4. Izdevumu Analīze (Logic mapping) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 @if($row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], [19,20,21,22])) {{-- Saistīti ar SD --}}
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 {{-- Prop. sadal. --}}
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 18) {{-- Nesaist --}}
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
                                 @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 16) {{-- Nav attiec --}}
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif

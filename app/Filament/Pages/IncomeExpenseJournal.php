@@ -147,6 +147,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
 
             $row = [
                 'transaction_id' => $transaction->id,
+                'status' => $transaction->status, // DRAFT, COMPLETED, NEEDS_REVIEW
                 'entry_number' => $runningEntryNumber++,
                 'date' => $transaction->occurred_at->format('d.m.Y'),
                 'document_details' => $transaction->reference, // Document name/number
