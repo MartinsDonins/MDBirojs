@@ -174,6 +174,16 @@ class IncomeExpenseJournal extends Page implements HasTable
             'closing_balances' => $currentBalances,
         ];
     }
+
+    protected function getMonthDetailQuery(): Builder
+    {
+        return Transaction::query()
+            ->with(['category', 'account'])
+            ->where('status', 'COMPLETED')
+            ->whereIn('type', ['INCOME', 'EXPENSE'])
+            ->whereYear('occurred_at', $this->selectedYear)
+            ->whereMonth('occurred_at', $this->selectedMonth);
+    }
     protected function calculateYearlySummary(): void
     {
         $yearlyData = Transaction::query()
