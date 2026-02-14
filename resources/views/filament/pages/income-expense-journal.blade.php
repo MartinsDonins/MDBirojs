@@ -206,37 +206,37 @@
             <table class="w-full border-collapse border-2 border-gray-400 dark:border-gray-600" style="font-size: 10px;">
                 <thead>
                     <tr class="bg-orange-200 dark:bg-orange-800">
-                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 40px;">Nr.</th>
-                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 70px;">Datums</th>
-                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 100px;">Dok. nr. (rēķ., pers. vārds)</th>
-                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 150px;">Saimn. darbība</th>
+                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 40px;">1<br>Nr.</th>
+                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 70px;">2<br>Datums</th>
+                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 100px;">3<br>Dok. nr.</th>
+                        <th rowspan="2" class="px-1 py-2 border border-gray-400 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-semibold" style="min-width: 150px;">4<br>Apraksts</th>
                         <th colspan="8" class="px-1 py-2 border border-gray-400 dark:border-gray-600 bg-green-100 dark:bg-green-900 text-gray-900 dark:text-gray-100 font-bold">Ieņēmumi, euro</th>
                         <th colspan="13" class="px-1 py-2 border border-gray-400 dark:border-gray-600 bg-red-100 dark:bg-red-900 text-gray-900 dark:text-gray-100 font-bold">Izdevumi, euro</th>
                     </tr>
                     <tr class="bg-orange-100 dark:bg-orange-700">
                         {{-- Ieņēmumi kolonnas --}}
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Kase</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Maks. konts</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Citi maks.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Kopā</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nav attiec.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Subsīd.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Neapl.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nesaist.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">5<br>Kase</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">6<br>Maks. konts</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">7<br>Citi maks.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">8<br>Kopā</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">9<br>Nav attiec.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">10<br>Subsīd.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">11<br>Neapl.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-green-50 dark:bg-green-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">12<br>Nesaist.</th>
                         {{-- Izdevumi kolonnas --}}
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Kase</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Maks. konts</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Citi maks.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Kopā</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nav attiec.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Subsīd.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nav saist.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Preces</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Pakalpoj.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Pamatl.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Nemat.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Darba sam.</th>
-                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">Citi</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">13<br>Kase</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">14<br>Maks. konts</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">15<br>Citi maks.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">16<br>Kopā</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">17<br>Nav attiec.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">18<br>Subsīd.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">19<br>Nav saist.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">20<br>Preces</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">21<br>Pakalpoj.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">22<br>Pamatl.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">23<br>Nemat.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">24<br>Darba sam.</th>
+                        <th class="px-1 py-1 border border-gray-400 dark:border-gray-600 bg-red-50 dark:bg-red-800 text-gray-900 dark:text-gray-100" style="min-width: 50px;">25<br>Citi</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-900">
