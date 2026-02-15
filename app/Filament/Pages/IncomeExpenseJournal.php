@@ -117,10 +117,15 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
         // 1. Calculate Opening Balances for this period
         $this->opening_balances = [];
         foreach($this->accounts as $acc) {
+            // Start with the Account's initial balance (from DB)
+            $initialBalance = $acc->balance ?? 0;
+            
             // Sum of all transactions before period start
-            $this->opening_balances[$acc->id] = Transaction::where('account_id', $acc->id)
+            $transactionsSum = Transaction::where('account_id', $acc->id)
                 ->where('occurred_at', '<', $periodStart)
                 ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN amount ELSE -amount END"));
+                
+            $this->opening_balances[$acc->id] = $initialBalance + $transactionsSum;
         }
 
         // 2. Get transactions for the selected period
@@ -224,11 +229,14 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
         if (!$this->selectedYear) return;
 
         // 1. Calculate Opening Balance for the year
-        $openingBalance = Transaction::query()
+        // Note: Ideally, we should sum each account's initial balance here too, but for global summary we aggregate.
+        $totalInitialBalance = \App\Models\Account::sum('balance');
+        
+        $openingBalance = $totalInitialBalance + (Transaction::query()
             ->where('status', 'COMPLETED')
             ->whereYear('occurred_at', '<', $this->selectedYear)
             ->selectRaw('SUM(CASE WHEN type = ? THEN amount WHEN type = ? THEN -ABS(amount) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
-            ->value('balance') ?? 0;
+            ->value('balance') ?? 0);
 
         // 2. Get monthly data for selected year
         $monthlyData = Transaction::query()
@@ -284,11 +292,13 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
             ->first();
 
         // Calculate opening balance again for the summary card's total balance
-        $openingBalance = Transaction::query()
+        $totalInitialBalance = \App\Models\Account::sum('balance');
+        
+        $openingBalance = $totalInitialBalance + (Transaction::query()
             ->where('status', 'COMPLETED')
             ->whereYear('occurred_at', '<', $this->selectedYear)
             ->selectRaw('SUM(CASE WHEN type = ? THEN amount WHEN type = ? THEN -ABS(amount) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
-            ->value('balance') ?? 0;
+            ->value('balance') ?? 0);
 
         $totalIncome = $summary->total_income ?? 0;
         $totalExpense = $summary->total_expense ?? 0;
