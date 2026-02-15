@@ -228,9 +228,9 @@
                     <tr class="bg-gray-50 dark:bg-gray-800/50 text-center text-[10px]">
                         {{-- Kontu apakškolonnas --}}
                         @foreach($accounts as $acc)
-                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-green-600 dark:text-green-400 bg-gray-100 dark:bg-gray-800">Ieņ.</th>
-                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-red-600 dark:text-red-400 bg-gray-100 dark:bg-gray-800">Izd.</th>
-                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Atlikums</th>
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-green-600 dark:text-green-400 bg-gray-100 dark:bg-gray-800" title="Ieņēmumi">Ieņ.</th>
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-red-600 dark:text-red-400 bg-gray-100 dark:bg-gray-800" title="Izdevumi">Izd.</th>
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Atlikums">Atlikums</th>
                         @endforeach
 
                         {{-- Ieņēmumu apakškolonnas --}}
@@ -238,14 +238,47 @@
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Apgrozījums">Apgroz.<br>(12-14)</th>
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Neapliekamie ieņēmumi">Neapl.</th>
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-green-50 dark:bg-green-900 text-gray-900 dark:text-gray-100">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-green-100 dark:bg-green-800 text-gray-900 dark:text-gray-100">Kopā</th>
 
                         {{-- Izdevumu apakškolonnas --}}
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Saistīti ar saimniecisko darbību">Saistīti<br>ar SD</th>
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Proporcionāli sadalāmie">Prop.<br>sadal.</th>
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nesaistītās izmaksas">Nesaist.</th>
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-red-50 dark:bg-red-900 text-gray-900 dark:text-gray-100">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-red-100 dark:bg-red-800 text-gray-900 dark:text-gray-100">Kopā</th>
+                    </tr>
+                    
+                    {{-- Column Numbers --}}
+                    <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px] text-gray-500 font-mono">
+                        <th class="border border-gray-300 dark:border-gray-700 sticky left-0 z-20 bg-gray-100 dark:bg-gray-800">1</th>
+                        <th class="border border-gray-300 dark:border-gray-700 sticky left-8 z-20 bg-gray-100 dark:bg-gray-800">2</th>
+                        <th class="border border-gray-300 dark:border-gray-700">3</th>
+                        <th class="border border-gray-300 dark:border-gray-700">4</th>
+                        <th class="border border-gray-300 dark:border-gray-700">5</th>
+                        <th class="border border-gray-300 dark:border-gray-700">6</th>
+                        <th class="border border-gray-300 dark:border-gray-700">7</th>
+                        <th class="border border-gray-300 dark:border-gray-700">8</th>
+                        
+                        @php $colNum = 9; @endphp
+                        @foreach($accounts as $acc)
+                            <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                            <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                            <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        @endforeach
+                        
+                        {{-- Income Analysis Cols (5) --}}
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        
+                        {{-- Expense Analysis Cols (5) --}}
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-900">
@@ -272,14 +305,14 @@
                             
                             {{-- Kategorija (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
-                                wire:click.stop="mountAction('editCategory', { transaction_id: {{ $row['transaction_id'] }} })"
+                                @click.stop="$wire.mountAction('editCategory', { transaction_id: {{ $row['transaction_id'] }} })"
                                 title="Klikšķiniet, lai mainītu kategoriju">
                                 {{ $row['category'] ?? '---' }}
                             </td>
                             
                             {{-- Sasaite (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                                wire:click.stop="mountAction('editTransaction', { transaction_id: {{ $row['transaction_id'] }} })"
+                                @click.stop="$wire.mountAction('editTransaction', { transaction_id: {{ $row['transaction_id'] }} })"
                                 title="Klikšķiniet, lai rediģētu darījuma detaļas">
                                 @if($row['category'] == 'Pārskaitījums') <span class="text-xs text-blue-500">↔</span> @endif
                                 <span class="text-[8px] text-gray-400 opacity-50 hover:opacity-100">✏️</span>
@@ -287,7 +320,7 @@
 
                             {{-- Statuss (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                                wire:click.stop="mountAction('editStatus', { transaction_id: {{ $row['transaction_id'] }} })"
+                                @click.stop="$wire.mountAction('editStatus', { transaction_id: {{ $row['transaction_id'] }} })"
                                 title="Klikšķiniet, lai mainītu statusu">
                                 @if($row['status'] === 'COMPLETED')
                                     <span class="text-green-600 dark:text-green-400 text-lg" title="Apstiprināts">✓</span>
