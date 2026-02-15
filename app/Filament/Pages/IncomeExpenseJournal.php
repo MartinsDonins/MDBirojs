@@ -314,6 +314,21 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
         $this->calculateMonthData();
     }
 
+    public function openCategoryEdit($transactionId)
+    {
+        $this->mountAction('editCategory', ['transaction_id' => $transactionId]);
+    }
+
+    public function openTransactionEdit($transactionId)
+    {
+        $this->mountAction('editTransaction', ['transaction_id' => $transactionId]);
+    }
+
+    public function openStatusEdit($transactionId)
+    {
+        $this->mountAction('editStatus', ['transaction_id' => $transactionId]);
+    }
+
     public function editCategoryAction(): Action
     {
         return Action::make('editCategory')
