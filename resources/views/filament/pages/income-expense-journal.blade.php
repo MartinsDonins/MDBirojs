@@ -304,31 +304,40 @@
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[150px] text-gray-900 dark:text-gray-100" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
                             
                             {{-- Kategorija (Interactive) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
-                                @click.stop="$wire.mountAction('editCategory', { transaction_id: {{ $row['transaction_id'] }} })"
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 dark:text-primary-400 cursor-pointer"
                                 title="Klikšķiniet, lai mainītu kategoriju">
-                                {{ $row['category'] ?? '---' }}
+                                <div class="w-full h-full hover:underline"
+                                     @click.stop
+                                     wire:click="openCategoryEdit({{ $row['transaction_id'] }})">
+                                    {{ $row['category'] ?? '---' }}
+                                </div>
                             </td>
                             
                             {{-- Sasaite (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                                @click.stop="$wire.mountAction('editTransaction', { transaction_id: {{ $row['transaction_id'] }} })"
                                 title="Klikšķiniet, lai rediģētu darījuma detaļas">
-                                @if($row['category'] == 'Pārskaitījums') <span class="text-xs text-blue-500">↔</span> @endif
-                                <span class="text-[8px] text-gray-400 opacity-50 hover:opacity-100">✏️</span>
+                                <div class="w-full h-full"
+                                     @click.stop
+                                     wire:click="openTransactionEdit({{ $row['transaction_id'] }})">
+                                    @if($row['category'] == 'Pārskaitījums') <span class="text-xs text-blue-500">↔</span> @endif
+                                    <span class="text-[8px] text-gray-400 opacity-50 hover:opacity-100">✏️</span>
+                                </div>
                             </td>
 
                             {{-- Statuss (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                                @click.stop="$wire.mountAction('editStatus', { transaction_id: {{ $row['transaction_id'] }} })"
                                 title="Klikšķiniet, lai mainītu statusu">
-                                @if($row['status'] === 'COMPLETED')
-                                    <span class="text-green-600 dark:text-green-400 text-lg" title="Apstiprināts">✓</span>
-                                @elseif($row['status'] === 'NEEDS_REVIEW')
-                                    <span class="text-orange-500 text-lg" title="Nepieciešama pārbaude">?</span>
-                                @else
-                                    <span class="text-gray-400 text-lg" title="Melnraksts">•</span>
-                                @endif
+                                <div class="w-full h-full"
+                                     @click.stop
+                                     wire:click="openStatusEdit({{ $row['transaction_id'] }})">
+                                    @if($row['status'] === 'COMPLETED')
+                                        <span class="text-green-600 dark:text-green-400 text-lg" title="Apstiprināts">✓</span>
+                                    @elseif($row['status'] === 'NEEDS_REVIEW')
+                                        <span class="text-orange-500 text-lg" title="Nepieciešama pārbaude">?</span>
+                                    @else
+                                        <span class="text-gray-400 text-lg" title="Melnraksts">•</span>
+                                    @endif
+                                </div>
                             </td>
 
                             {{-- 2. Konti --}}
