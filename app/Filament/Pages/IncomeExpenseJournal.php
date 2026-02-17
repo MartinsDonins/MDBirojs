@@ -324,17 +324,24 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
         $this->calculateMonthData();
     }
 
-    public function openCategoryEdit($transactionId)
+    public function mountCategoryModal($transactionId)
     {
-        $this->mountAction('editCategory', ['transaction_id' => $transactionId]);
+        try {
+            \Illuminate\Support\Facades\Log::info('Mounting Category Modal for ID: ' . $transactionId);
+            $this->mountAction('editCategory', ['transaction_id' => $transactionId]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error mounting category modal: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
+            throw $e;
+        }
     }
 
-    public function openTransactionEdit($transactionId)
+    public function mountTransactionModal($transactionId)
     {
         $this->mountAction('editTransaction', ['transaction_id' => $transactionId]);
     }
 
-    public function openStatusEdit($transactionId)
+    public function mountStatusModal($transactionId)
     {
         $this->mountAction('editStatus', ['transaction_id' => $transactionId]);
     }

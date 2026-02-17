@@ -308,7 +308,7 @@
                                 title="Klikšķiniet, lai mainītu kategoriju">
                                 <div class="w-full h-full hover:underline"
                                      @click.stop
-                                     wire:click="openCategoryEdit({{ $row['transaction_id'] }})">
+                                     wire:click="mountCategoryModal({{ $row['transaction_id'] }})">
                                     {{ $row['category'] ?? '---' }}
                                 </div>
                             </td>
@@ -318,7 +318,7 @@
                                 title="Klikšķiniet, lai rediģētu darījuma detaļas">
                                 <div class="w-full h-full"
                                      @click.stop
-                                     wire:click="openTransactionEdit({{ $row['transaction_id'] }})">
+                                     wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
                                     @if($row['category'] == 'Pārskaitījums') <span class="text-xs text-blue-500">↔</span> @endif
                                     <span class="text-[8px] text-gray-400 opacity-50 hover:opacity-100">✏️</span>
                                 </div>
@@ -329,7 +329,7 @@
                                 title="Klikšķiniet, lai mainītu statusu">
                                 <div class="w-full h-full"
                                      @click.stop
-                                     wire:click="openStatusEdit({{ $row['transaction_id'] }})">
+                                     wire:click="mountStatusModal({{ $row['transaction_id'] }})">
                                     @if($row['status'] === 'COMPLETED')
                                         <span class="text-green-600 dark:text-green-400 text-lg" title="Apstiprināts">✓</span>
                                     @elseif($row['status'] === 'NEEDS_REVIEW')
