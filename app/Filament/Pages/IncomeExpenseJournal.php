@@ -15,11 +15,14 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Actions\Action;
 use Filament\Forms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 
-class IncomeExpenseJournal extends Page implements HasTable, HasActions
+class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForms
 {
     use InteractsWithTable;
     use InteractsWithActions;
+    use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     
@@ -314,7 +317,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
     {
         $this->selectedYear = $year;
         $this->selectedMonth = null;
-        $this->calculateSummary();
+        $this->calculateYearlySummary();
         $this->calculateMonthlySummary();
     }
 
@@ -466,6 +469,16 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
                 ->action('exportPdf');
         }
 
+        // Add transaction available when year is selected
+        if ($this->selectedYear !== null) {
+            $actions[] = $this->createTransactionAction();
+        }
+
+        // Always register edit actions (they are triggered programmatically from table rows)
+        $actions[] = $this->editCategoryAction();
+        $actions[] = $this->editTransactionAction();
+        $actions[] = $this->editStatusAction();
+
         return $actions;
     }
 
@@ -517,6 +530,86 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions
                         ->success()
                         ->send();
                 }
+            });
+    }
+
+    public function backToYearSummary()
+    {
+        $this->selectedMonth = null;
+        $this->calculateYearlySummary();
+        $this->calculateMonthlySummary();
+    }
+
+    public function mountCreateTransactionModal()
+    {
+        try {
+            \Illuminate\Support\Facades\Log::info('Mounting Create Transaction Modal');
+            $this->mountAction('createTransaction');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error mounting Create Transaction modal: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
+            throw $e;
+        }
+    }
+
+
+    public function createTransactionAction(): Action
+    {
+        return Action::make('createTransaction')
+            ->label('Pievienot jaunu darījumu')
+            ->modalWidth('lg')
+            ->form([
+                Forms\Components\DatePicker::make('occurred_at')
+                    ->label('Datums')
+                    ->required()
+                    ->default(now()),
+                Forms\Components\Select::make('account_id')
+                    ->label('Konts')
+                    ->options(\App\Models\Account::pluck('name', 'id'))
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('amount')
+                            ->label('Summa')
+                            ->numeric()
+                            ->required(),
+                        Forms\Components\Select::make('type')
+                            ->label('Veids')
+                            ->options([
+                                'INCOME' => 'Ieņēmumi',
+                                'EXPENSE' => 'Izdevumi',
+                            ])
+                            ->required(),
+                    ]),
+                Forms\Components\Select::make('category_id')
+                    ->label('Kategorija')
+                    ->options(\App\Models\Category::pluck('name', 'id'))
+                    ->searchable()
+                    ->preload(),
+                Forms\Components\TextInput::make('counterparty_name')
+                    ->label('Partneris'),
+                Forms\Components\TextInput::make('description')
+                    ->label('Apraksts')
+                    ->required(),
+                Forms\Components\Select::make('status')
+                    ->label('Statuss')
+                    ->options([
+                        'DRAFT' => 'Melnraksts',
+                        'COMPLETED' => 'Apstiprināts',
+                        'NEEDS_REVIEW' => 'Nepieciešama pārbaude',
+                    ])
+                    ->default('COMPLETED')
+                    ->required(),
+            ])
+            ->action(function (array $data) {
+                \App\Models\Transaction::create($data);
+                $this->calculateMonthData();
+                \Filament\Notifications\Notification::make()
+                    ->title('Darījums pievienots')
+                    ->success()
+                    ->send();
             });
     }
 

@@ -60,11 +60,35 @@
     @elseif($selectedMonth === null)
         {{-- Year Summary View --}}
         <div class="mb-6">
-            <div class="text-center mb-4">
-                <h2 class="text-2xl font-bold">
-                    {{ $selectedYear }}. GADS
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold tracking-tight text-gray-950 dark:text-white">
+                    {{ $this->getTitle() }}
                 </h2>
+                <div class="flex gap-2">
+                    <x-filament::button wire:click="mountAction('createTransaction')">
+                        Pievienot darījumu
+                    </x-filament::button>
+                    
+                    @if($selectedYear && !$selectedMonth)
+                       {{-- Year view actions if needed --}}
+                    @endif
+                </div>
             </div>
+
+            {{-- Month Navigation --}}
+            @if($selectedMonth)
+                <div class="mb-4 flex items-center justify-between">
+                    <button wire:click="viewMonthDetails({{ $selectedMonth - 1 }})" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        &larr; Iepriekšējais
+                    </button>
+                    <span class="font-bold text-lg text-gray-800 dark:text-gray-200">
+                        {{ \Carbon\Carbon::create()->month($selectedMonth)->locale('lv')->monthName }} {{ $selectedYear }}
+                    </span>
+                    <button wire:click="viewMonthDetails({{ $selectedMonth + 1 }})" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        Nākamais &rarr;
+                    </button>
+                </div>
+            @endif
 
             {{-- Summary Cards --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -158,6 +182,17 @@
     @else
         {{-- Month Detail View --}}
         <div class="mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <x-filament::button color="gray" wire:click="backToYearSummary">
+                    &larr; Atpakaļ uz gadu sarakstu
+                </x-filament::button>
+                <div class="flex gap-2">
+                     <x-filament::button wire:click="mountAction('createTransaction')">
+                        Pievienot darījumu
+                    </x-filament::button>
+                </div>
+            </div>
+
             <div class="text-center mb-4">
                 <h2 class="text-2xl font-bold">
                     {{ strtoupper($this->getTitle()) }}
@@ -202,7 +237,9 @@
         </div>
 
         {{-- Dynamic Account Journal Table --}}
-        <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm" x-data="{ expandedRows: [] }">
+        <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm"
+             x-data="{}"
+             x-init="if (!Alpine.store('journal')) { Alpine.store('journal', { expandedRows: [] }); }">
             <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                 <thead>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
@@ -294,7 +331,7 @@
 
                     @foreach($rows as $row)
                         <tr wire:key="row-{{ $row['entry_number'] }}" class="group hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" 
-                            @click="expandedRows.includes({{ $row['entry_number'] }}) ? expandedRows = expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : expandedRows.push({{ $row['entry_number'] }})">
+                            @click="$store.journal.expandedRows.includes({{ $row['entry_number'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : $store.journal.expandedRows.push({{ $row['entry_number'] }})">
                             
                             {{-- 1. Identifikācija --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Ieraksta Nr.">{{ $row['entry_number'] }}</td>
@@ -306,27 +343,34 @@
                             {{-- Kategorija (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 dark:text-primary-400 cursor-pointer"
                                 title="Klikšķiniet, lai mainītu kategoriju">
-                                <div class="w-full h-full hover:underline"
-                                     @click.stop
-                                     wire:click="mountCategoryModal({{ $row['transaction_id'] }})">
-                                    {{ $row['category'] ?? '---' }}
-                                </div>
+                                    @if($row['transaction_id'])
+                                    <div class="w-full h-full hover:underline"
+                                         @click.stop
+                                         wire:click="mountCategoryModal({{ $row['transaction_id'] }})">
+                                        {{ $row['category'] ?? '---' }}
+                                    </div>
+                                    @else
+                                        {{ $row['category'] ?? '---' }}
+                                    @endif
                             </td>
                             
                             {{-- Sasaite (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                                 title="Klikšķiniet, lai rediģētu darījuma detaļas">
+                                @if($row['transaction_id'])
                                 <div class="w-full h-full"
                                      @click.stop
                                      wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
                                     @if($row['category'] == 'Pārskaitījums') <span class="text-xs text-blue-500">↔</span> @endif
                                     <span class="text-[8px] text-gray-400 opacity-50 hover:opacity-100">✏️</span>
                                 </div>
+                                @endif
                             </td>
 
                             {{-- Statuss (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                                 title="Klikšķiniet, lai mainītu statusu">
+                                @if($row['transaction_id'])
                                 <div class="w-full h-full"
                                      @click.stop
                                      wire:click="mountStatusModal({{ $row['transaction_id'] }})">
@@ -338,6 +382,7 @@
                                         <span class="text-gray-400 text-lg" title="Melnraksts">•</span>
                                     @endif
                                 </div>
+                                @endif
                             </td>
 
                             {{-- 2. Konti --}}
@@ -412,7 +457,7 @@
                         </tr>
                         
                         {{-- Expandable Detail Row --}}
-                        <tr x-show="expandedRows.includes({{ $row['entry_number'] }})" class="bg-blue-50/50 dark:bg-blue-900/10">
+                        <tr x-show="$store.journal && $store.journal.expandedRows.includes({{ $row['entry_number'] }})" class="bg-blue-50/50 dark:bg-blue-900/10">
                             <td colspan="{{ 7 + (count($accounts) * 3) + 10 }}" class="px-4 py-2 border border-gray-300 dark:border-gray-700">
                                 <div class="grid grid-cols-2 gap-4 text-xs">
                                     <div>
@@ -441,4 +486,6 @@
             </table>
         </div>
     @endif
+
+    <x-filament-actions::modals />
 </x-filament-panels::page>
