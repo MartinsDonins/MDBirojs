@@ -240,16 +240,15 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         if (!$this->selectedYear) return;
 
         // 1. Calculate Opening Balance for the year
-        // Note: Ideally, we should sum each account's initial balance here too, but for global summary we aggregate.
         $totalInitialBalance = \App\Models\Account::sum('balance');
-        
+
         $openingBalance = $totalInitialBalance + (Transaction::query()
             ->where('status', 'COMPLETED')
             ->whereYear('occurred_at', '<', $this->selectedYear)
             ->selectRaw('SUM(CASE WHEN type = ? THEN amount WHEN type = ? THEN -ABS(amount) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
             ->value('balance') ?? 0);
 
-        // 2. Get monthly data for selected year
+        // 2. Get monthly totals
         $monthlyData = Transaction::query()
             ->where('status', 'COMPLETED')
             ->whereYear('occurred_at', $this->selectedYear)
@@ -259,6 +258,27 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 SUM(CASE WHEN type = ? THEN ABS(amount) ELSE 0 END) as expense
             ', ['INCOME', 'EXPENSE'])
             ->groupBy('month_number')
+            ->orderBy('month_number')
+            ->get();
+
+        // 3. Per-category breakdown per month (for analysis columns)
+        $categoryBreakdown = Transaction::query()
+            ->where('transactions.status', 'COMPLETED')
+            ->whereYear('transactions.occurred_at', $this->selectedYear)
+            ->leftJoin('categories', 'transactions.category_id', '=', 'categories.id')
+            ->selectRaw("
+                EXTRACT(MONTH FROM transactions.occurred_at) as month_number,
+                transactions.type,
+                COALESCE(categories.name, '— nav kategorijas') as category_name,
+                categories.vid_column,
+                SUM(ABS(transactions.amount)) as total
+            ")
+            ->groupBy(
+                DB::raw('EXTRACT(MONTH FROM transactions.occurred_at)'),
+                'transactions.type',
+                'categories.name',
+                'categories.vid_column'
+            )
             ->orderBy('month_number')
             ->get();
 
@@ -272,19 +292,51 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $runningBalance = $openingBalance;
 
         for ($month = 1; $month <= 12; $month++) {
-            $data = $monthlyData->firstWhere('month_number', $month);
-            
-            $income = $data->income ?? 0;
+            $data    = $monthlyData->firstWhere('month_number', $month);
+            $income  = $data->income ?? 0;
             $expense = $data->expense ?? 0;
-            $monthBalance = $income - $expense;
-            $runningBalance += $monthBalance;
+            $runningBalance += ($income - $expense);
+
+            $monthCats   = $categoryBreakdown->filter(fn ($c) => (int) round((float) $c->month_number) === $month);
+            $incomeCats  = $monthCats->where('type', 'INCOME');
+            $expenseCats = $monthCats->where('type', 'EXPENSE');
+
+            $incomeSaimn      = (float) $incomeCats->filter(fn ($c) => in_array((int) $c->vid_column, [4, 5, 6]))->sum('total');
+            $incomeNeapl      = (float) $incomeCats->filter(fn ($c) => (int) $c->vid_column === 10)->sum('total');
+            $incomeNavAttiec  = (float) $incomeCats->filter(fn ($c) => (int) $c->vid_column === 8)->sum('total');
+            $incomeKopaa      = $incomeSaimn + $incomeNeapl + $incomeNavAttiec;
+
+            $expenseSaistiti  = (float) $expenseCats->filter(fn ($c) => in_array((int) $c->vid_column, [19, 20, 21, 22, 23]))->sum('total');
+            $expenseNesaist   = (float) $expenseCats->filter(fn ($c) => (int) $c->vid_column === 18)->sum('total');
+            $expenseNavAttiec = (float) $expenseCats->filter(fn ($c) => (int) $c->vid_column === 16)->sum('total');
+            $expenseKopaa     = $expenseSaistiti + $expenseNesaist + $expenseNavAttiec;
 
             $this->monthlySummary[] = [
-                'month' => $monthNames[$month],
-                'month_number' => $month,
-                'income' => $income,
-                'expense' => $expense,
-                'balance' => $runningBalance,
+                'month'              => $monthNames[$month],
+                'month_number'       => $month,
+                'income'             => $income,
+                'expense'            => $expense,
+                'balance'            => $runningBalance,
+                // Analysis column totals
+                'income_saimn'       => $incomeSaimn,
+                'income_neapl'       => $incomeNeapl,
+                'income_nav_attiec'  => $incomeNavAttiec,
+                'income_kopaa'       => $incomeKopaa,
+                'expense_saistiti'   => $expenseSaistiti,
+                'expense_nesaist'    => $expenseNesaist,
+                'expense_nav_attiec' => $expenseNavAttiec,
+                'expense_kopaa'      => $expenseKopaa,
+                // Per-category detail (sorted: INCOME first, then EXPENSE; alphabetically within each)
+                'categories'         => $monthCats
+                    ->sortBy(fn ($c) => ($c->type === 'INCOME' ? '0' : '1') . ($c->category_name ?? ''))
+                    ->map(fn ($c) => [
+                        'name'       => $c->category_name,
+                        'type'       => $c->type,
+                        'vid_column' => (int) ($c->vid_column ?? 0),
+                        'total'      => (float) $c->total,
+                    ])
+                    ->values()
+                    ->toArray(),
             ];
         }
     }

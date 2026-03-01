@@ -122,58 +122,152 @@
         </div>
 
         {{-- Monthly Summary Table --}}
-        <div class="fi-ta-ctn rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden">
-            <table class="fi-ta-table w-full text-start divide-y divide-gray-200 dark:divide-white/5">
-                <thead class="bg-gray-50 dark:bg-white/5">
-                    <tr>
-                        <th class="px-4 py-3 text-start text-sm font-medium text-gray-950 dark:text-white">Mēnesis</th>
-                        <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Ieņēmumi (EUR)</th>
-                        <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Izdevumi (EUR)</th>
-                        <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white">Bilance (EUR)</th>
-                        <th class="px-4 py-3 text-end text-sm font-medium text-gray-950 dark:text-white w-10"></th>
+        <div x-data="{}"
+             x-init="if (!Alpine.store('yearView')) { Alpine.store('yearView', { expandedMonths: [] }); }"
+             class="fi-ta-ctn rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-x-auto">
+            <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-white/5">
+                        <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-start text-sm font-medium text-gray-950 dark:text-white align-bottom" style="min-width:120px">Mēnesis</th>
+                        <th colspan="4" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Ieņēmumi (EUR)</th>
+                        <th colspan="4" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Izdevumi (EUR)</th>
+                        <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom">Bilance</th>
+                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700 align-bottom w-16"></th>
+                    </tr>
+                    <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px]">
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Saimn. darb. ieņēmumi (kol.4/5/6)">Saimn.<br>darb.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Neapliekamie (kol.10)">Neapl.<br>(kol.10)</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Nav attiecināmi (kol.8)">Nav attiec.<br>(kol.8)</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">Kopā</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Saistīti ar SD (kol.19-23)">Saistīti<br>ar SD</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Nesaistīti ar SD (kol.18)">Nesaist.<br>(kol.18)</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Nav attiecināms (kol.16)">Nav attiec.<br>(kol.16)</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">Kopā</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-white/5">
+                <tbody>
                     @foreach($monthlySummary as $summary)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
-                            <td class="px-4 py-3 text-sm text-gray-950 dark:text-white">
-                                {{ $summary['month'] }}
+                        {{-- Month summary row (clickable to expand categories) --}}
+                        <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border-b border-gray-200 dark:border-white/5"
+                            @click="$store.yearView.expandedMonths.includes({{ $summary['month_number'] }})
+                                ? $store.yearView.expandedMonths = $store.yearView.expandedMonths.filter(m => m !== {{ $summary['month_number'] }})
+                                : $store.yearView.expandedMonths.push({{ $summary['month_number'] }})">
+                            <td class="px-3 py-2 text-sm font-medium text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700">
+                                <span class="flex items-center gap-1">
+                                    <span x-text="$store.yearView && $store.yearView.expandedMonths.includes({{ $summary['month_number'] }}) ? '▾' : '▸'" class="text-gray-400 text-[10px]"></span>
+                                    {{ $summary['month'] }}
+                                </span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-end text-gray-950 dark:text-white">
-                                {{ number_format($summary['income'], 2, ',', ' ') }} €
+                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-success-700 dark:text-success-400">
+                                @if($summary['income_saimn'] > 0){{ number_format($summary['income_saimn'], 2, ',', ' ') }}@endif
                             </td>
-                            <td class="px-4 py-3 text-sm text-end text-gray-950 dark:text-white">
-                                {{ number_format($summary['expense'], 2, ',', ' ') }} €
+                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-success-700 dark:text-success-400">
+                                @if($summary['income_neapl'] > 0){{ number_format($summary['income_neapl'], 2, ',', ' ') }}@endif
                             </td>
-                            <td class="px-4 py-3 text-sm text-end font-medium {{ $summary['balance'] >= 0 ? 'text-gray-950 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
-                                {{ number_format($summary['balance'], 2, ',', ' ') }} €
+                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-success-700 dark:text-success-400">
+                                @if($summary['income_nav_attiec'] > 0){{ number_format($summary['income_nav_attiec'], 2, ',', ' ') }}@endif
                             </td>
-                            <td class="px-4 py-3 text-sm text-end">
-                                <x-filament::button
-                                    size="xs"
-                                    color="gray"
-                                    icon="heroicon-o-eye"
-                                    wire:click="viewMonthDetails({{ $summary['month_number'] }})"
-                                >
+                            <td class="px-2 py-2 text-xs text-end font-bold border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/10 text-success-700 dark:text-success-400">
+                                @if($summary['income_kopaa'] > 0){{ number_format($summary['income_kopaa'], 2, ',', ' ') }}@endif
+                            </td>
+                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-danger-700 dark:text-danger-400">
+                                @if($summary['expense_saistiti'] > 0){{ number_format($summary['expense_saistiti'], 2, ',', ' ') }}@endif
+                            </td>
+                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-danger-700 dark:text-danger-400">
+                                @if($summary['expense_nesaist'] > 0){{ number_format($summary['expense_nesaist'], 2, ',', ' ') }}@endif
+                            </td>
+                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-danger-700 dark:text-danger-400">
+                                @if($summary['expense_nav_attiec'] > 0){{ number_format($summary['expense_nav_attiec'], 2, ',', ' ') }}@endif
+                            </td>
+                            <td class="px-2 py-2 text-xs text-end font-bold border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/10 text-danger-700 dark:text-danger-400">
+                                @if($summary['expense_kopaa'] > 0){{ number_format($summary['expense_kopaa'], 2, ',', ' ') }}@endif
+                            </td>
+                            <td class="px-3 py-2 text-xs text-end font-medium border border-gray-300 dark:border-gray-700 {{ $summary['balance'] >= 0 ? 'text-gray-900 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
+                                {{ number_format($summary['balance'], 2, ',', ' ') }}
+                            </td>
+                            <td class="px-2 py-2 text-end border border-gray-300 dark:border-gray-700" @click.stop>
+                                <x-filament::button size="xs" color="gray" icon="heroicon-o-eye"
+                                    wire:click="viewMonthDetails({{ $summary['month_number'] }})">
                                     Skatīt
                                 </x-filament::button>
                             </td>
                         </tr>
+
+                        {{-- Expandable: per-category breakdown rows --}}
+                        @foreach($summary['categories'] as $cat)
+                            <tr x-show="$store.yearView && $store.yearView.expandedMonths.includes({{ $summary['month_number'] }})"
+                                class="{{ $cat['type'] === 'INCOME' ? 'bg-green-50/40 dark:bg-green-900/5' : 'bg-red-50/40 dark:bg-red-900/5' }}">
+                                <td class="pl-7 pr-2 py-1 text-[10px] border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">
+                                    <span class="{{ $cat['type'] === 'INCOME' ? 'text-success-500' : 'text-danger-500' }} mr-1">{{ $cat['type'] === 'INCOME' ? '↑' : '↓' }}</span>
+                                    {{ $cat['name'] }}
+                                    @if($cat['vid_column'] > 0)<span class="text-gray-400 text-[9px] ml-1">(kol.{{ $cat['vid_column'] }})</span>@endif
+                                </td>
+                                @if($cat['type'] === 'INCOME')
+                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-success-600 dark:text-success-400">
+                                        @if(in_array($cat['vid_column'], [4,5,6])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                    </td>
+                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-success-600 dark:text-success-400">
+                                        @if($cat['vid_column'] === 10){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                    </td>
+                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-success-600 dark:text-success-400">
+                                        @if($cat['vid_column'] === 8){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                    </td>
+                                    <td class="px-2 py-1 text-xs text-end font-medium border border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-900/10 text-success-600 dark:text-success-400">
+                                        @if(in_array($cat['vid_column'], [4,5,6,8,10])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                    </td>
+                                    <td colspan="4" class="border border-gray-200 dark:border-gray-700"></td>
+                                @else
+                                    <td colspan="4" class="border border-gray-200 dark:border-gray-700"></td>
+                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-danger-600 dark:text-danger-400">
+                                        @if(in_array($cat['vid_column'], [19,20,21,22,23])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                    </td>
+                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-danger-600 dark:text-danger-400">
+                                        @if($cat['vid_column'] === 18){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                    </td>
+                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-danger-600 dark:text-danger-400">
+                                        @if($cat['vid_column'] === 16){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                    </td>
+                                    <td class="px-2 py-1 text-xs text-end font-medium border border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/10 text-danger-600 dark:text-danger-400">
+                                        @if(in_array($cat['vid_column'], [16,18,19,20,21,22,23])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                    </td>
+                                @endif
+                                <td class="border border-gray-200 dark:border-gray-700"></td>
+                                <td class="border border-gray-200 dark:border-gray-700"></td>
+                            </tr>
+                        @endforeach
                     @endforeach
-                    
+
                     {{-- Total Row --}}
-                    <tr class="bg-gray-50 dark:bg-white/5 font-bold">
-                        <td class="px-4 py-3 text-sm text-gray-950 dark:text-white">GADA KOPĀ</td>
-                        <td class="px-4 py-3 text-sm text-end text-success-600 dark:text-success-400">
-                            {{ number_format(collect($monthlySummary)->sum('income'), 2, ',', ' ') }} €
+                    <tr class="bg-gray-100 dark:bg-white/5 font-bold border-t-2 border-gray-400">
+                        <td class="px-3 py-2 text-sm text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700">GADA KOPĀ</td>
+                        <td class="px-2 py-2 text-xs text-end text-success-700 dark:text-success-400 border border-gray-300 dark:border-gray-700">
+                            {{ number_format(collect($monthlySummary)->sum('income_saimn'), 2, ',', ' ') }}
                         </td>
-                        <td class="px-4 py-3 text-sm text-end text-danger-600 dark:text-danger-400">
-                            {{ number_format(collect($monthlySummary)->sum('expense'), 2, ',', ' ') }} €
+                        <td class="px-2 py-2 text-xs text-end text-success-700 dark:text-success-400 border border-gray-300 dark:border-gray-700">
+                            {{ number_format(collect($monthlySummary)->sum('income_neapl'), 2, ',', ' ') }}
                         </td>
-                        <td class="px-4 py-3 text-sm text-end {{ collect($monthlySummary)->last()['balance'] >= 0 ? 'text-gray-950 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
-                            {{ number_format(collect($monthlySummary)->last()['balance'] ?? 0, 2, ',', ' ') }} €
+                        <td class="px-2 py-2 text-xs text-end text-success-700 dark:text-success-400 border border-gray-300 dark:border-gray-700">
+                            {{ number_format(collect($monthlySummary)->sum('income_nav_attiec'), 2, ',', ' ') }}
                         </td>
-                        <td></td>
+                        <td class="px-2 py-2 text-xs text-end font-bold bg-green-50 dark:bg-green-900/10 text-success-700 dark:text-success-400 border border-gray-300 dark:border-gray-700">
+                            {{ number_format(collect($monthlySummary)->sum('income_kopaa'), 2, ',', ' ') }}
+                        </td>
+                        <td class="px-2 py-2 text-xs text-end text-danger-700 dark:text-danger-400 border border-gray-300 dark:border-gray-700">
+                            {{ number_format(collect($monthlySummary)->sum('expense_saistiti'), 2, ',', ' ') }}
+                        </td>
+                        <td class="px-2 py-2 text-xs text-end text-danger-700 dark:text-danger-400 border border-gray-300 dark:border-gray-700">
+                            {{ number_format(collect($monthlySummary)->sum('expense_nesaist'), 2, ',', ' ') }}
+                        </td>
+                        <td class="px-2 py-2 text-xs text-end text-danger-700 dark:text-danger-400 border border-gray-300 dark:border-gray-700">
+                            {{ number_format(collect($monthlySummary)->sum('expense_nav_attiec'), 2, ',', ' ') }}
+                        </td>
+                        <td class="px-2 py-2 text-xs text-end font-bold bg-red-50 dark:bg-red-900/10 text-danger-700 dark:text-danger-400 border border-gray-300 dark:border-gray-700">
+                            {{ number_format(collect($monthlySummary)->sum('expense_kopaa'), 2, ',', ' ') }}
+                        </td>
+                        <td class="px-3 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 {{ (collect($monthlySummary)->last()['balance'] ?? 0) >= 0 ? 'text-gray-900 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
+                            {{ number_format(collect($monthlySummary)->last()['balance'] ?? 0, 2, ',', ' ') }}
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-700"></td>
                     </tr>
                 </tbody>
             </table>
