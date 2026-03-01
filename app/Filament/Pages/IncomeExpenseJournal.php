@@ -197,12 +197,10 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $currentBalances = $this->opening_balances;
 
         foreach ($transactions as $transaction) {
-            // Update balance for the specific account
-            if ($transaction->type === 'INCOME') {
-                $currentBalances[$transaction->account_id] += $transaction->amount;
-            } else {
-                 $currentBalances[$transaction->account_id] -= abs($transaction->amount);
-            }
+            // Update balance for the specific account.
+            // Use the raw signed amount: positive = money in, negative = money out.
+            // This correctly handles INCOME (+), EXPENSE (−), and TRANSFER (± depending on direction).
+            $currentBalances[$transaction->account_id] += $transaction->amount;
 
             $row = [
                 'transaction_id' => $transaction->id,
