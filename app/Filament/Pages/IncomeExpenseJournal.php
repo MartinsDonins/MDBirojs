@@ -46,6 +46,11 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public array $yearlySummary = [];
     public array $monthlySummary = [];
     public $accounts;
+    public bool $showOnlyInvalid = false;
+
+    // VID kolonnu karte: kurām kategorijām ir attēlota analīzes kolonna
+    protected const INCOME_MAPPED_COLS  = [4, 5, 6, 8, 10];
+    protected const EXPENSE_MAPPED_COLS = [16, 18, 19, 20, 21, 22, 23];
 
     public function mount(): void
     {
@@ -165,6 +170,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'category_vid_column' => $transaction->category?->vid_column,
                 'linked_transaction_id' => $transaction->linked_transaction_id,
                 'linked_account_name' => $transaction->linkedTransaction?->account?->name,
+                'is_mapped' => $this->isTransactionMapped($transaction),
                 
                 // Account specific data
                 'transaction_account_id' => $transaction->account_id,
@@ -351,6 +357,11 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $this->mountAction('linkTransaction', ['transaction_id' => $transactionId]);
     }
 
+    public function mountOpeningBalanceModal($accountId)
+    {
+        $this->mountAction('editOpeningBalance', ['account_id' => $accountId]);
+    }
+
     public function mountStatusModal($transactionId)
     {
         $this->mountAction('editStatus', ['transaction_id' => $transactionId]);
@@ -378,9 +389,16 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                                 'EXPENSE' => 'Izdevumi',
                             ])
                             ->label('Veids'),
-                        Forms\Components\TextInput::make('vid_column')
-                            ->numeric()
-                            ->label('VID Kolonna (cipars)')
+                        Forms\Components\Select::make('vid_column')
+                            ->label('Žurnāla kolonna')
+                            ->options([
+                                'IEŅĒMUMI → Saimn. darb.' => [4 => 'Kol.4 Saimn.darb. (kase)', 5 => 'Kol.5 Saimn.darb. (banka)', 6 => 'Kol.6 Saimn.darb. (citi)'],
+                                'IEŅĒMUMI → Citas' => [10 => 'Kol.10 Neapliekamie', 8 => 'Kol.8 Nav attiec.', 9 => 'Kol.9 Subsīdijas'],
+                                'IZDEVUMI → Saistīti ar SD' => [19 => 'Kol.19 SD: preces', 20 => 'Kol.20 SD: pakalpojumi', 21 => 'Kol.21 SD: pamatlīdz.', 22 => 'Kol.22 SD: nemateriālie', 23 => 'Kol.23 SD: darba samaksa'],
+                                'IZDEVUMI → Citas' => [18 => 'Kol.18 Nesaistīti ar SD', 16 => 'Kol.16 Nav attiec.', 24 => 'Kol.24 Citi izdevumi'],
+                            ])
+                            ->nullable()
+                            ->searchable()
                     ])
                     ->createOptionUsing(function (array $data) {
                         return \App\Models\Category::create($data)->id;
@@ -606,6 +624,42 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             });
     }
 
+    public function editOpeningBalanceAction(): Action
+    {
+        return Action::make('editOpeningBalance')
+            ->label('Labot sākuma atlikumu')
+            ->modalWidth('sm')
+            ->form(function (array $arguments) {
+                $account = \App\Models\Account::find($arguments['account_id']);
+                return [
+                    Forms\Components\Placeholder::make('account_name')
+                        ->label('Konts')
+                        ->content($account?->name ?? '—'),
+                    Forms\Components\TextInput::make('balance')
+                        ->label('Sākuma atlikums (EUR)')
+                        ->numeric()
+                        ->prefix('€')
+                        ->required()
+                        ->helperText('Bilance pirms pirmā darījuma šajā kontā. Izmantojiet, lai iestatītu vēsturisko sākuma atlikumu.'),
+                ];
+            })
+            ->fillForm(fn (array $arguments) => [
+                'balance' => \App\Models\Account::find($arguments['account_id'])?->balance ?? 0,
+            ])
+            ->action(function (array $data, array $arguments) {
+                $account = \App\Models\Account::find($arguments['account_id']);
+                if ($account) {
+                    $account->update(['balance' => $data['balance']]);
+                    $this->calculateMonthData();
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('Sākuma atlikums saglabāts')
+                        ->success()
+                        ->send();
+                }
+            });
+    }
+
     public function backToAllYears(): void
     {
         $this->selectedYear = null;
@@ -658,6 +712,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $actions[] = $this->editTransactionAction();
         $actions[] = $this->editStatusAction();
         $actions[] = $this->linkTransactionAction();
+        $actions[] = $this->editOpeningBalanceAction();
 
         return $actions;
     }
@@ -713,6 +768,26 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             });
     }
 
+    public function toggleInvalidFilter(): void
+    {
+        $this->showOnlyInvalid = !$this->showOnlyInvalid;
+    }
+
+    protected function isTransactionMapped(Transaction $transaction): bool
+    {
+        $vid = (int) ($transaction->category?->vid_column ?? 0);
+
+        if ($transaction->type === 'INCOME') {
+            return in_array($vid, self::INCOME_MAPPED_COLS);
+        }
+
+        if ($transaction->type === 'EXPENSE') {
+            return in_array($vid, self::EXPENSE_MAPPED_COLS);
+        }
+
+        return true; // TRANSFER / FEE — nav jāvalidē
+    }
+
     public function backToYearSummary()
     {
         $this->selectedMonth = null;
@@ -751,18 +826,65 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                     ->required(),
                 Forms\Components\Grid::make(2)
                     ->schema([
-                        Forms\Components\TextInput::make('amount')
-                            ->label('Summa')
-                            ->numeric()
-                            ->required(),
                         Forms\Components\Select::make('type')
                             ->label('Veids')
                             ->options([
                                 'INCOME' => 'Ieņēmumi',
                                 'EXPENSE' => 'Izdevumi',
                             ])
-                            ->required(),
+                            ->required()
+                            ->native(false),
+                        Forms\Components\Select::make('currency')
+                            ->label('Valūta')
+                            ->options([
+                                'EUR' => 'EUR — Euro',
+                                'LVL' => 'LVL — Latvijas lats',
+                                'USD' => 'USD — ASV dolārs',
+                                'GBP' => 'GBP — Britu mārciņa',
+                            ])
+                            ->default('EUR')
+                            ->required()
+                            ->live()
+                            ->native(false),
                     ]),
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('amount')
+                            ->label(fn (Forms\Get $get) => 'Summa (' . ($get('currency') ?: 'EUR') . ')')
+                            ->numeric()
+                            ->required()
+                            ->live(debounce: 500)
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                                $currency = $get('currency') ?: 'EUR';
+                                $rate = (float) ($get('exchange_rate') ?: 1);
+                                if ($currency === 'EUR') {
+                                    $set('amount_eur', $state);
+                                } elseif ($rate > 0) {
+                                    $set('amount_eur', round((float) $state / $rate, 2));
+                                }
+                            }),
+                        Forms\Components\TextInput::make('exchange_rate')
+                            ->label('Kurss (1 EUR = X valūtā)')
+                            ->numeric()
+                            ->default(1)
+                            ->live(debounce: 500)
+                            ->hidden(fn (Forms\Get $get) => ($get('currency') ?: 'EUR') === 'EUR')
+                            ->helperText('LVL: 1 EUR = 0.702804 LVL')
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                                $amount = (float) ($get('amount') ?: 0);
+                                $rate = (float) ($state ?: 1);
+                                if ($rate > 0) {
+                                    $set('amount_eur', round($amount / $rate, 2));
+                                }
+                            }),
+                    ]),
+                Forms\Components\TextInput::make('amount_eur')
+                    ->label('Summa EUR')
+                    ->numeric()
+                    ->prefix('€')
+                    ->required()
+                    ->hidden(fn (Forms\Get $get) => ($get('currency') ?: 'EUR') === 'EUR')
+                    ->helperText('Aprēķināts automātiski, bet var labot manuāli'),
                 Forms\Components\Select::make('category_id')
                     ->label('Kategorija')
                     ->options(\App\Models\Category::pluck('name', 'id'))
@@ -773,6 +895,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 Forms\Components\TextInput::make('description')
                     ->label('Apraksts')
                     ->required(),
+                Forms\Components\TextInput::make('reference')
+                    ->label('Dokumenta nr.'),
                 Forms\Components\Select::make('status')
                     ->label('Statuss')
                     ->options([
@@ -781,9 +905,15 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                         'NEEDS_REVIEW' => 'Nepieciešama pārbaude',
                     ])
                     ->default('COMPLETED')
-                    ->required(),
+                    ->required()
+                    ->native(false),
             ])
             ->action(function (array $data) {
+                // If EUR, amount_eur = amount
+                if (($data['currency'] ?? 'EUR') === 'EUR') {
+                    $data['amount_eur'] = $data['amount'];
+                    $data['exchange_rate'] = 1;
+                }
                 \App\Models\Transaction::create($data);
                 $this->calculateMonthData();
                 \Filament\Notifications\Notification::make()

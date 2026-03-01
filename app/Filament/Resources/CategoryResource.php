@@ -32,34 +32,34 @@ class CategoryResource extends Resource
                         'EXPENSE' => 'Expense',
                     ]),
                 Forms\Components\Select::make('vid_column')
-                    ->label('VID Kolonna')
+                    ->label('Žurnāla kolonna')
                     ->options([
-                        // Ieņēmumi
-                        4 => '4 - Kase (ieņēmumi)',
-                        5 => '5 - Maksājumu konts (ieņēmumi)',
-                        6 => '6 - Citi maksājuma līdzekļi (ieņēmumi)',
-                        7 => '7 - Ieņēmumi (kopā)',
-                        8 => '8 - Ieņēmumi, kas nav attiecināmi uz nodokļa aprēķināšanu',
-                        9 => '9 - Subsīdijas',
-                        10 => '10 - Neapliekamie ieņēmumi',
-                        11 => '11 - Ar saimn. darbību tieši nesaistītas izmaksas',
-                        // Izdevumi
-                        12 => '12 - Kase (izdevumi)',
-                        13 => '13 - Maksājumu konts (izdevumi)',
-                        14 => '14 - Citi maksājuma līdzekļi (izdevumi)',
-                        15 => '15 - Izdevumi (kopā)',
-                        16 => '16 - Izdevumi, kas nav attiecināmi uz nodokļa aprēķināšanu',
-                        17 => '17 - Subsīdijas',
-                        18 => '18 - Izdevumi, kas nav saistīti ar saimn. darbību',
-                        19 => '19 - Izdevumi par preču iegādi',
-                        20 => '20 - Izdevumi par pakalpojumiem',
-                        21 => '21 - Izdevumi par pamatlīdzekļiem',
-                        22 => '22 - Izdevumi par nemateriālajiem ieguldījumiem',
-                        23 => '23 - Izdevumi, kas saistīti ar darba samaksu (17.-20.)',
-                        24 => '24 - Citi izdevumi',
+                        'IEŅĒMUMI → Saimn. darb.' => [
+                            4  => 'Kol.4 — Saimn. darb. (kase)',
+                            5  => 'Kol.5 — Saimn. darb. (banka / maks. konts)',
+                            6  => 'Kol.6 — Saimn. darb. (citi maks. līdzekļi)',
+                        ],
+                        'IEŅĒMUMI → Citas kolonnas' => [
+                            10 => 'Kol.10 — Neapliekamie ieņēmumi',
+                            8  => 'Kol.8 — Nav attiecināms uz nodokli',
+                            9  => 'Kol.9 — Subsīdijas',
+                        ],
+                        'IZDEVUMI → Saistīti ar SD' => [
+                            19 => 'Kol.19 — Saistīti ar SD: preču iegāde',
+                            20 => 'Kol.20 — Saistīti ar SD: pakalpojumi',
+                            21 => 'Kol.21 — Saistīti ar SD: pamatlīdzekļi',
+                            22 => 'Kol.22 — Saistīti ar SD: nemateriālie ieguldījumi',
+                            23 => 'Kol.23 — Saistīti ar SD: darba samaksa',
+                        ],
+                        'IZDEVUMI → Citas kolonnas' => [
+                            18 => 'Kol.18 — Nesaistīti ar SD (Nesaist.)',
+                            16 => 'Kol.16 — Nav attiecināms uz nodokli',
+                            24 => 'Kol.24 — Citi izdevumi',
+                        ],
                     ])
                     ->nullable()
-                    ->helperText('VID žurnāla kolonnas numurs'),
+                    ->searchable()
+                    ->helperText('Norāda, kurā žurnāla analīzes kolonnā parādīsies darījums'),
                 Forms\Components\Select::make('parent_id')
                     ->relationship('parent', 'name')
                     ->searchable()
@@ -81,10 +81,27 @@ class CategoryResource extends Resource
                         'danger' => 'EXPENSE',
                     ]),
                 Tables\Columns\TextColumn::make('vid_column')
-                    ->label('VID Kolonna')
+                    ->label('Žurnāla kolonna')
                     ->badge()
                     ->color('info')
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => match ((int) $state) {
+                        4  => 'Kol.4 Saimn.darb. (kase)',
+                        5  => 'Kol.5 Saimn.darb. (banka)',
+                        6  => 'Kol.6 Saimn.darb. (citi)',
+                        8  => 'Kol.8 Nav attiec. (ienāk.)',
+                        9  => 'Kol.9 Subsīdijas',
+                        10 => 'Kol.10 Neapliekamie',
+                        16 => 'Kol.16 Nav attiec. (izd.)',
+                        18 => 'Kol.18 Nesaistīti ar SD',
+                        19 => 'Kol.19 SD: preces',
+                        20 => 'Kol.20 SD: pakalpojumi',
+                        21 => 'Kol.21 SD: pamatlīdz.',
+                        22 => 'Kol.22 SD: nemateriālie',
+                        23 => 'Kol.23 SD: darba samaksa',
+                        24 => 'Kol.24 Citi izdevumi',
+                        default => $state ? 'Kol.' . $state : '—',
+                    }),
                 Tables\Columns\TextColumn::make('parent.name')
                     ->label('Parent Category')
                     ->sortable(),

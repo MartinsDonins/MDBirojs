@@ -187,7 +187,14 @@
                     &larr; Atpakaļ uz gadu sarakstu
                 </x-filament::button>
                 <div class="flex gap-2">
-                     <x-filament::button wire:click="mountAction('createTransaction')">
+                    <x-filament::button
+                        wire:click="toggleInvalidFilter"
+                        color="{{ $showOnlyInvalid ? 'danger' : 'gray' }}"
+                        icon="{{ $showOnlyInvalid ? 'heroicon-o-x-circle' : 'heroicon-o-funnel' }}"
+                        title="Filtrēt rindas bez analīzes kartēšanas">
+                        {{ $showOnlyInvalid ? 'Rādīt visus' : 'Nekartētie' }}
+                    </x-filament::button>
+                    <x-filament::button wire:click="mountAction('createTransaction')">
                         Pievienot darījumu
                     </x-filament::button>
                 </div>
@@ -257,10 +264,13 @@
                         @endforeach
 
                         {{-- 3. Ieņēmumu Analīze --}}
-                        <th colspan="5" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-gray-100">Ieņēmumi (EUR)</th>
+                        <th colspan="4" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-gray-100">Ieņēmumi (EUR)</th>
 
                         {{-- 4. Izdevumu Analīze --}}
                         <th colspan="5" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-gray-900 dark:text-gray-100">Izdevumi (EUR)</th>
+
+                        {{-- 5. Atbilstība --}}
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-center text-gray-900 dark:text-gray-100" title="Atbilstība: vai darījuma summa pilnībā iekļaujas analīzes kolonnās">Atb.</th>
                     </tr>
                     <tr class="bg-gray-50 dark:bg-gray-800/50 text-center text-[10px]">
                         {{-- Kontu apakškolonnas --}}
@@ -271,17 +281,16 @@
                         @endforeach
 
                         {{-- Ieņēmumu apakškolonnas --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Ieņēmumi no saimnieciskās darbības">Saimn.<br>darb.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Apgrozījums">Apgroz.<br>(12-14)</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Neapliekamie ieņēmumi">Neapl.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Saimnieciskās darbības ieņēmumi (kol.4/5/6)">Saimn.<br>darb.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Neapliekamie ieņēmumi (kol.10)">Neapl.<br>(kol.10)</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli (kol.8)">Nav attiec.<br>(kol.8)</th>
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Kopā</th>
 
                         {{-- Izdevumu apakškolonnas --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Saistīti ar saimniecisko darbību">Saistīti<br>ar SD</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Saistīti ar saimniecisko darbību (kol.19-23)">Saistīti<br>ar SD</th>
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Proporcionāli sadalāmie">Prop.<br>sadal.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nesaistītās izmaksas">Nesaist.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli">Nav<br>attiec.</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nesaistīti ar SD (kol.18)">Nesaist.<br>(kol.18)</th>
+                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināms uz nodokli (kol.16)">Nav attiec.<br>(kol.16)</th>
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Kopā</th>
                     </tr>
                     
@@ -303,8 +312,7 @@
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                         @endforeach
                         
-                        {{-- Income Analysis Cols (5) --}}
-                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        {{-- Income Analysis Cols (4) --}}
                         <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                         <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                         <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
@@ -321,15 +329,22 @@
                 <tbody class="bg-white dark:bg-gray-900">
                     {{-- Opening Balances Row --}}
                     <tr class="bg-yellow-50 dark:bg-yellow-900/10 font-bold text-gray-700 dark:text-gray-300">
-                        <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">Sākuma atlikums:</td>
+                        <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-xs">Sākuma atlikums:</td>
                         @foreach($accounts as $acc)
                             <td colspan="2" class="border border-gray-300 dark:border-gray-700"></td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right">{{ number_format($opening_balances[$acc->id] ?? 0, 2, ',', ' ') }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right hover:bg-yellow-100 dark:hover:bg-yellow-800/30 cursor-pointer group/bal"
+                                title="Klikšķiniet, lai labotu {{ $acc->name }} sākuma atlikumu">
+                                <div wire:click="mountOpeningBalanceModal({{ $acc->id }})" class="flex items-center justify-end gap-1">
+                                    <span>{{ number_format($opening_balances[$acc->id] ?? 0, 2, ',', ' ') }}</span>
+                                    <span class="text-[8px] text-yellow-500 opacity-0 group-hover/bal:opacity-100">✎</span>
+                                </div>
+                            </td>
                         @endforeach
                         <td colspan="10" class="border border-gray-300 dark:border-gray-700"></td>
                     </tr>
 
                     @foreach($rows as $row)
+                    @if(!$showOnlyInvalid || !$row['is_mapped'])
                         <tr wire:key="row-{{ $row['entry_number'] }}" class="group hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" 
                             @click="$store.journal.expandedRows.includes({{ $row['entry_number'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : $store.journal.expandedRows.push({{ $row['entry_number'] }})">
                             
@@ -411,56 +426,68 @@
                             @endforeach
 
                             {{-- 3. Ieņēmumu Analīze (Logic mapping) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
-                                @if($row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], [4,5,6])) {{-- Saimn. darb. --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.4/5/6 — Saimn. darb.">
+                                @if($row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], [4,5,6]))
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
-                                {{-- Apgrozījums logic? --}}
-                            </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
-                                @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 10) {{-- Neapl --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.10 — Neapliekamie">
+                                @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 10)
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
-                                @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 8) {{-- Nav attiec --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.8 — Nav attiecināms uz nodokli">
+                                @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 8)
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
+                            {{-- Ieņēmumi Kopā — tikai kartētās summas --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-green-600 dark:text-green-400">
-                                @if($row['transaction_type'] == 'INCOME')
+                                @if($row['transaction_type'] == 'INCOME' && $row['is_mapped'])
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
 
                             {{-- 4. Izdevumu Analīze (Logic mapping) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
-                                @if($row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], [19,20,21,22])) {{-- Saistīti ar SD --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.19-23 — Saistīti ar SD">
+                                @if($row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], [19,20,21,22,23]))
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
-                                {{-- Prop. sadal. --}}
+                                {{-- Prop. sadal. (nav kartēts) --}}
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
-                                @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 18) {{-- Nesaist --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.18 — Nesaistīti ar SD">
+                                @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 18)
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="VID: {{ $row['category_vid_column'] }}">
-                                @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 16) {{-- Nav attiec --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.16 — Nav attiecināms uz nodokli">
+                                @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 16)
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
+                            {{-- Izdevumi Kopā — tikai kartētās summas --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-red-600 dark:text-red-400">
-                                @if($row['transaction_type'] == 'EXPENSE')
+                                @if($row['transaction_type'] == 'EXPENSE' && $row['is_mapped'])
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
+                                @endif
+                            </td>
+
+                            {{-- 5. Atbilstības indikators --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center">
+                                @if($row['transaction_type'] === 'INCOME' || $row['transaction_type'] === 'EXPENSE')
+                                    @if($row['is_mapped'])
+                                        <span class="text-green-600 dark:text-green-400 font-bold text-sm" title="Summa pilnībā iekļauta analīzes kolonnās">✓</span>
+                                    @else
+                                        <span class="text-red-500 font-bold text-sm" title="Summa nav kartēta uz analīzes kolonnu — pārbaudiet kategoriju!">✗</span>
+                                    @endif
+                                @else
+                                    <span class="text-gray-400 text-xs" title="{{ $row['transaction_type'] }}">—</span>
                                 @endif
                             </td>
                         </tr>
-                        
+
                         {{-- Expandable Detail Row --}}
                         <tr x-show="$store.journal && $store.journal.expandedRows.includes({{ $row['entry_number'] }})" class="bg-blue-50/50 dark:bg-blue-900/10">
                             <td colspan="{{ 7 + (count($accounts) * 3) + 10 }}" class="px-4 py-2 border border-gray-300 dark:border-gray-700">
@@ -474,8 +501,9 @@
                                 </div>
                             </td>
                         </tr>
+                    @endif
                     @endforeach
-                    
+
                     {{-- Closing Balances Row --}}
                     <tr class="bg-yellow-100 dark:bg-yellow-900/20 font-bold text-gray-800 dark:text-gray-200 border-t-2 border-gray-400">
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">Beigu atlikums:</td>
