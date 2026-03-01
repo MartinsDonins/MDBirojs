@@ -14,9 +14,9 @@ class ImportTransactions extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-arrow-down-tray';
     
-    protected static ?string $navigationLabel = 'Import Transactions';
+    protected static ?string $navigationLabel = 'Darījumu imports';
     
-    protected static ?string $title = 'Import Bank Statements';
+    protected static ?string $title = 'Bankas izrakstu imports';
 
     protected static string $view = 'filament.pages.import-transactions';
     
@@ -33,32 +33,32 @@ class ImportTransactions extends Page
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Import Bank Statement')
-                    ->description('Upload your bank statement file and select the format')
+                Forms\Components\Section::make('Bankas izraksta imports')
+                    ->description('Augšupielādējiet bankas izraksta failu un izvēlieties formātu')
                     ->schema([
                         Forms\Components\Select::make('account_id')
-                            ->label('Account')
+                            ->label('Konts')
                             ->options(Account::all()->pluck('name', 'id'))
                             ->required()
                             ->searchable()
-                            ->helperText('Select the account to import transactions into'),
+                            ->helperText('Izvēlieties kontu, kurā importēt darījumus'),
                         
                         Forms\Components\Select::make('source')
-                            ->label('Bank Format')
+                            ->label('Bankas formāts')
                             ->options([
                                 'SWED' => 'Swedbank (ISO 20022 XML)',
                                 'SEB' => 'SEB (ISO 20022 XML)',
                                 'PAYPAL' => 'PayPal',
                             ])
                             ->required()
-                            ->helperText('Select your bank or payment provider'),
+                            ->helperText('Izvēlieties banku vai maksājumu pakalpojumu sniedzēju'),
                         
                         Forms\Components\FileUpload::make('file')
-                            ->label('Statement File')
+                            ->label('Izraksta fails')
                             ->required()
                             ->acceptedFileTypes(['text/xml', 'application/xml'])
                             ->maxSize(10240) // 10MB
-                            ->helperText('Upload ISO 20022 XML file from your bank')
+                            ->helperText('Augšupielādējiet ISO 20022 XML failu no savas bankas')
                             ->disk('local')
                             ->directory('imports')
                             ->visibility('private'),
@@ -85,23 +85,23 @@ class ImportTransactions extends Page
             );
             
             // Show success notification
-            $message = "Import completed: {$stats['imported']} imported, {$stats['skipped']} skipped";
+            $message = "Imports pabeigts: {$stats['imported']} importēti, {$stats['skipped']} izlaisti";
             
             if (!empty($stats['auto_approved'])) {
-                $message .= ", {$stats['auto_approved']} auto-approved";
+                $message .= ", {$stats['auto_approved']} automātiski apstiprināti";
             }
             
             if (!empty($stats['errors'])) {
-                $message .= ", " . count($stats['errors']) . " errors";
+                $message .= ", " . count($stats['errors']) . " kļūdas";
                 
                 Notification::make()
-                    ->title('Import completed with errors')
+                    ->title('Imports pabeigts ar kļūdām')
                     ->body($message)
                     ->warning()
                     ->send();
             } else {
                 Notification::make()
-                    ->title('Import successful')
+                    ->title('Imports veiksmīgs')
                     ->body($message)
                     ->success()
                     ->send();
@@ -115,7 +115,7 @@ class ImportTransactions extends Page
             
         } catch (\Exception $e) {
             Notification::make()
-                ->title('Import failed')
+                ->title('Neizdevās importēt')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
@@ -126,7 +126,7 @@ class ImportTransactions extends Page
     {
         return [
             Forms\Components\Actions\Action::make('import')
-                ->label('Import Transactions')
+                ->label('Importēt darījumus')
                 ->submit('import')
                 ->color('primary'),
         ];

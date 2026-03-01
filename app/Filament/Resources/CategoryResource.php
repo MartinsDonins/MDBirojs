@@ -19,6 +19,10 @@ class CategoryResource extends Resource
 {
     protected static ?string $model = Category::class;
 
+    protected static ?string $modelLabel = 'Kategorija';
+
+    protected static ?string $pluralModelLabel = 'Kategorijas';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -26,9 +30,11 @@ class CategoryResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
+                    ->label('Nosaukums')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Select::make('type')
+                    ->label('Tips')
                     ->options([
                         'INCOME'   => 'Ieņēmumi',
                         'EXPENSE'  => 'Izdevumi',
@@ -60,6 +66,7 @@ class CategoryResource extends Resource
                     ->searchable()
                     ->helperText('Norāda, kurā žurnāla analīzes kolonnā parādīsies darījums'),
                 Forms\Components\Select::make('parent_id')
+                    ->label('Virs-kategorija')
                     ->relationship('parent', 'name')
                     ->searchable()
                     ->preload(),
@@ -71,14 +78,22 @@ class CategoryResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Nosaukums')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('type')
+                    ->label('Tips')
                     ->badge()
                     ->colors([
                         'success' => 'INCOME',
                         'danger' => 'EXPENSE',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'INCOME'   => 'Ieņēmumi',
+                        'EXPENSE'  => 'Izdevumi',
+                        'TRANSFER' => 'Pārskaitījums',
+                        default => $state,
+                    }),
                 Tables\Columns\TextColumn::make('vid_column')
                     ->label('Žurnāla kolonna')
                     ->badge()
@@ -102,9 +117,10 @@ class CategoryResource extends Resource
                         default => $state ? 'Kol.' . $state : '—',
                     }),
                 Tables\Columns\TextColumn::make('parent.name')
-                    ->label('Parent Category')
+                    ->label('Virs-kategorija')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Izveidots')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

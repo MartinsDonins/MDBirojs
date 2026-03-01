@@ -18,11 +18,11 @@ class CashOrderResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     
-    protected static ?string $navigationLabel = 'Kases Orderi';
+    protected static ?string $navigationLabel = 'Kases orderi';
     
-    protected static ?string $modelLabel = 'Kases Orderis';
+    protected static ?string $modelLabel = 'Kases orderis';
     
-    protected static ?string $pluralModelLabel = 'Kases Orderi';
+    protected static ?string $pluralModelLabel = 'Kases orderi';
     
     protected static ?int $navigationSort = 3;
 
@@ -102,14 +102,14 @@ class CashOrderResource extends Resource
                             ->columnSpanFull(),
                     ]),
 
-                Forms\Components\Section::make('Saistītā Transakcija')
+                Forms\Components\Section::make('Saistītais darījums')
                     ->schema([
                         Forms\Components\Select::make('transaction_id')
-                            ->label('Transakcija')
+                            ->label('Darījums')
                             ->relationship('transaction', 'id')
                             ->searchable()
                             ->preload()
-                            ->helperText('Izvēlies, ja šis orderis ir saistīts ar konkrētu transakciju'),
+                            ->helperText('Izvēlies, ja šis orderis ir saistīts ar konkrētu darījumu'),
                     ])
                     ->collapsible()
                     ->collapsed(),

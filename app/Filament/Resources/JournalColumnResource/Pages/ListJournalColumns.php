@@ -14,6 +14,7 @@ class ListJournalColumns extends ListRecords
     {
         return [
             Actions\CreateAction::make()
+                ->label('Pievienot')
                 ->slideOver()
                 ->mutateFormDataUsing(function (array $data): array {
                     if (isset($data['vid_columns_text'])) {

@@ -20,6 +20,10 @@ class RuleResource extends Resource
 {
     protected static ?string $model = Rule::class;
 
+    protected static ?string $modelLabel = 'Kārtula';
+
+    protected static ?string $pluralModelLabel = 'Kārtulas';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -27,16 +31,19 @@ class RuleResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
+                    ->label('Nosaukums')
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
                 
                 Forms\Components\TextInput::make('priority')
+                    ->label('Prioritāte')
                     ->numeric()
                     ->default(0)
                     ->required(),
                 
                 Forms\Components\Toggle::make('is_active')
+                    ->label('Aktīva')
                     ->default(true)
                     ->required(),
 
@@ -66,20 +73,26 @@ class RuleResource extends Resource
                             ->reorderable(false),
                     ]),
 
-                Forms\Components\Section::make('Action')
+                Forms\Components\Section::make('Darbība (Action)')
                     ->schema([
                         Forms\Components\Select::make('action.category_id')
-                            ->label('Set Category')
+                            ->label('Iestatīt kategoriju')
                             ->options(\App\Models\Category::pluck('name', 'id'))
                             ->searchable()
                             ->preload(),
                         Forms\Components\Select::make('action.type')
-                            ->label('Set Type')
+                            ->label('Iestatīt tipu')
                             ->options([
-                                'INCOME' => 'Income',
-                                'EXPENSE' => 'Expense',
-                                'TRANSFER' => 'Transfer',
+                                'INCOME' => 'Ieņēmumi',
+                                'EXPENSE' => 'Izdevumi',
+                                'TRANSFER' => 'Pārskaitījums',
                             ]),
+                        Forms\Components\Select::make('action.reverse_account_id')
+                            ->label('Automātiski izveidot pretējo darījumu kontā')
+                            ->options(\App\Models\Account::pluck('name', 'id'))
+                            ->searchable()
+                            ->nullable()
+                            ->helperText('Ja iestatīts — kārtulas aktivizēšanās laikā tiks izveidots pretēja tipa darījums norādītajā kontā (piemēram, "kases" kontā) un abi darījumi tiks sasaistīti.'),
                     ])->columns(2),
             ]);
     }
@@ -152,10 +165,13 @@ class RuleResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('priority')
+                    ->label('Prioritāte')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Nosaukums')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_active')
+                    ->label('Aktīva')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('criteria')
                     ->label('Kritēriji')
@@ -170,6 +186,7 @@ class RuleResource extends Resource
                     })
                     ->badge(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Izveidots')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

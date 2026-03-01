@@ -447,19 +447,19 @@
                                 @endif
                             </td>
 
-                            {{-- Statuss (Interactive) --}}
+                            {{-- Statuss (single click toggle, right-click for modal) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                                title="Klikšķiniet, lai mainītu statusu">
+                                title="{{ $row['status'] === 'COMPLETED' ? 'Apstiprināts — klikšķis: pārvērst Melnrakstā' : ($row['status'] === 'NEEDS_REVIEW' ? 'Nepieciešama pārbaude — klikšķis: Apstiprināt' : 'Melnraksts — klikšķis: Apstiprināt') }}">
                                 @if($row['transaction_id'])
-                                <div class="w-full h-full"
+                                <div class="w-full h-full select-none"
                                      @click.stop
-                                     wire:click="mountStatusModal({{ $row['transaction_id'] }})">
+                                     wire:click="toggleStatus({{ $row['transaction_id'] }})">
                                     @if($row['status'] === 'COMPLETED')
-                                        <span class="text-green-600 dark:text-green-400 text-lg" title="Apstiprināts">✓</span>
+                                        <span class="text-green-600 dark:text-green-400 text-lg font-bold">✓</span>
                                     @elseif($row['status'] === 'NEEDS_REVIEW')
-                                        <span class="text-orange-500 text-lg" title="Nepieciešama pārbaude">?</span>
+                                        <span class="text-orange-500 text-lg font-bold">?</span>
                                     @else
-                                        <span class="text-gray-400 text-lg" title="Melnraksts">•</span>
+                                        <span class="text-gray-400 text-lg">○</span>
                                     @endif
                                 </div>
                                 @endif

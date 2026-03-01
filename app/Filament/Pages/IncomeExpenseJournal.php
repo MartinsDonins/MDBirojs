@@ -481,6 +481,21 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $this->mountAction('editStatus', ['transaction_id' => $transactionId]);
     }
 
+    /**
+     * Cycle status with a single click:
+     * DRAFT / NEEDS_REVIEW → COMPLETED
+     * COMPLETED            → DRAFT
+     */
+    public function toggleStatus($transactionId): void
+    {
+        $transaction = Transaction::find($transactionId);
+        if (!$transaction) return;
+
+        $next = $transaction->status === 'COMPLETED' ? 'DRAFT' : 'COMPLETED';
+        $transaction->update(['status' => $next]);
+        $this->calculateMonthData();
+    }
+
     public function editCategoryAction(): Action
     {
         return Action::make('editCategory')
@@ -680,9 +695,13 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                         ->hidden(fn (Forms\Get $get) => $get('action_type') !== 'create_new'),
                 ];
             })
-            ->fillForm(fn (array $arguments) => [
-                'action_type' => 'link_existing',
-            ])
+            ->fillForm(function (array $arguments) {
+                $transaction = Transaction::find($arguments['transaction_id']);
+                $hasLink = $transaction?->linked_transaction_id !== null;
+                return [
+                    'action_type' => $hasLink ? 'link_existing' : 'create_new',
+                ];
+            })
             ->action(function (array $data, array $arguments) {
                 $transaction = Transaction::find($arguments['transaction_id']);
                 if (!$transaction) return;

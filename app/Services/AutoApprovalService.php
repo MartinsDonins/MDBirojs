@@ -309,6 +309,35 @@ class AutoApprovalService
 
         $transaction->status          = 'COMPLETED';
         $transaction->applied_rule_id = $rule->id;
+
+        // Create reverse transaction if configured
+        if (!empty($action['reverse_account_id']) && !$transaction->linked_transaction_id) {
+            $reverseType = $transaction->type === 'INCOME' ? 'EXPENSE' : 'INCOME';
+            $reversed = Transaction::create([
+                'account_id'            => (int) $action['reverse_account_id'],
+                'occurred_at'           => $transaction->occurred_at,
+                'amount'                => abs($transaction->amount),
+                'amount_eur'            => abs($transaction->amount_eur ?? $transaction->amount),
+                'currency'              => $transaction->currency ?? 'EUR',
+                'exchange_rate'         => $transaction->exchange_rate ?? 1,
+                'type'                  => $reverseType,
+                'status'                => 'COMPLETED',
+                'description'           => $transaction->description,
+                'counterparty_name'     => $transaction->counterparty_name,
+                'reference'             => $transaction->reference,
+                'applied_rule_id'       => $rule->id,
+                'linked_transaction_id' => $transaction->id,
+            ]);
+            $transaction->linked_transaction_id = $reversed->id;
+
+            Log::info('Reverse transaction created by rule', [
+                'original_id'  => $transaction->id,
+                'reversed_id'  => $reversed->id,
+                'rule_id'      => $rule->id,
+                'target_account' => $action['reverse_account_id'],
+            ]);
+        }
+
         $transaction->save();
 
         Log::info('Custom rule applied to transaction', [

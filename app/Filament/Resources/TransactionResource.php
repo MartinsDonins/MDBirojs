@@ -19,6 +19,10 @@ class TransactionResource extends Resource
 {
     protected static ?string $model = Transaction::class;
 
+    protected static ?string $modelLabel = 'Darījums';
+
+    protected static ?string $pluralModelLabel = 'Darījumi';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -27,21 +31,24 @@ class TransactionResource extends Resource
             ->schema([
                 Forms\Components\Group::make()
                     ->schema([
-                        Forms\Components\Section::make('Core Details')
+                        Forms\Components\Section::make('Pamatdati')
                             ->schema([
                                 Forms\Components\Select::make('account_id')
+                                    ->label('Konts')
                                     ->relationship('account', 'name')
                                     ->required()
                                     ->searchable()
                                     ->preload(),
                                 Forms\Components\Select::make('category_id')
+                                    ->label('Kategorija')
                                     ->relationship('category', 'name')
                                     ->searchable()
                                     ->preload()
                                     ->createOptionForm([
-                                        Forms\Components\TextInput::make('name')->required(),
+                                        Forms\Components\TextInput::make('name')->label('Nosaukums')->required(),
                                         Forms\Components\Select::make('type')
-                                            ->options(['INCOME' => 'Income', 'EXPENSE' => 'Expense']),
+                                            ->label('Tips')
+                                            ->options(['INCOME' => 'Ieņēmumi', 'EXPENSE' => 'Izdevumi']),
                                     ]),
                                 Forms\Components\DatePicker::make('occurred_at')
                                     ->required()
@@ -99,32 +106,35 @@ class TransactionResource extends Resource
 
                 Forms\Components\Group::make()
                     ->schema([
-                        Forms\Components\Section::make('Counterparty')
+                        Forms\Components\Section::make('Darījuma partneris')
                             ->schema([
-                                Forms\Components\TextInput::make('counterparty_name'),
-                                Forms\Components\TextInput::make('counterparty_account'),
-                                Forms\Components\TextInput::make('reference'),
+                                Forms\Components\TextInput::make('counterparty_name')->label('Nosaukums'),
+                                Forms\Components\TextInput::make('counterparty_account')->label('Konta nr.'),
+                                Forms\Components\TextInput::make('reference')->label('Atsauce'),
                             ]),
 
-                        Forms\Components\Section::make('Meta')
+                        Forms\Components\Section::make('Papildinformācija')
                             ->schema([
                                 Forms\Components\Select::make('type')
+                                    ->label('Darbības tips')
                                     ->options([
-                                        'INCOME' => 'Income',
-                                        'EXPENSE' => 'Expense',
-                                        'TRANSFER' => 'Transfer',
-                                        'FEE' => 'Fee',
+                                        'INCOME' => 'Ieņēmumi',
+                                        'EXPENSE' => 'Izdevumi',
+                                        'TRANSFER' => 'Pārskaitījums',
+                                        'FEE' => 'Komisija',
                                     ])
                                     ->required(),
                                 Forms\Components\Select::make('status')
+                                    ->label('Statuss')
                                     ->options([
-                                        'DRAFT' => 'Draft',
-                                        'COMPLETED' => 'Completed',
-                                        'NEEDS_REVIEW' => 'Needs Review',
+                                        'DRAFT' => 'Melnraksts',
+                                        'COMPLETED' => 'Pabeigts',
+                                        'NEEDS_REVIEW' => 'Jāpārskata',
                                     ])
                                     ->default('COMPLETED')
                                     ->required(),
                                 Forms\Components\TextInput::make('fingerprint')
+                                    ->label('Nospiedums')
                                     ->disabled()
                                     ->dehydrated(false) // Don't save if disabled and calculated elsewhere
                                     ->visibleOn('edit'),
@@ -132,6 +142,7 @@ class TransactionResource extends Resource
                     ])->columnSpan(['lg' => 1]),
                     
                 Forms\Components\Textarea::make('description')
+                    ->label('Apraksts')
                     ->columnSpanFull(),
             ])
             ->columns(3);
@@ -144,18 +155,22 @@ class TransactionResource extends Resource
                 Tables\Columns\TextColumn::make('occurred_at')
                     ->date()
                     ->sortable()
-                    ->label('Date'),
+                    ->label('Datums'),
                 Tables\Columns\TextColumn::make('account.name')
+                    ->label('Konts')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('counterparty_name')
+                    ->label('Darījuma partneris')
                     ->searchable()
                     ->limit(20)
                     ->tooltip(fn ($state) => $state),
                 Tables\Columns\TextColumn::make('amount')
+                    ->label('Summa')
                     ->money(fn ($record) => $record->currency)
                     ->sortable()
                     ->color(fn ($record) => $record->amount > 0 ? 'success' : 'danger'),
                 Tables\Columns\TextColumn::make('category.name')
+                    ->label('Kategorija')
                     ->badge()
                     ->color('gray'),
                 Tables\Columns\SelectColumn::make('type')
@@ -213,7 +228,7 @@ class TransactionResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                     Tables\Actions\BulkAction::make('run_rules')
-                        ->label('Run Rules')
+                        ->label('Piemērot kārtulas')
                         ->icon('heroicon-o-play')
                         ->action(function (\Illuminate\Database\Eloquent\Collection $records, \App\Services\AutoApprovalService $autoApprovalService) {
                             $count = 0;
@@ -223,19 +238,19 @@ class TransactionResource extends Resource
                                 }
                             }
                             \Filament\Notifications\Notification::make()
-                                ->title("Rules applied to {$count} transactions")
+                                ->title("Kārtulas piemērotas {$count} darījumiem")
                                 ->success()
                                 ->send();
                         }),
                     Tables\Actions\BulkAction::make('generate_cash_orders')
-                        ->label('Generate Cash Orders')
+                        ->label('Ģenerēt kases orderus')
                         ->icon('heroicon-o-banknotes')
                         ->requiresConfirmation()
                         ->action(function (\Illuminate\Database\Eloquent\Collection $records, \App\Services\CashOrderService $cashOrderService) {
                             $cashOrders = $cashOrderService->generateBatch($records->pluck('id')->toArray());
                             
                             \Filament\Notifications\Notification::make()
-                                ->title("Generated {count} cash orders", ['count' => count($cashOrders)])
+                                ->title("Izveidoti {count} kases orderi", ['count' => count($cashOrders)])
                                 ->success()
                                 ->send();
                         })
