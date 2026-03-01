@@ -502,12 +502,17 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                             ->label('Veids'),
                         Forms\Components\Select::make('vid_column')
                             ->label('Žurnāla kolonna')
-                            ->options([
-                                'IEŅĒMUMI → Saimn. darb.' => [4 => 'Kol.4 Saimn.darb. (kase)', 5 => 'Kol.5 Saimn.darb. (banka)', 6 => 'Kol.6 Saimn.darb. (citi)'],
-                                'IEŅĒMUMI → Citas' => [10 => 'Kol.10 Neapliekamie', 8 => 'Kol.8 Nav attiec.', 9 => 'Kol.9 Subsīdijas'],
-                                'IZDEVUMI → Saistīti ar SD' => [19 => 'Kol.19 SD: preces', 20 => 'Kol.20 SD: pakalpojumi', 21 => 'Kol.21 SD: pamatlīdz.', 22 => 'Kol.22 SD: nemateriālie', 23 => 'Kol.23 SD: darba samaksa'],
-                                'IZDEVUMI → Citas' => [18 => 'Kol.18 Nesaistīti ar SD', 16 => 'Kol.16 Nav attiec.', 24 => 'Kol.24 Citi izdevumi'],
-                            ])
+                            ->options(function () {
+                                $opts = [];
+                                $allCols = \App\Models\JournalColumn::orderBy('group')->orderBy('sort_order')->get();
+                                foreach ($allCols as $jc) {
+                                    $groupLabel = ($jc->group === 'income' ? 'Ieņēmumi' : 'Izdevumi') . ' → ' . $jc->abbr;
+                                    foreach (array_map('intval', $jc->vid_columns ?? []) as $vidNum) {
+                                        $opts[$groupLabel][$vidNum] = 'Kol.' . $vidNum . ' (' . $jc->abbr . ')';
+                                    }
+                                }
+                                return $opts;
+                            })
                             ->nullable()
                             ->searchable()
                     ])
