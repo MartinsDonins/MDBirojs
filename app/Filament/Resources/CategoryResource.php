@@ -5,8 +5,10 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CategoryResource\Pages;
 use App\Filament\Resources\CategoryResource\RelationManagers;
 use App\Models\Category;
+use App\Models\JournalColumn;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -28,35 +30,32 @@ class CategoryResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Select::make('type')
                     ->options([
-                        'INCOME' => 'Income',
-                        'EXPENSE' => 'Expense',
-                    ]),
+                        'INCOME'   => 'Ieņēmumi',
+                        'EXPENSE'  => 'Izdevumi',
+                        'TRANSFER' => 'Pārskaitījums',
+                    ])
+                    ->live(),
                 Forms\Components\Select::make('vid_column')
                     ->label('Žurnāla kolonna')
-                    ->options([
-                        'IEŅĒMUMI → Saimn. darb.' => [
-                            4  => 'Kol.4 — Saimn. darb. (kase)',
-                            5  => 'Kol.5 — Saimn. darb. (banka / maks. konts)',
-                            6  => 'Kol.6 — Saimn. darb. (citi maks. līdzekļi)',
-                        ],
-                        'IEŅĒMUMI → Citas kolonnas' => [
-                            10 => 'Kol.10 — Neapliekamie ieņēmumi',
-                            8  => 'Kol.8 — Nav attiecināms uz nodokli',
-                            9  => 'Kol.9 — Subsīdijas',
-                        ],
-                        'IZDEVUMI → Saistīti ar SD' => [
-                            19 => 'Kol.19 — Saistīti ar SD: preču iegāde',
-                            20 => 'Kol.20 — Saistīti ar SD: pakalpojumi',
-                            21 => 'Kol.21 — Saistīti ar SD: pamatlīdzekļi',
-                            22 => 'Kol.22 — Saistīti ar SD: nemateriālie ieguldījumi',
-                            23 => 'Kol.23 — Saistīti ar SD: darba samaksa',
-                        ],
-                        'IZDEVUMI → Citas kolonnas' => [
-                            18 => 'Kol.18 — Nesaistīti ar SD (Nesaist.)',
-                            16 => 'Kol.16 — Nav attiecināms uz nodokli',
-                            24 => 'Kol.24 — Citi izdevumi',
-                        ],
-                    ])
+                    ->options(function (Get $get) {
+                        $type = $get('type');
+                        $query = JournalColumn::orderBy('sort_order');
+                        if ($type === 'INCOME') {
+                            $query->where('group', 'income');
+                        } elseif ($type === 'EXPENSE') {
+                            $query->where('group', 'expense');
+                        } elseif ($type === 'TRANSFER') {
+                            return [];
+                        }
+                        $opts = [];
+                        foreach ($query->get() as $jc) {
+                            $groupLabel = ($jc->group === 'income' ? 'Ieņēmumi' : 'Izdevumi') . ' → ' . $jc->abbr;
+                            foreach (array_map('intval', $jc->vid_columns ?? []) as $vidNum) {
+                                $opts[$groupLabel][$vidNum] = 'Kol.' . $vidNum . ' — ' . $jc->name;
+                            }
+                        }
+                        return $opts;
+                    })
                     ->nullable()
                     ->searchable()
                     ->helperText('Norāda, kurā žurnāla analīzes kolonnā parādīsies darījums'),

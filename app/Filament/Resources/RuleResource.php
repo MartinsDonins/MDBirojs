@@ -5,8 +5,10 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\RuleResource\Pages;
 use App\Filament\Resources\RuleResource\RelationManagers;
 use App\Models\Rule;
+use App\Services\AutoApprovalService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -107,6 +109,31 @@ class RuleResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\Action::make('run')
+                    ->label('Izpildīt')
+                    ->icon('heroicon-o-play')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (Rule $record) => 'Izpildīt: ' . $record->name)
+                    ->modalDescription('Kārtula tiks piemērota visiem DRAFT un NEEDS_REVIEW darījumiem, kas atbilst kritērijiem. Vai turpināt?')
+                    ->action(function (Rule $record) {
+                        $service = app(AutoApprovalService::class);
+                        $stats   = $service->applyCustomRule($record);
+
+                        Notification::make()
+                            ->title('Kārtula izpildīta')
+                            ->body("Piemērota: {$stats['applied']} darījumi (pārskatīti: {$stats['processed']})")
+                            ->success()
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('view_transactions')
+                    ->label('Darījumi')
+                    ->icon('heroicon-o-list-bullet')
+                    ->color('info')
+                    ->url(fn (Rule $record) => \App\Filament\Resources\TransactionResource::getUrl('index')
+                        . '?' . http_build_query(['tableFilters' => ['applied_rule_id' => ['value' => $record->id]]])),
+
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

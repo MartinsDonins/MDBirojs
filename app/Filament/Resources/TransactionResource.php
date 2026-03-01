@@ -166,6 +166,12 @@ class TransactionResource extends Resource
                         'COMPLETED' => 'Pabeigts',
                         'NEEDS_REVIEW' => 'Jāpārskata',
                     ]),
+                Tables\Filters\SelectFilter::make('applied_rule_id')
+                    ->label('Piemērotā kārtula')
+                    ->relationship('appliedRule', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('Visas kārtulas'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

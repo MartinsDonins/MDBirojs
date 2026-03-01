@@ -59,4 +59,9 @@ class Transaction extends Model
     {
         return $this->belongsTo(Transaction::class, 'linked_transaction_id');
     }
+
+    public function appliedRule(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Rule::class, 'applied_rule_id');
+    }
 }

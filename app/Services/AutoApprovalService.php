@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Transaction;
 use App\Models\Account;
+use App\Models\Rule;
 use Illuminate\Support\Facades\Log;
 
 class AutoApprovalService
@@ -176,6 +177,93 @@ class AutoApprovalService
             'transaction_id' => $transaction->id,
             'rule' => $rule,
             'counterparty' => $transaction->counterparty_name,
+        ]);
+    }
+
+    /**
+     * Apply a custom rule (from the rules table) to all non-completed transactions.
+     */
+    public function applyCustomRule(Rule $rule): array
+    {
+        $stats = ['processed' => 0, 'applied' => 0];
+
+        $criteria = $rule->criteria ?? [];
+        if (empty($criteria)) {
+            return $stats;
+        }
+
+        foreach (Transaction::whereIn('status', ['DRAFT', 'NEEDS_REVIEW'])->cursor() as $transaction) {
+            $stats['processed']++;
+            if ($this->matchesCriteria($transaction, $criteria)) {
+                $this->applyCustomRuleAction($transaction, $rule);
+                $stats['applied']++;
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Check if a transaction matches all given criteria.
+     */
+    protected function matchesCriteria(Transaction $transaction, array $criteria): bool
+    {
+        if (empty($criteria)) {
+            return false;
+        }
+
+        foreach ($criteria as $criterion) {
+            $field    = $criterion['field']    ?? null;
+            $operator = $criterion['operator'] ?? 'contains';
+            $value    = $criterion['value']    ?? '';
+
+            if (!$field) {
+                continue;
+            }
+
+            $fieldValue = (string) ($transaction->{$field} ?? '');
+
+            $matches = match ($operator) {
+                'contains'    => str_contains(strtolower($fieldValue), strtolower((string) $value)),
+                'equals'      => strtolower($fieldValue) === strtolower((string) $value),
+                'starts_with' => str_starts_with(strtolower($fieldValue), strtolower((string) $value)),
+                'ends_with'   => str_ends_with(strtolower($fieldValue), strtolower((string) $value)),
+                'gt'          => (float) $fieldValue > (float) $value,
+                'lt'          => (float) $fieldValue < (float) $value,
+                default       => false,
+            };
+
+            if (!$matches) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Apply a custom rule's action to a transaction.
+     */
+    protected function applyCustomRuleAction(Transaction $transaction, Rule $rule): void
+    {
+        $action = $rule->action ?? [];
+
+        if (!empty($action['type'])) {
+            $transaction->type = $action['type'];
+        }
+
+        if (!empty($action['category_id'])) {
+            $transaction->category_id = (int) $action['category_id'];
+        }
+
+        $transaction->status          = 'COMPLETED';
+        $transaction->applied_rule_id = $rule->id;
+        $transaction->save();
+
+        Log::info('Custom rule applied to transaction', [
+            'transaction_id' => $transaction->id,
+            'rule_id'        => $rule->id,
+            'rule_name'      => $rule->name,
         ]);
     }
 
