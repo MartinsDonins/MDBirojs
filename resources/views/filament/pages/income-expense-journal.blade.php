@@ -355,14 +355,19 @@
                             </td>
                             
                             {{-- Sasaite (Interactive) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                                title="Klikšķiniet, lai rediģētu darījuma detaļas">
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer"
+                                title="{{ $row['linked_account_name'] ? 'Sasaistīts ar: ' . $row['linked_account_name'] . ' — klikšķiniet, lai pārvaldītu' : 'Nav sasaistes — klikšķiniet, lai sasaistītu' }}">
                                 @if($row['transaction_id'])
-                                <div class="w-full h-full"
+                                <div class="w-full h-full flex items-center justify-center"
                                      @click.stop
-                                     wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
-                                    @if($row['category'] == 'Pārskaitījums') <span class="text-xs text-blue-500">↔</span> @endif
-                                    <span class="text-[8px] text-gray-400 opacity-50 hover:opacity-100">✏️</span>
+                                     wire:click="mountLinkModal({{ $row['transaction_id'] }})">
+                                    @if($row['linked_account_name'])
+                                        <span class="text-[9px] text-blue-600 dark:text-blue-400 font-medium leading-tight whitespace-nowrap">
+                                            ↔ {{ $row['linked_account_name'] }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-300 dark:text-gray-600 text-xs hover:text-gray-500 dark:hover:text-gray-400">—</span>
+                                    @endif
                                 </div>
                                 @endif
                             </td>

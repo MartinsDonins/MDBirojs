@@ -6,12 +6,24 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Transaction extends Model
 {
     use HasFactory;
 
     protected $guarded = [];
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (Transaction $transaction) {
+            if (empty($transaction->fingerprint)) {
+                $transaction->fingerprint = 'manual-' . \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     protected $casts = [
         'occurred_at' => 'date',
@@ -41,5 +53,10 @@ class Transaction extends Model
     public function cashOrder(): HasOne
     {
         return $this->hasOne(CashOrder::class);
+    }
+
+    public function linkedTransaction(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class, 'linked_transaction_id');
     }
 }
