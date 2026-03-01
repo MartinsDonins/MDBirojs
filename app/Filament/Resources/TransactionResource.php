@@ -7,6 +7,8 @@ use App\Filament\Resources\TransactionResource\RelationManagers;
 use App\Models\Transaction;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -47,22 +49,51 @@ class TransactionResource extends Resource
                                 Forms\Components\DatePicker::make('booked_at'),
                             ])->columns(2),
 
-                        Forms\Components\Section::make('Financials')
+                        Forms\Components\Section::make('Finanses')
                             ->schema([
                                 Forms\Components\TextInput::make('amount')
+                                    ->label('Summa')
                                     ->required()
-                                    ->numeric(),
-                                Forms\Components\TextInput::make('currency')
+                                    ->numeric()
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                        if (strtoupper($get('currency') ?? 'EUR') === 'EUR') {
+                                            $set('amount_eur', $state);
+                                        } else {
+                                            $set('amount_eur', round((float) $state * (float) ($get('exchange_rate') ?: 1), 2));
+                                        }
+                                    }),
+
+                                Forms\Components\Select::make('currency')
+                                    ->label('Valūta')
+                                    ->options(['EUR' => 'EUR', 'USD' => 'USD', 'GBP' => 'GBP', 'SEK' => 'SEK', 'NOK' => 'NOK'])
                                     ->default('EUR')
                                     ->required()
-                                    ->maxLength(3),
-                                Forms\Components\TextInput::make('amount_eur')
-                                    ->label('Amount (EUR)')
-                                    ->required() // In real app, this should be auto-calculated
-                                    ->numeric(),
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                        if (strtoupper($state ?? 'EUR') === 'EUR') {
+                                            $set('exchange_rate', 1);
+                                            $set('amount_eur', $get('amount'));
+                                        }
+                                    }),
+
                                 Forms\Components\TextInput::make('exchange_rate')
+                                    ->label('Maiņas kurss')
                                     ->numeric()
-                                    ->default(1),
+                                    ->default(1)
+                                    ->live(onBlur: true)
+                                    ->hidden(fn (Get $get) => strtoupper($get('currency') ?? 'EUR') === 'EUR')
+                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                        $set('amount_eur', round((float) ($get('amount') ?: 0) * (float) ($state ?: 1), 2));
+                                    }),
+
+                                Forms\Components\TextInput::make('amount_eur')
+                                    ->label('Summa EUR')
+                                    ->numeric()
+                                    ->disabled(fn (Get $get) => strtoupper($get('currency') ?? 'EUR') === 'EUR')
+                                    ->dehydrated()
+                                    ->helperText(fn (Get $get) => strtoupper($get('currency') ?? 'EUR') === 'EUR' ? 'Automātiski = Summa' : 'Aprēķināts: Summa × Kurss')
+                                    ->hidden(fn (Get $get) => strtoupper($get('currency') ?? 'EUR') === 'EUR'),
                             ])->columns(2),
                     ])->columnSpan(['lg' => 2]),
 
