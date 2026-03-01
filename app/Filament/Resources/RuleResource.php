@@ -83,10 +83,10 @@ class RuleResource extends Resource
                         Forms\Components\Select::make('action.type')
                             ->label('Iestatīt tipu')
                             ->options([
-                                'INCOME' => 'Ieņēmumi',
+                                'INCOME'  => 'Ieņēmumi',
                                 'EXPENSE' => 'Izdevumi',
-                                'TRANSFER' => 'Pārskaitījums',
-                            ]),
+                            ])
+                            ->native(false),
                         Forms\Components\Select::make('action.reverse_account_id')
                             ->label('Automātiski izveidot pretējo darījumu kontā')
                             ->options(\App\Models\Account::pluck('name', 'id'))
@@ -142,26 +142,36 @@ class RuleResource extends Resource
                 ->default('contains')
                 ->required(),
 
+            // value: Select for 'type' field
             Forms\Components\Select::make('value')
                 ->label('Vērtība')
                 ->options([
-                    'INCOME'   => 'Ieņēmumi (INCOME)',
-                    'EXPENSE'  => 'Izdevumi (EXPENSE)',
-                    'TRANSFER' => 'Pārskaitījums (TRANSFER)',
-                    'FEE'      => 'Komisija (FEE)',
+                    'INCOME'  => 'Ieņēmumi (INCOME)',
+                    'EXPENSE' => 'Izdevumi (EXPENSE)',
+                    'FEE'     => 'Komisija (FEE)',
                 ])
+                ->native(false)
                 ->visible(fn (Get $get) => $get('field') === 'type')
                 ->required(fn (Get $get) => $get('field') === 'type'),
 
+            // value: Select from own accounts for 'account_name' field
+            Forms\Components\Select::make('value')
+                ->label('Vērtība')
+                ->options(fn () => \App\Models\Account::orderBy('name')->pluck('name', 'name')->toArray())
+                ->searchable()
+                ->native(false)
+                ->visible(fn (Get $get) => $get('field') === 'account_name')
+                ->required(fn (Get $get) => $get('field') === 'account_name'),
+
+            // value: free text for all other fields
             Forms\Components\TextInput::make('value')
                 ->label('Vērtība')
                 ->placeholder(fn (Get $get) => match ($get('field')) {
-                    'amount'       => 'Piemēram: 100',
-                    'account_name' => 'Piemēram: SEB banka',
-                    default        => 'Ievadiet vērtību...',
+                    'amount'  => 'Piemēram: 100',
+                    default   => 'Ievadiet vērtību...',
                 })
-                ->visible(fn (Get $get) => $get('field') !== 'type')
-                ->required(fn (Get $get) => $get('field') !== 'type'),
+                ->visible(fn (Get $get) => !in_array($get('field'), ['type', 'account_name']))
+                ->required(fn (Get $get) => !in_array($get('field'), ['type', 'account_name'])),
         ];
     }
 

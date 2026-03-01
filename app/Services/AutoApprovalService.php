@@ -318,7 +318,8 @@ class AutoApprovalService
 
         // Create reverse transaction if configured
         if (!empty($action['reverse_account_id']) && !$transaction->linked_transaction_id) {
-            $reverseType = $transaction->type === 'INCOME' ? 'EXPENSE' : 'INCOME';
+            // Always use INCOME/EXPENSE (never TRANSFER) for reversed transactions
+            $reverseType = $transaction->type === 'EXPENSE' ? 'INCOME' : 'EXPENSE';
             $reversed = Transaction::create([
                 'account_id'            => (int) $action['reverse_account_id'],
                 'occurred_at'           => $transaction->occurred_at,
