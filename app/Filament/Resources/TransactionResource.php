@@ -165,8 +165,7 @@ class TransactionResource extends Resource
                         'DRAFT' => 'Melnraksts',
                         'COMPLETED' => 'Pabeigts',
                         'NEEDS_REVIEW' => 'Jāpārskata',
-                    ])
-                    ->default('DRAFT'),
+                    ]),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

@@ -869,7 +869,15 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 Forms\Components\DatePicker::make('occurred_at')
                     ->label('Datums')
                     ->required()
-                    ->default(now()),
+                    ->default(function () {
+                        if ($this->selectedYear && $this->selectedMonth) {
+                            return \Carbon\Carbon::createFromDate($this->selectedYear, $this->selectedMonth, 1);
+                        }
+                        if ($this->selectedYear) {
+                            return \Carbon\Carbon::createFromDate($this->selectedYear, now()->month, 1);
+                        }
+                        return now();
+                    }),
                 Forms\Components\Select::make('account_id')
                     ->label('Konts')
                     ->options(\App\Models\Account::pluck('name', 'id'))
@@ -968,6 +976,10 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 }
                 \App\Models\Transaction::create($data);
                 $this->calculateMonthData();
+                if ($this->selectedYear) {
+                    $this->calculateMonthlySummary();
+                    $this->calculateYearlySummary();
+                }
                 \Filament\Notifications\Notification::make()
                     ->title('Darījums pievienots')
                     ->success()
