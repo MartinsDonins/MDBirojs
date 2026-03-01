@@ -8,6 +8,7 @@ use App\Models\Rule;
 use App\Services\AutoApprovalService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -39,34 +40,30 @@ class RuleResource extends Resource
                     ->default(true)
                     ->required(),
 
-                Forms\Components\Section::make('Criteria')
+                Forms\Components\Section::make('Šie VISI jāizpildās (AND)')
+                    ->description('Darījumam jāatbilst VISIEM šiem kritērijiem')
+                    ->columnSpanFull()
                     ->schema([
-                        Forms\Components\Repeater::make('criteria')
-                            ->schema([
-                                Forms\Components\Select::make('field')
-                                    ->options([
-                                        'description' => 'Description',
-                                        'counterparty_name' => 'Counterparty Name',
-                                        'amount' => 'Amount',
-                                        'reference' => 'Reference',
-                                    ])
-                                    ->required(),
-                                Forms\Components\Select::make('operator')
-                                    ->options([
-                                        'contains' => 'Contains',
-                                        'equals' => 'Equals',
-                                        'starts_with' => 'Starts With',
-                                        'ends_with' => 'Ends With',
-                                        'gt' => 'Greater Than',
-                                        'lt' => 'Less Than',
-                                    ])
-                                    ->default('contains')
-                                    ->required(),
-                                Forms\Components\TextInput::make('value')
-                                    ->required(),
-                            ])
+                        Forms\Components\Repeater::make('and_criteria')
+                            ->label('')
+                            ->schema(self::criterionSchema())
                             ->columns(3)
-                            ->defaultItems(1),
+                            ->defaultItems(1)
+                            ->addActionLabel('+ Pievienot AND kritēriju')
+                            ->reorderable(false),
+                    ]),
+
+                Forms\Components\Section::make('Vismaz VIENS no šiem (OR)')
+                    ->description('Papildus AND grupai — darījumam jāatbilst vismaz vienam no šiem kritērijiem (var atstāt tukšu)')
+                    ->columnSpanFull()
+                    ->schema([
+                        Forms\Components\Repeater::make('or_criteria')
+                            ->label('')
+                            ->schema(self::criterionSchema())
+                            ->columns(3)
+                            ->defaultItems(0)
+                            ->addActionLabel('+ Pievienot OR kritēriju')
+                            ->reorderable(false),
                     ]),
 
                 Forms\Components\Section::make('Action')
@@ -87,6 +84,69 @@ class RuleResource extends Resource
             ]);
     }
 
+    /** Shared schema for a single criterion row (used in both AND and OR repeaters). */
+    public static function criterionSchema(): array
+    {
+        return [
+            Forms\Components\Select::make('field')
+                ->label('Lauks')
+                ->options([
+                    'description'          => 'Apraksts',
+                    'counterparty_name'    => 'Darījuma partneris',
+                    'counterparty_account' => 'Partnera konta nr.',
+                    'amount'               => 'Summa',
+                    'reference'            => 'Atsauce',
+                    'type'                 => 'Darījuma veids',
+                    'account_name'         => 'Konta nosaukums (mans)',
+                ])
+                ->required()
+                ->live(),
+
+            Forms\Components\Select::make('operator')
+                ->label('Operators')
+                ->options(fn (Get $get) => match ($get('field')) {
+                    'amount' => [
+                        'equals' => '=',
+                        'gt'     => '>',
+                        'lt'     => '<',
+                    ],
+                    'type', 'account_name' => [
+                        'equals'      => 'Ir vienāds ar',
+                        'contains'    => 'Satur',
+                    ],
+                    default => [
+                        'contains'    => 'Satur',
+                        'equals'      => 'Ir vienāds ar',
+                        'starts_with' => 'Sākas ar',
+                        'ends_with'   => 'Beidzas ar',
+                    ],
+                })
+                ->default('contains')
+                ->required(),
+
+            Forms\Components\Select::make('value')
+                ->label('Vērtība')
+                ->options([
+                    'INCOME'   => 'Ieņēmumi (INCOME)',
+                    'EXPENSE'  => 'Izdevumi (EXPENSE)',
+                    'TRANSFER' => 'Pārskaitījums (TRANSFER)',
+                    'FEE'      => 'Komisija (FEE)',
+                ])
+                ->visible(fn (Get $get) => $get('field') === 'type')
+                ->required(fn (Get $get) => $get('field') === 'type'),
+
+            Forms\Components\TextInput::make('value')
+                ->label('Vērtība')
+                ->placeholder(fn (Get $get) => match ($get('field')) {
+                    'amount'       => 'Piemēram: 100',
+                    'account_name' => 'Piemēram: SEB banka',
+                    default        => 'Ievadiet vērtību...',
+                })
+                ->visible(fn (Get $get) => $get('field') !== 'type')
+                ->required(fn (Get $get) => $get('field') !== 'type'),
+        ];
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -98,7 +158,16 @@ class RuleResource extends Resource
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('criteria')
-                    ->formatStateUsing(fn ($state) => is_array($state) ? count($state) . ' items' : '0 items')
+                    ->label('Kritēriji')
+                    ->formatStateUsing(function ($state) {
+                        if (!is_array($state)) return '0';
+                        $and = count($state['and_criteria'] ?? (isset($state['and_criteria']) ? [] : $state));
+                        $or  = count($state['or_criteria']  ?? []);
+                        if (isset($state['and_criteria']) || isset($state['or_criteria'])) {
+                            return "AND:{$and} OR:{$or}";
+                        }
+                        return count($state) . ' (AND)';
+                    })
                     ->badge(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

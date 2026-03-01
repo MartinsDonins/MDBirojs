@@ -192,7 +192,8 @@ class AutoApprovalService
             return $stats;
         }
 
-        foreach (Transaction::whereIn('status', ['DRAFT', 'NEEDS_REVIEW'])->cursor() as $transaction) {
+        // Eager-load account so account_name criterion works without N+1 queries
+        foreach (Transaction::whereIn('status', ['DRAFT', 'NEEDS_REVIEW'])->with('account')->cursor() as $transaction) {
             $stats['processed']++;
             if ($this->matchesCriteria($transaction, $criteria)) {
                 $this->applyCustomRuleAction($transaction, $rule);
@@ -204,7 +205,13 @@ class AutoApprovalService
     }
 
     /**
-     * Check if a transaction matches all given criteria.
+     * Match a transaction against a criteria structure.
+     *
+     * Supports two formats:
+     *   - New: ['and_criteria' => [...], 'or_criteria' => [...]]
+     *     AND: all and_criteria must match.
+     *     OR:  if or_criteria is non-empty, at least one must match.
+     *   - Legacy flat array: all items treated as AND criteria.
      */
     protected function matchesCriteria(Transaction $transaction, array $criteria): bool
     {
@@ -212,33 +219,77 @@ class AutoApprovalService
             return false;
         }
 
-        foreach ($criteria as $criterion) {
-            $field    = $criterion['field']    ?? null;
-            $operator = $criterion['operator'] ?? 'contains';
-            $value    = $criterion['value']    ?? '';
+        // --- New AND/OR format ---
+        if (isset($criteria['and_criteria']) || isset($criteria['or_criteria'])) {
+            $andList = $criteria['and_criteria'] ?? [];
+            $orList  = $criteria['or_criteria']  ?? [];
 
-            if (!$field) {
-                continue;
+            if (empty($andList) && empty($orList)) {
+                return false;
             }
 
-            $fieldValue = (string) ($transaction->{$field} ?? '');
+            // Every AND criterion must match
+            foreach ($andList as $criterion) {
+                if (!$this->matchesCriterion($transaction, $criterion)) {
+                    return false;
+                }
+            }
 
-            $matches = match ($operator) {
-                'contains'    => str_contains(strtolower($fieldValue), strtolower((string) $value)),
-                'equals'      => strtolower($fieldValue) === strtolower((string) $value),
-                'starts_with' => str_starts_with(strtolower($fieldValue), strtolower((string) $value)),
-                'ends_with'   => str_ends_with(strtolower($fieldValue), strtolower((string) $value)),
-                'gt'          => (float) $fieldValue > (float) $value,
-                'lt'          => (float) $fieldValue < (float) $value,
-                default       => false,
-            };
+            // If OR criteria exist, at least one must match
+            if (!empty($orList)) {
+                $anyMatch = false;
+                foreach ($orList as $criterion) {
+                    if ($this->matchesCriterion($transaction, $criterion)) {
+                        $anyMatch = true;
+                        break;
+                    }
+                }
+                if (!$anyMatch) {
+                    return false;
+                }
+            }
 
-            if (!$matches) {
+            return true;
+        }
+
+        // --- Legacy flat array: all treated as AND ---
+        foreach ($criteria as $criterion) {
+            if (!$this->matchesCriterion($transaction, $criterion)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /**
+     * Evaluate a single criterion against a transaction.
+     */
+    protected function matchesCriterion(Transaction $transaction, array $criterion): bool
+    {
+        $field    = $criterion['field']    ?? null;
+        $operator = $criterion['operator'] ?? 'contains';
+        $value    = (string) ($criterion['value'] ?? '');
+
+        if (!$field) {
+            return true;
+        }
+
+        // Resolve field value — support relation fields
+        $fieldValue = match ($field) {
+            'account_name' => (string) ($transaction->account?->name ?? ''),
+            default        => (string) ($transaction->{$field} ?? ''),
+        };
+
+        return match ($operator) {
+            'contains'    => str_contains(strtolower($fieldValue), strtolower($value)),
+            'equals'      => strtolower($fieldValue) === strtolower($value),
+            'starts_with' => str_starts_with(strtolower($fieldValue), strtolower($value)),
+            'ends_with'   => str_ends_with(strtolower($fieldValue), strtolower($value)),
+            'gt'          => (float) $fieldValue > (float) $value,
+            'lt'          => (float) $fieldValue < (float) $value,
+            default       => false,
+        };
     }
 
     /**
