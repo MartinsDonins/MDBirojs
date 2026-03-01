@@ -657,41 +657,24 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                         ->native(false)
                         ->hidden(fn (Forms\Get $get) => $get('action_type') !== 'link_existing'),
 
-                    // --- Create new ---
+                    // --- Create new (one-step: only choose account, all else from source) ---
+                    Forms\Components\Placeholder::make('create_new_info')
+                        ->label('Tiks izveidots pretējais darījums')
+                        ->content(function () use ($transaction) {
+                            if (!$transaction) return '—';
+                            $oppositeType = $transaction->type === 'INCOME' ? 'Izdevumi' : 'Ieņēmumi';
+                            return $transaction->occurred_at?->format('d.m.Y')
+                                . ' | ' . $oppositeType
+                                . ' | ' . number_format(abs($transaction->amount), 2, ',', ' ') . ' EUR'
+                                . ($transaction->description ? ' | ' . $transaction->description : '');
+                        })
+                        ->hidden(fn (Forms\Get $get) => $get('action_type') !== 'create_new'),
+
                     Forms\Components\Select::make('new_account_id')
-                        ->label('Konts (jaunajam darījumam)')
+                        ->label('Izvēlies kontu pretējam darījumam')
                         ->options($otherAccounts)
                         ->required()
                         ->native(false)
-                        ->hidden(fn (Forms\Get $get) => $get('action_type') !== 'create_new'),
-
-                    Forms\Components\DatePicker::make('new_date')
-                        ->label('Datums')
-                        ->default($transaction?->occurred_at)
-                        ->required()
-                        ->hidden(fn (Forms\Get $get) => $get('action_type') !== 'create_new'),
-
-                    Forms\Components\TextInput::make('new_amount')
-                        ->label('Summa (EUR)')
-                        ->numeric()
-                        ->default(fn () => abs($transaction?->amount ?? 0))
-                        ->required()
-                        ->hidden(fn (Forms\Get $get) => $get('action_type') !== 'create_new'),
-
-                    Forms\Components\Select::make('new_type')
-                        ->label('Veids')
-                        ->options([
-                            'INCOME'  => 'Ieņēmumi',
-                            'EXPENSE' => 'Izdevumi',
-                        ])
-                        ->default(fn () => $transaction?->type === 'INCOME' ? 'EXPENSE' : 'INCOME')
-                        ->required()
-                        ->native(false)
-                        ->hidden(fn (Forms\Get $get) => $get('action_type') !== 'create_new'),
-
-                    Forms\Components\TextInput::make('new_description')
-                        ->label('Apraksts')
-                        ->default(fn () => $transaction?->description)
                         ->hidden(fn (Forms\Get $get) => $get('action_type') !== 'create_new'),
                 ];
             })
@@ -738,16 +721,17 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
                 } elseif ($data['action_type'] === 'create_new') {
                     $newTransaction = Transaction::create([
-                        'account_id'       => $data['new_account_id'],
-                        'occurred_at'      => $data['new_date'],
-                        'amount'           => $data['new_amount'],
-                        'amount_eur'       => $data['new_amount'],
-                        'currency'         => 'EUR',
-                        'exchange_rate'    => 1,
-                        'type'             => $data['new_type'],
-                        'status'           => 'COMPLETED',
-                        'description'      => $data['new_description'] ?? $transaction->description,
-                        'counterparty_name' => $transaction->counterparty_name,
+                        'account_id'            => $data['new_account_id'],
+                        'occurred_at'           => $transaction->occurred_at,
+                        'amount'                => abs($transaction->amount),
+                        'amount_eur'            => abs($transaction->amount_eur ?? $transaction->amount),
+                        'currency'              => $transaction->currency ?? 'EUR',
+                        'exchange_rate'         => $transaction->exchange_rate ?? 1,
+                        'type'                  => $transaction->type === 'INCOME' ? 'EXPENSE' : 'INCOME',
+                        'status'                => 'COMPLETED',
+                        'description'           => $transaction->description,
+                        'counterparty_name'     => $transaction->counterparty_name,
+                        'reference'             => $transaction->reference,
                         'linked_transaction_id' => $transaction->id,
                     ]);
                     $transaction->update(['linked_transaction_id' => $newTransaction->id]);

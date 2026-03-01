@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\Account;
 use App\Models\Rule;
@@ -310,6 +311,11 @@ class AutoApprovalService
         $transaction->status          = 'COMPLETED';
         $transaction->applied_rule_id = $rule->id;
 
+        // Auto-link with matching transaction in another account
+        if (!empty($action['auto_link_matching'])) {
+            $this->tryAutoLink($transaction);
+        }
+
         // Create reverse transaction if configured
         if (!empty($action['reverse_account_id']) && !$transaction->linked_transaction_id) {
             $reverseType = $transaction->type === 'INCOME' ? 'EXPENSE' : 'INCOME';
@@ -345,6 +351,120 @@ class AutoApprovalService
             'rule_id'        => $rule->id,
             'rule_name'      => $rule->name,
         ]);
+    }
+
+    /**
+     * Try to find a matching transaction in another account and create a bidirectional link.
+     * Matches by: same description + same date (±1 day) + same amount_eur.
+     */
+    protected function tryAutoLink(Transaction $transaction): bool
+    {
+        if ($transaction->linked_transaction_id) {
+            return false; // already linked
+        }
+
+        $amountEur = abs($transaction->amount_eur ?? $transaction->amount);
+
+        $match = Transaction::where('id', '!=', $transaction->id)
+            ->where('account_id', '!=', $transaction->account_id)
+            ->whereNull('linked_transaction_id')
+            ->where('description', $transaction->description)
+            ->whereBetween('occurred_at', [
+                $transaction->occurred_at->copy()->subDay(),
+                $transaction->occurred_at->copy()->addDay(),
+            ])
+            ->whereRaw('ABS(COALESCE(amount_eur, amount) - ?) < 0.01', [$amountEur])
+            ->first();
+
+        if ($match) {
+            $transaction->linked_transaction_id = $match->id;
+            $match->update(['linked_transaction_id' => $transaction->id]);
+
+            Log::info('Auto-link created', [
+                'transaction_id' => $transaction->id,
+                'linked_to'      => $match->id,
+            ]);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Create or update the built-in system rules (bank fees, cash, auto-link).
+     * Safe to call multiple times — uses firstOrCreate by name.
+     */
+    public function createDefaultRules(): void
+    {
+        // --- Rule 1: Bankas komisijas ---
+        $feeCategory = Category::firstOrCreate(
+            ['name' => 'Bankas komisijas'],
+            ['type' => 'EXPENSE']
+        );
+        Rule::firstOrCreate(
+            ['name' => '⚙ Bankas komisijas'],
+            [
+                'priority'  => 100,
+                'is_active' => true,
+                'criteria'  => [
+                    'and_criteria' => [],
+                    'or_criteria'  => [
+                        ['field' => 'description', 'operator' => 'contains', 'value' => 'komisija'],
+                        ['field' => 'description', 'operator' => 'contains', 'value' => 'commission'],
+                        ['field' => 'description', 'operator' => 'contains', 'value' => 'apkalpošanas maksa'],
+                        ['field' => 'description', 'operator' => 'contains', 'value' => 'service fee'],
+                        ['field' => 'description', 'operator' => 'contains', 'value' => 'bankas pakalpojumi'],
+                    ],
+                ],
+                'action'    => [
+                    'type'        => 'EXPENSE',
+                    'category_id' => $feeCategory->id,
+                ],
+            ]
+        );
+
+        // --- Rule 2: Skaidra nauda / ATM ---
+        $cashCategory = Category::firstOrCreate(
+            ['name' => 'Skaidra nauda'],
+            ['type' => 'EXPENSE']
+        );
+        Rule::firstOrCreate(
+            ['name' => '⚙ Skaidra nauda / ATM'],
+            [
+                'priority'  => 90,
+                'is_active' => true,
+                'criteria'  => [
+                    'and_criteria' => [],
+                    'or_criteria'  => [
+                        ['field' => 'description',      'operator' => 'contains', 'value' => 'bankomāt'],
+                        ['field' => 'description',      'operator' => 'contains', 'value' => 'atm'],
+                        ['field' => 'description',      'operator' => 'contains', 'value' => 'skaidra nauda'],
+                        ['field' => 'description',      'operator' => 'contains', 'value' => 'cash'],
+                        ['field' => 'counterparty_name','operator' => 'contains', 'value' => 'kase'],
+                    ],
+                ],
+                'action'    => [
+                    'category_id' => $cashCategory->id,
+                ],
+            ]
+        );
+
+        // --- Rule 3: Auto-sasaiste starp kontiem ---
+        Rule::firstOrCreate(
+            ['name' => '⚙ Auto-sasaiste starp kontiem'],
+            [
+                'priority'  => 50,
+                'is_active' => false, // user enables manually after review
+                'criteria'  => [
+                    'and_criteria' => [],
+                    'or_criteria'  => [],
+                ],
+                'action'    => [
+                    'auto_link_matching' => true,
+                ],
+            ]
+        );
     }
 
     /**

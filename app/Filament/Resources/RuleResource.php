@@ -92,7 +92,12 @@ class RuleResource extends Resource
                             ->options(\App\Models\Account::pluck('name', 'id'))
                             ->searchable()
                             ->nullable()
-                            ->helperText('Ja iestatīts — kārtulas aktivizēšanās laikā tiks izveidots pretēja tipa darījums norādītajā kontā (piemēram, "kases" kontā) un abi darījumi tiks sasaistīti.'),
+                            ->helperText('Ja iestatīts — kārtulas aktivizēšanās laikā tiks izveidots pretēja tipa darījums norādītajā kontā un abi darījumi tiks sasaistīti.'),
+
+                        Forms\Components\Toggle::make('action.auto_link_matching')
+                            ->label('Auto-sasaiste: meklēt atbilstošu darījumu')
+                            ->helperText('Ja ieslēgts — meklēs darījumu CITĀ kontā ar vienādu datumu (±1 diena), summu un aprakstu un izveidos sasaisti. Noderīgi pārskaitījumiem starp saviem kontiem.')
+                            ->columnSpanFull(),
                     ])->columns(2),
             ]);
     }
