@@ -514,14 +514,10 @@
 
                             {{-- 5. Atbilstības indikators --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center">
-                                @if($row['transaction_type'] === 'INCOME' || $row['transaction_type'] === 'EXPENSE')
-                                    @if($row['is_mapped'])
-                                        <span class="text-green-600 dark:text-green-400 font-bold text-sm" title="Summa pilnībā iekļauta analīzes kolonnās">✓</span>
-                                    @else
-                                        <span class="text-red-500 font-bold text-sm" title="Summa nav kartēta uz analīzes kolonnu — pārbaudiet kategoriju!">✗</span>
-                                    @endif
+                                @if($row['is_mapped'])
+                                    <span class="text-green-600 dark:text-green-400 font-bold text-sm" title="Summa pilnībā iekļauta analīzes kolonnās">✓</span>
                                 @else
-                                    <span class="text-gray-400 text-xs" title="{{ $row['transaction_type'] }}">—</span>
+                                    <span class="text-red-500 font-bold text-sm" title="Summa nav kartēta uz analīzes kolonnu — pārbaudiet kategoriju!">✗</span>
                                 @endif
                             </td>
                         </tr>

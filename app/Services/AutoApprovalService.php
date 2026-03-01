@@ -226,7 +226,7 @@ class AutoApprovalService
             $orList  = $criteria['or_criteria']  ?? [];
 
             if (empty($andList) && empty($orList)) {
-                return false;
+                return true; // No criteria = match all transactions
             }
 
             // Every AND criterion must match
