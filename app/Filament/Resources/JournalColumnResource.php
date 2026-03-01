@@ -52,7 +52,6 @@ class JournalColumnResource extends Resource
                 Forms\Components\TextInput::make('vid_columns_text')
                     ->label('VID kolonnas (nr., atdalītas ar komatiem)')
                     ->helperText('Piemēram: 4,5,6')
-                    ->dehydrated(false)
                     ->afterStateHydrated(function (Forms\Components\TextInput $component, $state, $record) {
                         if ($record) {
                             $component->state(implode(',', array_map('intval', $record->vid_columns ?? [])));
