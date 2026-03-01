@@ -10,7 +10,7 @@
                     Saimnieciskās darbības ieņēmumu un izdevumu žurnāls
                 </p>
             </div>
-            
+
             <div class="fi-ta-ctn rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden">
                 <table class="fi-ta-table w-full text-start divide-y divide-gray-200 dark:divide-white/5">
                     <thead class="bg-gray-50 dark:bg-white/5">
@@ -68,27 +68,8 @@
                     <x-filament::button wire:click="mountAction('createTransaction')">
                         Pievienot darījumu
                     </x-filament::button>
-                    
-                    @if($selectedYear && !$selectedMonth)
-                       {{-- Year view actions if needed --}}
-                    @endif
                 </div>
             </div>
-
-            {{-- Month Navigation --}}
-            @if($selectedMonth)
-                <div class="mb-4 flex items-center justify-between">
-                    <button wire:click="viewMonthDetails({{ $selectedMonth - 1 }})" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        &larr; Iepriekšējais
-                    </button>
-                    <span class="font-bold text-lg text-gray-800 dark:text-gray-200">
-                        {{ \Carbon\Carbon::create()->month($selectedMonth)->locale('lv')->monthName }} {{ $selectedYear }}
-                    </span>
-                    <button wire:click="viewMonthDetails({{ $selectedMonth + 1 }})" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Nākamais &rarr;
-                    </button>
-                </div>
-            @endif
 
             {{-- Summary Cards --}}
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -122,6 +103,10 @@
         </div>
 
         {{-- Monthly Summary Table --}}
+        @php
+            $incomeColCount  = count($journalIncomeColumns);
+            $expenseColCount = count($journalExpenseColumns);
+        @endphp
         <div x-data="{}"
              x-init="if (!Alpine.store('yearView')) { Alpine.store('yearView', { expandedMonths: [] }); }"
              class="fi-ta-ctn rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-x-auto">
@@ -129,19 +114,19 @@
                 <thead>
                     <tr class="bg-gray-50 dark:bg-white/5">
                         <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-start text-sm font-medium text-gray-950 dark:text-white align-bottom" style="min-width:120px">Mēnesis</th>
-                        <th colspan="4" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Ieņēmumi (EUR)</th>
-                        <th colspan="4" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Izdevumi (EUR)</th>
+                        <th colspan="{{ $incomeColCount + 1 }}" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Ieņēmumi (EUR)</th>
+                        <th colspan="{{ $expenseColCount + 1 }}" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Izdevumi (EUR)</th>
                         <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom">Bilance</th>
                         <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700 align-bottom w-16"></th>
                     </tr>
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px]">
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Saimn. darb. ieņēmumi (kol.4/5/6)">Saimn.<br>darb.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Neapliekamie (kol.10)">Neapl.<br>(kol.10)</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Nav attiecināmi (kol.8)">Nav attiec.<br>(kol.8)</th>
+                        @foreach($journalIncomeColumns as $col)
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="{{ $col['name'] }}">{{ $col['abbr'] }}</th>
+                        @endforeach
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">Kopā</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Saistīti ar SD (kol.19-23)">Saistīti<br>ar SD</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Nesaistīti ar SD (kol.18)">Nesaist.<br>(kol.18)</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="Nav attiecināms (kol.16)">Nav attiec.<br>(kol.16)</th>
+                        @foreach($journalExpenseColumns as $col)
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="{{ $col['name'] }}">{{ $col['abbr'] }}</th>
+                        @endforeach
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100">Kopā</th>
                     </tr>
                 </thead>
@@ -158,27 +143,19 @@
                                     {{ $summary['month'] }}
                                 </span>
                             </td>
+                            @foreach($journalIncomeColumns as $i => $col)
                             <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-success-700 dark:text-success-400">
-                                @if($summary['income_saimn'] > 0){{ number_format($summary['income_saimn'], 2, ',', ' ') }}@endif
+                                @if(isset($summary['income_cols'][$i]) && $summary['income_cols'][$i] > 0){{ number_format($summary['income_cols'][$i], 2, ',', ' ') }}@endif
                             </td>
-                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-success-700 dark:text-success-400">
-                                @if($summary['income_neapl'] > 0){{ number_format($summary['income_neapl'], 2, ',', ' ') }}@endif
-                            </td>
-                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-success-700 dark:text-success-400">
-                                @if($summary['income_nav_attiec'] > 0){{ number_format($summary['income_nav_attiec'], 2, ',', ' ') }}@endif
-                            </td>
+                            @endforeach
                             <td class="px-2 py-2 text-xs text-end font-bold border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/10 text-success-700 dark:text-success-400">
                                 @if($summary['income_kopaa'] > 0){{ number_format($summary['income_kopaa'], 2, ',', ' ') }}@endif
                             </td>
+                            @foreach($journalExpenseColumns as $i => $col)
                             <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-danger-700 dark:text-danger-400">
-                                @if($summary['expense_saistiti'] > 0){{ number_format($summary['expense_saistiti'], 2, ',', ' ') }}@endif
+                                @if(isset($summary['expense_cols'][$i]) && $summary['expense_cols'][$i] > 0){{ number_format($summary['expense_cols'][$i], 2, ',', ' ') }}@endif
                             </td>
-                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-danger-700 dark:text-danger-400">
-                                @if($summary['expense_nesaist'] > 0){{ number_format($summary['expense_nesaist'], 2, ',', ' ') }}@endif
-                            </td>
-                            <td class="px-2 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 text-danger-700 dark:text-danger-400">
-                                @if($summary['expense_nav_attiec'] > 0){{ number_format($summary['expense_nav_attiec'], 2, ',', ' ') }}@endif
-                            </td>
+                            @endforeach
                             <td class="px-2 py-2 text-xs text-end font-bold border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/10 text-danger-700 dark:text-danger-400">
                                 @if($summary['expense_kopaa'] > 0){{ number_format($summary['expense_kopaa'], 2, ',', ' ') }}@endif
                             </td>
@@ -203,32 +180,24 @@
                                     @if($cat['vid_column'] > 0)<span class="text-gray-400 text-[9px] ml-1">(kol.{{ $cat['vid_column'] }})</span>@endif
                                 </td>
                                 @if($cat['type'] === 'INCOME')
+                                    @foreach($journalIncomeColumns as $col)
                                     <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-success-600 dark:text-success-400">
-                                        @if(in_array($cat['vid_column'], [4,5,6])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                        @if(in_array($cat['vid_column'], $col['vid_columns'])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
                                     </td>
-                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-success-600 dark:text-success-400">
-                                        @if($cat['vid_column'] === 10){{ number_format($cat['total'], 2, ',', ' ') }}@endif
-                                    </td>
-                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-success-600 dark:text-success-400">
-                                        @if($cat['vid_column'] === 8){{ number_format($cat['total'], 2, ',', ' ') }}@endif
-                                    </td>
+                                    @endforeach
                                     <td class="px-2 py-1 text-xs text-end font-medium border border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-900/10 text-success-600 dark:text-success-400">
-                                        @if(in_array($cat['vid_column'], [4,5,6,8,10])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                        {{ number_format($cat['total'], 2, ',', ' ') }}
                                     </td>
-                                    <td colspan="4" class="border border-gray-200 dark:border-gray-700"></td>
+                                    <td colspan="{{ $expenseColCount + 1 }}" class="border border-gray-200 dark:border-gray-700"></td>
                                 @else
-                                    <td colspan="4" class="border border-gray-200 dark:border-gray-700"></td>
+                                    <td colspan="{{ $incomeColCount + 1 }}" class="border border-gray-200 dark:border-gray-700"></td>
+                                    @foreach($journalExpenseColumns as $col)
                                     <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-danger-600 dark:text-danger-400">
-                                        @if(in_array($cat['vid_column'], [19,20,21,22,23])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                        @if(in_array($cat['vid_column'], $col['vid_columns'])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
                                     </td>
-                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-danger-600 dark:text-danger-400">
-                                        @if($cat['vid_column'] === 18){{ number_format($cat['total'], 2, ',', ' ') }}@endif
-                                    </td>
-                                    <td class="px-2 py-1 text-xs text-end border border-gray-200 dark:border-gray-700 text-danger-600 dark:text-danger-400">
-                                        @if($cat['vid_column'] === 16){{ number_format($cat['total'], 2, ',', ' ') }}@endif
-                                    </td>
+                                    @endforeach
                                     <td class="px-2 py-1 text-xs text-end font-medium border border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/10 text-danger-600 dark:text-danger-400">
-                                        @if(in_array($cat['vid_column'], [16,18,19,20,21,22,23])){{ number_format($cat['total'], 2, ',', ' ') }}@endif
+                                        {{ number_format($cat['total'], 2, ',', ' ') }}
                                     </td>
                                 @endif
                                 <td class="border border-gray-200 dark:border-gray-700"></td>
@@ -240,27 +209,19 @@
                     {{-- Total Row --}}
                     <tr class="bg-gray-100 dark:bg-white/5 font-bold border-t-2 border-gray-400">
                         <td class="px-3 py-2 text-sm text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700">GADA KOPĀ</td>
+                        @foreach($journalIncomeColumns as $i => $col)
                         <td class="px-2 py-2 text-xs text-end text-success-700 dark:text-success-400 border border-gray-300 dark:border-gray-700">
-                            {{ number_format(collect($monthlySummary)->sum('income_saimn'), 2, ',', ' ') }}
+                            {{ number_format(collect($monthlySummary)->sum(fn($m) => $m['income_cols'][$i] ?? 0), 2, ',', ' ') }}
                         </td>
-                        <td class="px-2 py-2 text-xs text-end text-success-700 dark:text-success-400 border border-gray-300 dark:border-gray-700">
-                            {{ number_format(collect($monthlySummary)->sum('income_neapl'), 2, ',', ' ') }}
-                        </td>
-                        <td class="px-2 py-2 text-xs text-end text-success-700 dark:text-success-400 border border-gray-300 dark:border-gray-700">
-                            {{ number_format(collect($monthlySummary)->sum('income_nav_attiec'), 2, ',', ' ') }}
-                        </td>
+                        @endforeach
                         <td class="px-2 py-2 text-xs text-end font-bold bg-green-50 dark:bg-green-900/10 text-success-700 dark:text-success-400 border border-gray-300 dark:border-gray-700">
                             {{ number_format(collect($monthlySummary)->sum('income_kopaa'), 2, ',', ' ') }}
                         </td>
+                        @foreach($journalExpenseColumns as $i => $col)
                         <td class="px-2 py-2 text-xs text-end text-danger-700 dark:text-danger-400 border border-gray-300 dark:border-gray-700">
-                            {{ number_format(collect($monthlySummary)->sum('expense_saistiti'), 2, ',', ' ') }}
+                            {{ number_format(collect($monthlySummary)->sum(fn($m) => $m['expense_cols'][$i] ?? 0), 2, ',', ' ') }}
                         </td>
-                        <td class="px-2 py-2 text-xs text-end text-danger-700 dark:text-danger-400 border border-gray-300 dark:border-gray-700">
-                            {{ number_format(collect($monthlySummary)->sum('expense_nesaist'), 2, ',', ' ') }}
-                        </td>
-                        <td class="px-2 py-2 text-xs text-end text-danger-700 dark:text-danger-400 border border-gray-300 dark:border-gray-700">
-                            {{ number_format(collect($monthlySummary)->sum('expense_nav_attiec'), 2, ',', ' ') }}
-                        </td>
+                        @endforeach
                         <td class="px-2 py-2 text-xs text-end font-bold bg-red-50 dark:bg-red-900/10 text-danger-700 dark:text-danger-400 border border-gray-300 dark:border-gray-700">
                             {{ number_format(collect($monthlySummary)->sum('expense_kopaa'), 2, ',', ' ') }}
                         </td>
@@ -338,32 +299,40 @@
         </div>
 
         {{-- Dynamic Account Journal Table --}}
+        @php
+            $incomeColCount    = count($journalIncomeColumns);
+            $expenseColCount   = count($journalExpenseColumns);
+            // 8 fixed cols + 3*accounts + income cols + 1 kopā + expense cols + 1 kopā + 1 atb
+            $totalAnalysisCols = $incomeColCount + 1 + $expenseColCount + 1 + 1;
+            $detailColSpan     = 8 + count($accounts) * 3 + $incomeColCount + 1 + $expenseColCount + 1 + 1;
+        @endphp
         <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm"
              x-data="{}"
              x-init="if (!Alpine.store('journal')) { Alpine.store('journal', { expandedRows: [] }); }">
             <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                 <thead>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-8 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 65px;">Datums</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 100px;">Dok. nr.<br>un datums</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 120px;">Partneris</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 150px;">Apraksts</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 80px;">Kategorija</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100">Sasaite</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 40px;">Statuss</th>
+                    <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px] font-semibold">
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-8 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 65px;">Datums</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 100px;">Dok. nr.<br>un datums</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 120px;">Partneris</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 150px;">Apraksts</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 80px;">Kategorija</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100">Sasaite</th>
+                        <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 40px;">Statuss</th>
 
-                        {{-- 2. Konti (Atlikums) --}}
+                        {{-- Konto kolonnas --}}
                         @foreach($accounts as $acc)
                             <th colspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 text-gray-900 dark:text-gray-100">{{ $acc->name }}</th>
                         @endforeach
 
-                        {{-- 3. Ieņēmumu Analīze --}}
-                        <th colspan="4" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-gray-100">Ieņēmumi (EUR)</th>
+                        {{-- Ieņēmumu analīze --}}
+                        <th colspan="{{ $incomeColCount + 1 }}" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-gray-100">Ieņēmumi (EUR)</th>
 
-                        {{-- 4. Izdevumu Analīze --}}
-                        <th colspan="5" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-gray-900 dark:text-gray-100">Izdevumi (EUR)</th>
+                        {{-- Izdevumu analīze --}}
+                        <th colspan="{{ $expenseColCount + 1 }}" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-gray-900 dark:text-gray-100">Izdevumi (EUR)</th>
 
-                        {{-- 5. Atbilstība --}}
+                        {{-- Atbilstība --}}
                         <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-center text-gray-900 dark:text-gray-100" title="Atbilstība: vai darījuma summa pilnībā iekļaujas analīzes kolonnās">Atb.</th>
                     </tr>
                     <tr class="bg-gray-50 dark:bg-gray-800/50 text-center text-[10px]">
@@ -374,20 +343,19 @@
                             <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Atlikums">Atlikums</th>
                         @endforeach
 
-                        {{-- Ieņēmumu apakškolonnas --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Saimnieciskās darbības ieņēmumi (kol.4/5/6)">Saimn.<br>darb.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Neapliekamie ieņēmumi (kol.10)">Neapl.<br>(kol.10)</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināmi uz nodokli (kol.8)">Nav attiec.<br>(kol.8)</th>
+                        {{-- Ieņēmumu analīzes apakškolonnas --}}
+                        @foreach($journalIncomeColumns as $col)
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">{{ $col['abbr'] }}</th>
+                        @endforeach
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Kopā</th>
 
-                        {{-- Izdevumu apakškolonnas --}}
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Saistīti ar saimniecisko darbību (kol.19-23)">Saistīti<br>ar SD</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Proporcionāli sadalāmie">Prop.<br>sadal.</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nesaistīti ar SD (kol.18)">Nesaist.<br>(kol.18)</th>
-                        <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Nav attiecināms uz nodokli (kol.16)">Nav attiec.<br>(kol.16)</th>
+                        {{-- Izdevumu analīzes apakškolonnas --}}
+                        @foreach($journalExpenseColumns as $col)
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">{{ $col['abbr'] }}</th>
+                        @endforeach
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Kopā</th>
                     </tr>
-                    
+
                     {{-- Column Numbers --}}
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px] text-gray-500 font-mono">
                         <th class="border border-gray-300 dark:border-gray-700 sticky left-0 z-20 bg-gray-100 dark:bg-gray-800">1</th>
@@ -398,25 +366,22 @@
                         <th class="border border-gray-300 dark:border-gray-700">6</th>
                         <th class="border border-gray-300 dark:border-gray-700">7</th>
                         <th class="border border-gray-300 dark:border-gray-700">8</th>
-                        
+
                         @php $colNum = 9; @endphp
                         @foreach($accounts as $acc)
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                         @endforeach
-                        
-                        {{-- Income Analysis Cols (4) --}}
+
+                        {{-- Income + expense analysis col numbers --}}
+                        @foreach($journalIncomeColumns as $col)
+                            <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        @endforeach
                         <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
-                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
-                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
-                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
-                        
-                        {{-- Expense Analysis Cols (5) --}}
-                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
-                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
-                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
-                        <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        @foreach($journalExpenseColumns as $col)
+                            <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        @endforeach
                         <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                     </tr>
                 </thead>
@@ -424,6 +389,7 @@
                     {{-- Opening Balances Row --}}
                     <tr class="bg-yellow-50 dark:bg-yellow-900/10 font-bold text-gray-700 dark:text-gray-300">
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-xs">Sākuma atlikums:</td>
+                        <td class="border border-gray-300 dark:border-gray-700"></td>
                         @foreach($accounts as $acc)
                             <td colspan="2" class="border border-gray-300 dark:border-gray-700"></td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right hover:bg-yellow-100 dark:hover:bg-yellow-800/30 cursor-pointer group/bal"
@@ -434,21 +400,21 @@
                                 </div>
                             </td>
                         @endforeach
-                        <td colspan="10" class="border border-gray-300 dark:border-gray-700"></td>
+                        <td colspan="{{ $totalAnalysisCols }}" class="border border-gray-300 dark:border-gray-700"></td>
                     </tr>
 
                     @foreach($rows as $row)
                     @if(!$showOnlyInvalid || !$row['is_mapped'])
-                        <tr wire:key="row-{{ $row['entry_number'] }}" class="group hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" 
+                        <tr wire:key="row-{{ $row['entry_number'] }}" class="group hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer"
                             @click="$store.journal.expandedRows.includes({{ $row['entry_number'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : $store.journal.expandedRows.push({{ $row['entry_number'] }})">
-                            
+
                             {{-- 1. Identifikācija --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Ieraksta Nr.">{{ $row['entry_number'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-8 z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['date'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all text-gray-900 dark:text-gray-100">{{ $row['document_details'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[100px] text-gray-900 dark:text-gray-100" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[150px] text-gray-900 dark:text-gray-100" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
-                            
+
                             {{-- Kategorija (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 dark:text-primary-400 cursor-pointer"
                                 title="Klikšķiniet, lai mainītu kategoriju">
@@ -462,7 +428,7 @@
                                         {{ $row['category'] ?? '---' }}
                                     @endif
                             </td>
-                            
+
                             {{-- Sasaite (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer"
                                 title="{{ $row['linked_account_name'] ? 'Sasaistīts ar: ' . $row['linked_account_name'] . ' — klikšķiniet, lai pārvaldītu' : 'Nav sasaistes — klikšķiniet, lai sasaistītu' }}">
@@ -501,67 +467,45 @@
 
                             {{-- 2. Konti --}}
                             @foreach($accounts as $acc)
-                                {{-- Ieņēmumi (Ja šis konts un IN) --}}
                                 <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-green-600 dark:text-green-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
                                     @if($row['transaction_account_id'] == $acc->id && $row['transaction_type'] == 'INCOME')
                                         {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                     @endif
                                 </td>
-                                {{-- Izdevumi (Ja šis konts un EXP) --}}
                                 <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-red-600 dark:text-red-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
                                     @if($row['transaction_account_id'] == $acc->id && $row['transaction_type'] == 'EXPENSE')
                                         {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                     @endif
                                 </td>
-                                {{-- Running Balance --}}
                                 <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold bg-gray-50 dark:bg-gray-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 {{ ($row['account_balances'][$acc->id] ?? 0) < 0 ? 'text-red-600' : 'text-gray-900 dark:text-gray-100' }}">
                                     {{ number_format($row['account_balances'][$acc->id] ?? 0, 2, ',', ' ') }}
                                 </td>
                             @endforeach
 
-                            {{-- 3. Ieņēmumu Analīze (Logic mapping) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.4/5/6 — Saimn. darb.">
-                                @if($row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], [4,5,6]))
+                            {{-- 3. Ieņēmumu analīze (dynamic columns) --}}
+                            @foreach($journalIncomeColumns as $col)
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">
+                                @if($row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], $col['vid_columns']))
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.10 — Neapliekamie">
-                                @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 10)
-                                    {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.8 — Nav attiecināms uz nodokli">
-                                @if($row['transaction_type'] == 'INCOME' && $row['category_vid_column'] == 8)
-                                    {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            {{-- Ieņēmumi Kopā — tikai kartētās summas --}}
+                            @endforeach
+                            {{-- Ieņēmumi Kopā --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-green-600 dark:text-green-400">
                                 @if($row['transaction_type'] == 'INCOME' && $row['is_mapped'])
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
 
-                            {{-- 4. Izdevumu Analīze (Logic mapping) --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.19-23 — Saistīti ar SD">
-                                @if($row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], [19,20,21,22,23]))
+                            {{-- 4. Izdevumu analīze (dynamic columns) --}}
+                            @foreach($journalExpenseColumns as $col)
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">
+                                @if($row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], $col['vid_columns']))
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100">
-                                {{-- Prop. sadal. (nav kartēts) --}}
-                            </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.18 — Nesaistīti ar SD">
-                                @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 18)
-                                    {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="Kol.16 — Nav attiecināms uz nodokli">
-                                @if($row['transaction_type'] == 'EXPENSE' && $row['category_vid_column'] == 16)
-                                    {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
-                                @endif
-                            </td>
-                            {{-- Izdevumi Kopā — tikai kartētās summas --}}
+                            @endforeach
+                            {{-- Izdevumi Kopā --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-red-600 dark:text-red-400">
                                 @if($row['transaction_type'] == 'EXPENSE' && $row['is_mapped'])
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
@@ -584,7 +528,7 @@
 
                         {{-- Expandable Detail Row --}}
                         <tr x-show="$store.journal && $store.journal.expandedRows.includes({{ $row['entry_number'] }})" class="bg-blue-50/50 dark:bg-blue-900/10">
-                            <td colspan="{{ 7 + (count($accounts) * 3) + 10 }}" class="px-4 py-2 border border-gray-300 dark:border-gray-700">
+                            <td colspan="{{ $detailColSpan }}" class="px-4 py-2 border border-gray-300 dark:border-gray-700">
                                 <div class="grid grid-cols-2 gap-4 text-xs">
                                     <div>
                                         <strong>Pilns apraksts:</strong> {{ $row['description'] }}
@@ -601,13 +545,14 @@
                     {{-- Closing Balances Row --}}
                     <tr class="bg-yellow-100 dark:bg-yellow-900/20 font-bold text-gray-800 dark:text-gray-200 border-t-2 border-gray-400">
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">Beigu atlikums:</td>
+                        <td class="border border-gray-300 dark:border-gray-700"></td>
                         @foreach($accounts as $acc)
                             <td colspan="2" class="border border-gray-300 dark:border-gray-700"></td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right {{ ($closing_balances[$acc->id] ?? 0) < 0 ? 'text-red-600' : '' }}">
                                 {{ number_format($closing_balances[$acc->id] ?? 0, 2, ',', ' ') }}
                             </td>
                         @endforeach
-                        <td colspan="10" class="border border-gray-300 dark:border-gray-700"></td>
+                        <td colspan="{{ $totalAnalysisCols }}" class="border border-gray-300 dark:border-gray-700"></td>
                     </tr>
                 </tbody>
             </table>

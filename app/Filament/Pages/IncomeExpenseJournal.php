@@ -48,9 +48,55 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public $accounts;
     public bool $showOnlyInvalid = false;
 
-    // VID kolonnu karte: kurām kategorijām ir attēlota analīzes kolonna
-    protected const INCOME_MAPPED_COLS  = [4, 5, 6, 8, 10];
-    protected const EXPENSE_MAPPED_COLS = [16, 18, 19, 20, 21, 22, 23];
+    // Cached dynamic column configs (loaded from journal_columns table)
+    private ?array $cachedIncomeColumns  = null;
+    private ?array $cachedExpenseColumns = null;
+
+    // ── Dynamic column helpers ─────────────────────────────────────────────────
+
+    private function getIncomeColsConfig(): array
+    {
+        if ($this->cachedIncomeColumns === null) {
+            $this->cachedIncomeColumns = \App\Models\JournalColumn::visibleForGroup('income')
+                ->map(fn ($col) => [
+                    'id'          => $col->id,
+                    'name'        => $col->name,
+                    'abbr'        => $col->abbr,
+                    'vid_columns' => array_map('intval', $col->vid_columns ?? []),
+                ])
+                ->toArray();
+        }
+        return $this->cachedIncomeColumns;
+    }
+
+    private function getExpenseColsConfig(): array
+    {
+        if ($this->cachedExpenseColumns === null) {
+            $this->cachedExpenseColumns = \App\Models\JournalColumn::visibleForGroup('expense')
+                ->map(fn ($col) => [
+                    'id'          => $col->id,
+                    'name'        => $col->name,
+                    'abbr'        => $col->abbr,
+                    'vid_columns' => array_map('intval', $col->vid_columns ?? []),
+                ])
+                ->toArray();
+        }
+        return $this->cachedExpenseColumns;
+    }
+
+    private function getAllVidColumnsForGroup(string $group): array
+    {
+        $cols = $group === 'income' ? $this->getIncomeColsConfig() : $this->getExpenseColsConfig();
+        $result = [];
+        foreach ($cols as $col) {
+            foreach ($col['vid_columns'] as $vid) {
+                $result[] = $vid;
+            }
+        }
+        return $result;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     public function mount(): void
     {
@@ -190,7 +236,10 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
     protected function getViewData(): array
     {
-        return [];
+        return [
+            'journalIncomeColumns'  => $this->getIncomeColsConfig(),
+            'journalExpenseColumns' => $this->getExpenseColsConfig(),
+        ];
     }
 
     protected function getMonthDetailQuery(): Builder
@@ -301,33 +350,43 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             $incomeCats  = $monthCats->where('type', 'INCOME');
             $expenseCats = $monthCats->where('type', 'EXPENSE');
 
-            $incomeSaimn      = (float) $incomeCats->filter(fn ($c) => in_array((int) $c->vid_column, [4, 5, 6]))->sum('total');
-            $incomeNeapl      = (float) $incomeCats->filter(fn ($c) => (int) $c->vid_column === 10)->sum('total');
-            $incomeNavAttiec  = (float) $incomeCats->filter(fn ($c) => (int) $c->vid_column === 8)->sum('total');
-            $incomeKopaa      = $incomeSaimn + $incomeNeapl + $incomeNavAttiec;
+            // Build dynamic per-column totals
+            $incomeColsConfig  = $this->getIncomeColsConfig();
+            $expenseColsConfig = $this->getExpenseColsConfig();
 
-            $expenseSaistiti  = (float) $expenseCats->filter(fn ($c) => in_array((int) $c->vid_column, [19, 20, 21, 22, 23]))->sum('total');
-            $expenseNesaist   = (float) $expenseCats->filter(fn ($c) => (int) $c->vid_column === 18)->sum('total');
-            $expenseNavAttiec = (float) $expenseCats->filter(fn ($c) => (int) $c->vid_column === 16)->sum('total');
-            $expenseKopaa     = $expenseSaistiti + $expenseNesaist + $expenseNavAttiec;
+            $incomeCols  = [];
+            $incomeKopaa = 0;
+            foreach ($incomeColsConfig as $col) {
+                $total = (float) $incomeCats
+                    ->filter(fn ($c) => in_array((int) $c->vid_column, $col['vid_columns']))
+                    ->sum('total');
+                $incomeCols[] = $total;
+                $incomeKopaa += $total;
+            }
+
+            $expenseCols  = [];
+            $expenseKopaa = 0;
+            foreach ($expenseColsConfig as $col) {
+                $total = (float) $expenseCats
+                    ->filter(fn ($c) => in_array((int) $c->vid_column, $col['vid_columns']))
+                    ->sum('total');
+                $expenseCols[] = $total;
+                $expenseKopaa += $total;
+            }
 
             $this->monthlySummary[] = [
-                'month'              => $monthNames[$month],
-                'month_number'       => $month,
-                'income'             => $income,
-                'expense'            => $expense,
-                'balance'            => $runningBalance,
-                // Analysis column totals
-                'income_saimn'       => $incomeSaimn,
-                'income_neapl'       => $incomeNeapl,
-                'income_nav_attiec'  => $incomeNavAttiec,
-                'income_kopaa'       => $incomeKopaa,
-                'expense_saistiti'   => $expenseSaistiti,
-                'expense_nesaist'    => $expenseNesaist,
-                'expense_nav_attiec' => $expenseNavAttiec,
-                'expense_kopaa'      => $expenseKopaa,
+                'month'        => $monthNames[$month],
+                'month_number' => $month,
+                'income'       => $income,
+                'expense'      => $expense,
+                'balance'      => $runningBalance,
+                // Dynamic analysis column totals (indexed, same order as getIncomeColsConfig())
+                'income_cols'  => $incomeCols,
+                'income_kopaa' => $incomeKopaa,
+                'expense_cols' => $expenseCols,
+                'expense_kopaa'=> $expenseKopaa,
                 // Per-category detail (sorted: INCOME first, then EXPENSE; alphabetically within each)
-                'categories'         => $monthCats
+                'categories'   => $monthCats
                     ->sortBy(fn ($c) => ($c->type === 'INCOME' ? '0' : '1') . ($c->category_name ?? ''))
                     ->map(fn ($c) => [
                         'name'       => $c->category_name,
@@ -829,15 +888,23 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     {
         $vid = (int) ($transaction->category?->vid_column ?? 0);
 
+        if (in_array($transaction->type, ['TRANSFER', 'FEE'])) {
+            return true; // TRANSFER / FEE — nav jāvalidē
+        }
+
+        if ($vid === 0) {
+            return false; // No category / no vid_column assigned
+        }
+
         if ($transaction->type === 'INCOME') {
-            return in_array($vid, self::INCOME_MAPPED_COLS);
+            return in_array($vid, $this->getAllVidColumnsForGroup('income'));
         }
 
         if ($transaction->type === 'EXPENSE') {
-            return in_array($vid, self::EXPENSE_MAPPED_COLS);
+            return in_array($vid, $this->getAllVidColumnsForGroup('expense'));
         }
 
-        return true; // TRANSFER / FEE — nav jāvalidē
+        return false;
     }
 
     public function backToYearSummary()
