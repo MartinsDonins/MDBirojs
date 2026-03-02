@@ -117,6 +117,9 @@
                         <th colspan="{{ $incomeColCount + 1 }}" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Ieņēmumi (EUR)</th>
                         <th colspan="{{ $expenseColCount + 1 }}" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Izdevumi (EUR)</th>
                         <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom">Bilance</th>
+                        @foreach($accounts as $acc)
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 text-[10px] font-medium text-gray-800 dark:text-gray-200 text-center align-bottom" style="min-width:80px" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 14) }}</th>
+                        @endforeach
                         <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700 align-bottom w-16"></th>
                     </tr>
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px]">
@@ -162,6 +165,11 @@
                             <td class="px-3 py-2 text-xs text-end font-medium border border-gray-300 dark:border-gray-700 {{ $summary['balance'] >= 0 ? 'text-gray-900 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
                                 {{ number_format($summary['balance'], 2, ',', ' ') }}
                             </td>
+                            @foreach($accounts as $acc)
+                            <td class="px-2 py-2 text-xs text-end font-medium border border-gray-300 dark:border-gray-700 {{ ($summary['account_balances'][$acc->id] ?? 0) < 0 ? 'text-danger-600 dark:text-danger-400' : 'text-gray-900 dark:text-gray-100' }}">
+                                {{ number_format($summary['account_balances'][$acc->id] ?? 0, 2, ',', ' ') }}
+                            </td>
+                            @endforeach
                             <td class="px-2 py-2 text-end border border-gray-300 dark:border-gray-700" @click.stop>
                                 <x-filament::button size="xs" color="gray" icon="heroicon-o-eye"
                                     wire:click="viewMonthDetails({{ $summary['month_number'] }})">
@@ -201,6 +209,9 @@
                                     </td>
                                 @endif
                                 <td class="border border-gray-200 dark:border-gray-700"></td>
+                                @foreach($accounts as $acc)
+                                <td class="border border-gray-200 dark:border-gray-700"></td>
+                                @endforeach
                                 <td class="border border-gray-200 dark:border-gray-700"></td>
                             </tr>
                         @endforeach
@@ -228,6 +239,11 @@
                         <td class="px-3 py-2 text-xs text-end border border-gray-300 dark:border-gray-700 {{ (collect($monthlySummary)->last()['balance'] ?? 0) >= 0 ? 'text-gray-900 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
                             {{ number_format(collect($monthlySummary)->last()['balance'] ?? 0, 2, ',', ' ') }}
                         </td>
+                        @foreach($accounts as $acc)
+                        <td class="px-2 py-2 text-xs text-end font-bold border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 {{ (collect($monthlySummary)->last()['account_balances'][$acc->id] ?? 0) < 0 ? 'text-danger-600 dark:text-danger-400' : 'text-gray-900 dark:text-white' }}">
+                            {{ number_format(collect($monthlySummary)->last()['account_balances'][$acc->id] ?? 0, 2, ',', ' ') }}
+                        </td>
+                        @endforeach
                         <td class="border border-gray-300 dark:border-gray-700"></td>
                     </tr>
                 </tbody>

@@ -301,6 +301,16 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->selectRaw('SUM(CASE WHEN type = ? THEN amount WHEN type = ? THEN -ABS(amount) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
             ->value('balance') ?? 0);
 
+        // 1b. Per-account opening balances at start of selected year
+        $accountOpeningBalances = [];
+        foreach ($this->accounts as $acc) {
+            $txBeforeYear = Transaction::where('account_id', $acc->id)
+                ->where('status', 'COMPLETED')
+                ->whereYear('occurred_at', '<', $this->selectedYear)
+                ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN ABS(amount) WHEN type = 'TRANSFER' THEN amount ELSE -ABS(amount) END"));
+            $accountOpeningBalances[$acc->id] = ($acc->balance ?? 0) + $txBeforeYear;
+        }
+
         // 2. Get monthly totals
         $monthlyData = Transaction::query()
             ->where('status', 'COMPLETED')
@@ -335,6 +345,18 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->orderBy('month_number')
             ->get();
 
+        // 3b. Monthly per-account net changes
+        $monthlyAccountChanges = Transaction::query()
+            ->where('status', 'COMPLETED')
+            ->whereYear('occurred_at', $this->selectedYear)
+            ->selectRaw("
+                EXTRACT(MONTH FROM occurred_at) as month_number,
+                account_id,
+                SUM(CASE WHEN type = 'INCOME' THEN ABS(amount) WHEN type = 'TRANSFER' THEN amount ELSE -ABS(amount) END) as net_change
+            ")
+            ->groupBy(DB::raw('EXTRACT(MONTH FROM occurred_at)'), 'account_id')
+            ->get();
+
         $monthNames = [
             1 => 'Janvāris', 2 => 'Februāris', 3 => 'Marts', 4 => 'Aprīlis',
             5 => 'Maijs', 6 => 'Jūnijs', 7 => 'Jūlijs', 8 => 'Augusts',
@@ -343,12 +365,21 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         $this->monthlySummary = [];
         $runningBalance = $openingBalance;
+        $runningAccountBalances = $accountOpeningBalances;
 
         for ($month = 1; $month <= 12; $month++) {
             $data    = $monthlyData->firstWhere('month_number', $month);
             $income  = $data->income ?? 0;
             $expense = $data->expense ?? 0;
             $runningBalance += ($income - $expense);
+
+            // Update per-account running balances for this month
+            foreach ($this->accounts as $acc) {
+                $accChange = (float) ($monthlyAccountChanges
+                    ->filter(fn ($item) => (int) round((float) $item->month_number) === $month && $item->account_id === $acc->id)
+                    ->first()?->net_change ?? 0);
+                $runningAccountBalances[$acc->id] += $accChange;
+            }
 
             $monthCats   = $categoryBreakdown->filter(fn ($c) => (int) round((float) $c->month_number) === $month);
             $incomeCats  = $monthCats->where('type', 'INCOME');
@@ -388,7 +419,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'income_cols'  => $incomeCols,
                 'income_kopaa' => $incomeKopaa,
                 'expense_cols' => $expenseCols,
-                'expense_kopaa'=> $expenseKopaa,
+                'expense_kopaa'    => $expenseKopaa,
+                'account_balances' => $runningAccountBalances,
                 // Per-category detail (sorted: INCOME first, then EXPENSE; alphabetically within each)
                 'categories'   => $monthCats
                     ->sortBy(fn ($c) => ($c->type === 'INCOME' ? '0' : '1') . ($c->category_name ?? ''))
