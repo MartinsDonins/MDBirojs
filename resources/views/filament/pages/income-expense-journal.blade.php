@@ -421,7 +421,7 @@
 
                     @foreach($rows as $row)
                     @if(!$showOnlyInvalid || !$row['is_mapped'])
-                        <tr wire:key="row-{{ $row['entry_number'] }}" class="group hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer"
+                        <tr wire:key="row-{{ $row['entry_number'] }}" class="group cursor-pointer {{ in_array($row['transaction_type'], ['EXPENSE', 'FEE']) ? 'bg-red-50/50 dark:bg-red-900/10' : '' }} hover:bg-blue-50 dark:hover:bg-blue-900/20"
                             @click="$store.journal.expandedRows.includes({{ $row['entry_number'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : $store.journal.expandedRows.push({{ $row['entry_number'] }})">
 
                             {{-- 1. Identifikācija --}}
@@ -484,12 +484,12 @@
                             {{-- 2. Konti --}}
                             @foreach($accounts as $acc)
                                 <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-green-600 dark:text-green-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
-                                    @if($row['transaction_account_id'] == $acc->id && $row['transaction_type'] == 'INCOME')
+                                    @if($row['transaction_account_id'] == $acc->id && ($row['transaction_type'] == 'INCOME' || ($row['transaction_type'] == 'TRANSFER' && $row['transaction_amount'] > 0)))
                                         {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                     @endif
                                 </td>
                                 <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-red-600 dark:text-red-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
-                                    @if($row['transaction_account_id'] == $acc->id && $row['transaction_type'] == 'EXPENSE')
+                                    @if($row['transaction_account_id'] == $acc->id && (in_array($row['transaction_type'], ['EXPENSE', 'FEE']) || ($row['transaction_type'] == 'TRANSFER' && $row['transaction_amount'] < 0)))
                                         {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                     @endif
                                 </td>

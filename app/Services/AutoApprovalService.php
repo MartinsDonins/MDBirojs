@@ -374,7 +374,7 @@ class AutoApprovalService
                 $transaction->occurred_at->copy()->subDay(),
                 $transaction->occurred_at->copy()->addDay(),
             ])
-            ->whereRaw('ABS(COALESCE(amount_eur, amount) - ?) < 0.01', [$amountEur])
+            ->whereRaw('ABS(ABS(COALESCE(amount_eur, amount)) - ?) < 0.01', [$amountEur])
             ->first();
 
         if ($match) {

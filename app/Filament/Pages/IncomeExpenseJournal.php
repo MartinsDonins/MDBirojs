@@ -856,7 +856,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $vid = (int) ($transaction->category?->vid_column ?? 0);
 
         if (in_array($transaction->type, ['TRANSFER', 'FEE'])) {
-            return true; // TRANSFER / FEE — nav jāvalidē
+            // TRANSFER / FEE — ok tikai ja ir sasaistīts ar pretējo darījumu
+            return (bool) $transaction->linked_transaction_id;
         }
 
         if ($vid === 0) {
