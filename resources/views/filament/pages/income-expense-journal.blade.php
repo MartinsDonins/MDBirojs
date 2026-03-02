@@ -252,11 +252,28 @@
 
     @else
         {{-- Month Detail View --}}
+        @php
+            $latvianMonths = [1=>'Janvāris',2=>'Februāris',3=>'Marts',4=>'Aprīlis',5=>'Maijs',6=>'Jūnijs',7=>'Jūlijs',8=>'Augusts',9=>'Septembris',10=>'Oktobris',11=>'Novembris',12=>'Decembris'];
+        @endphp
         <div class="mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <x-filament::button color="gray" wire:click="backToYearSummary">
-                    &larr; Atpakaļ uz gadu sarakstu
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <x-filament::button color="gray" icon="heroicon-o-arrow-left" wire:click="backToYearSummary">
+                    Gada kopsavilkums
                 </x-filament::button>
+
+                {{-- Month navigation --}}
+                <div class="flex items-center gap-2">
+                    <x-filament::button color="gray" icon="heroicon-o-chevron-left" wire:click="goToPrevMonth">
+                        Iepriekšējais
+                    </x-filament::button>
+                    <span class="text-base font-bold text-gray-800 dark:text-gray-200 min-w-[160px] text-center">
+                        {{ $latvianMonths[$selectedMonth] ?? '' }} {{ $selectedYear }}
+                    </span>
+                    <x-filament::button color="gray" icon="heroicon-o-chevron-right" icon-position="after" wire:click="goToNextMonth">
+                        Nākošais
+                    </x-filament::button>
+                </div>
+
                 <div class="flex gap-2">
                     <x-filament::button
                         wire:click="toggleInvalidFilter"
@@ -265,15 +282,15 @@
                         title="Filtrēt rindas bez analīzes kartēšanas">
                         {{ $showOnlyInvalid ? 'Rādīt visus' : 'Nekartētie' }}
                     </x-filament::button>
-                    <x-filament::button wire:click="mountAction('createTransaction')">
+                    <x-filament::button wire:click="mountAction('createTransaction')" icon="heroicon-o-plus">
                         Pievienot darījumu
                     </x-filament::button>
                 </div>
             </div>
 
             <div class="text-center mb-4">
-                <h2 class="text-2xl font-bold">
-                    {{ strtoupper($this->getTitle()) }}
+                <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">
+                    {{ strtoupper($latvianMonths[$selectedMonth] ?? '') }} {{ $selectedYear }}
                 </h2>
             </div>
 
@@ -549,9 +566,10 @@
                                         <strong>Bankas info:</strong> {{ $row['partner'] }} ({{ $row['document_details'] }})
                                     </div>
                                     @if($row['transaction_id'])
-                                    <div class="shrink-0">
-                                        <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil"
-                                            wire:click.stop="mountTransactionModal({{ $row['transaction_id'] }})">
+                                    <div class="shrink-0"
+                                         @click.stop
+                                         wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
+                                        <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil">
                                             Rediģēt
                                         </x-filament::button>
                                     </div>

@@ -482,6 +482,32 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $this->calculateMonthData();
     }
 
+    public function goToPrevMonth(): void
+    {
+        if ($this->selectedMonth > 1) {
+            $this->selectedMonth--;
+        } else {
+            // Jump to December of previous year
+            $this->selectedYear--;
+            $this->selectedMonth = 12;
+            $this->calculateMonthlySummary();
+        }
+        $this->calculateMonthData();
+    }
+
+    public function goToNextMonth(): void
+    {
+        if ($this->selectedMonth < 12) {
+            $this->selectedMonth++;
+        } else {
+            // Jump to January of next year
+            $this->selectedYear++;
+            $this->selectedMonth = 1;
+            $this->calculateMonthlySummary();
+        }
+        $this->calculateMonthData();
+    }
+
     public function mountCategoryModal($transactionId)
     {
         try {
@@ -822,12 +848,14 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $this->calculateYearlySummary();
     }
 
+    /**
+     * Visual header buttons only — shown as buttons in the page header.
+     */
     protected function getHeaderActions(): array
     {
         $actions = [];
 
         // Back to all years button — only on year summary view
-        // Month detail has its own back button in the blade
         if ($this->selectedYear !== null && $this->selectedMonth === null) {
             $actions[] = \Filament\Actions\Action::make('back_all')
                 ->label('Atpakaļ uz gadu sarakstu')
@@ -836,14 +864,23 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 ->action('backToAllYears');
         }
 
-        // Register programmatic actions (hidden from header, triggered from blade rows)
-        $actions[] = $this->editCategoryAction()->hidden();
-        $actions[] = $this->editTransactionAction()->hidden();
-        $actions[] = $this->linkTransactionAction()->hidden();
-        $actions[] = $this->editOpeningBalanceAction()->hidden();
-        $actions[] = $this->createTransactionAction()->hidden();
-
         return $actions;
+    }
+
+    /**
+     * All mountable actions — includes both header buttons and programmatic row-level actions.
+     * Override is required because Filament v3 filters hidden() actions from getCachedActions(),
+     * so programmatic actions must be registered here without ->hidden().
+     */
+    public function getActions(): array
+    {
+        return array_merge($this->getHeaderActions(), [
+            $this->editCategoryAction(),
+            $this->editTransactionAction(),
+            $this->linkTransactionAction(),
+            $this->editOpeningBalanceAction(),
+            $this->createTransactionAction(),
+        ]);
     }
 
     public function toggleInvalidFilter(): void
