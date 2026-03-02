@@ -175,9 +175,10 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             $initialBalance = $acc->balance ?? 0;
             
             // Sum of all transactions before period start
+            // Use ABS to handle amounts stored as negative values (e.g. Swedbank exports)
             $transactionsSum = Transaction::where('account_id', $acc->id)
                 ->where('occurred_at', '<', $periodStart)
-                ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN amount ELSE -amount END"));
+                ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN ABS(amount) WHEN type = 'TRANSFER' THEN amount ELSE -ABS(amount) END"));
                 
             $this->opening_balances[$acc->id] = $initialBalance + $transactionsSum;
         }
