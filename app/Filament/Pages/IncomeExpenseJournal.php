@@ -794,15 +794,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     {
         $actions = [];
 
-        if ($this->selectedMonth !== null) {
-            // View: Month Details -> Back to Year Summary
-            $actions[] = \Filament\Actions\Action::make('back')
-                ->label('Atpakaļ uz ' . $this->selectedYear . '. gada kopsavilkumu')
-                ->icon('heroicon-o-arrow-left')
-                ->color('gray')
-                ->action('backToYearSummary');
-        } elseif ($this->selectedYear !== null) {
-            // View: Year Summary -> Back to All Years
+        // Back to all years button — only on year summary view
+        // Month detail has its own back button in the blade
+        if ($this->selectedYear !== null && $this->selectedMonth === null) {
             $actions[] = \Filament\Actions\Action::make('back_all')
                 ->label('Atpakaļ uz gadu sarakstu')
                 ->icon('heroicon-o-arrow-left')
@@ -810,85 +804,14 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 ->action('backToAllYears');
         }
 
-        // Export actions available only when a year is selected
-        if ($this->selectedYear !== null) {
-            $actions[] = \Filament\Actions\Action::make('export_excel')
-                ->label('Eksportēt Excel')
-                ->icon('heroicon-o-document-arrow-down')
-                ->color('success')
-                ->action('exportExcel');
-                
-            $actions[] = \Filament\Actions\Action::make('export_pdf')
-                ->label('Eksportēt PDF')
-                ->icon('heroicon-o-document-text')
-                ->color('danger')
-                ->action('exportPdf');
-        }
-
-        // Add transaction available when year is selected
-        if ($this->selectedYear !== null) {
-            $actions[] = $this->createTransactionAction();
-        }
-
-        // Always register edit actions (they are triggered programmatically from table rows)
-        $actions[] = $this->editCategoryAction();
-        $actions[] = $this->editTransactionAction();
-        $actions[] = $this->editStatusAction();
-        $actions[] = $this->linkTransactionAction();
-        $actions[] = $this->editOpeningBalanceAction();
+        // Register programmatic actions (hidden from header, triggered from blade rows)
+        $actions[] = $this->editCategoryAction()->hidden();
+        $actions[] = $this->editTransactionAction()->hidden();
+        $actions[] = $this->linkTransactionAction()->hidden();
+        $actions[] = $this->editOpeningBalanceAction()->hidden();
+        $actions[] = $this->createTransactionAction()->hidden();
 
         return $actions;
-    }
-
-    public function exportExcel()
-    {
-        \Filament\Notifications\Notification::make()
-            ->title('Excel eksports')
-            ->body('Excel eksporta funkcionalitāte tiks pievienota nākamajā versijā')
-            ->info()
-            ->send();
-    }
-
-    public function exportPdf()
-    {
-        \Filament\Notifications\Notification::make()
-            ->title('PDF eksports')
-            ->body('PDF eksporta funkcionalitāte tiks pievienota nākamajā versijā')
-            ->info()
-            ->send();
-    }
-
-    public function editStatusAction(): Action
-    {
-        return Action::make('editStatus')
-            ->label('Mainīt statusu')
-            ->modalWidth('sm')
-            ->form([
-                Forms\Components\Select::make('status')
-                    ->label('Statuss')
-                    ->options([
-                        'DRAFT' => 'Melnraksts',
-                        'COMPLETED' => 'Apstiprināts',
-                        'NEEDS_REVIEW' => 'Nepieciešama pārbaude',
-                    ])
-                    ->required()
-                    ->native(false),
-            ])
-            ->fillForm(fn (array $arguments) => [
-                'status' => Transaction::find($arguments['transaction_id'])?->status,
-            ])
-            ->action(function (array $data, array $arguments) {
-                $transaction = Transaction::find($arguments['transaction_id']);
-                if ($transaction) {
-                    $transaction->update(['status' => $data['status']]);
-                    $this->calculateMonthData();
-                    
-                    \Filament\Notifications\Notification::make()
-                        ->title('Statuss mainīts')
-                        ->success()
-                        ->send();
-                }
-            });
     }
 
     public function toggleInvalidFilter(): void

@@ -525,13 +525,21 @@
                         {{-- Expandable Detail Row --}}
                         <tr x-show="$store.journal && $store.journal.expandedRows.includes({{ $row['entry_number'] }})" class="bg-blue-50/50 dark:bg-blue-900/10">
                             <td colspan="{{ $detailColSpan }}" class="px-4 py-2 border border-gray-300 dark:border-gray-700">
-                                <div class="grid grid-cols-2 gap-4 text-xs">
+                                <div class="flex items-start justify-between gap-4 text-xs">
                                     <div>
                                         <strong>Pilns apraksts:</strong> {{ $row['description'] }}
                                     </div>
                                     <div>
                                         <strong>Bankas info:</strong> {{ $row['partner'] }} ({{ $row['document_details'] }})
                                     </div>
+                                    @if($row['transaction_id'])
+                                    <div class="shrink-0">
+                                        <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil"
+                                            wire:click.stop="mountTransactionModal({{ $row['transaction_id'] }})">
+                                            Rediģēt
+                                        </x-filament::button>
+                                    </div>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
