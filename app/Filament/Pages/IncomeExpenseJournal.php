@@ -618,24 +618,138 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     {
         return Action::make('editTransaction')
             ->label('Rediģēt darījumu')
-            ->modalWidth('md')
+            ->modalWidth('lg')
             ->form([
-                Forms\Components\TextInput::make('counterparty_name')
-                    ->label('Partneris'),
-                Forms\Components\TextInput::make('description')
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\DatePicker::make('occurred_at')
+                            ->label('Datums')
+                            ->required()
+                            ->native(false),
+                        Forms\Components\Select::make('account_id')
+                            ->label('Konts')
+                            ->options(\App\Models\Account::pluck('name', 'id'))
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+                    ]),
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\Select::make('type')
+                            ->label('Veids')
+                            ->options([
+                                'INCOME'   => 'Ieņēmumi',
+                                'EXPENSE'  => 'Izdevumi',
+                                'TRANSFER' => 'Pārskaitījums',
+                                'FEE'      => 'Komisija',
+                            ])
+                            ->required()
+                            ->native(false),
+                        Forms\Components\Select::make('currency')
+                            ->label('Valūta')
+                            ->options([
+                                'EUR' => 'EUR — Euro',
+                                'LVL' => 'LVL — Latvijas lats',
+                                'USD' => 'USD — ASV dolārs',
+                                'GBP' => 'GBP — Britu mārciņa',
+                            ])
+                            ->default('EUR')
+                            ->required()
+                            ->live()
+                            ->native(false),
+                    ]),
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('amount')
+                            ->label('Summa')
+                            ->numeric()
+                            ->required()
+                            ->minValue(0.01)
+                            ->prefix(fn (Forms\Get $get) => $get('currency') ?: 'EUR')
+                            ->live(debounce: 500)
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                                $rate = (float) ($get('exchange_rate') ?: 1);
+                                if ($rate > 0 && ($get('currency') ?: 'EUR') !== 'EUR') {
+                                    $set('amount_eur', round((float)$state / $rate, 2));
+                                }
+                            }),
+                        Forms\Components\TextInput::make('exchange_rate')
+                            ->label('Kurss (1 EUR = ?)')
+                            ->numeric()
+                            ->default(1)
+                            ->live(debounce: 500)
+                            ->hidden(fn (Forms\Get $get) => ($get('currency') ?: 'EUR') === 'EUR')
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                                $amount = (float) ($get('amount') ?: 0);
+                                $rate = (float) ($state ?: 1);
+                                if ($rate > 0) {
+                                    $set('amount_eur', round($amount / $rate, 2));
+                                }
+                            }),
+                    ]),
+                Forms\Components\TextInput::make('amount_eur')
+                    ->label('Summa EUR')
+                    ->numeric()
+                    ->prefix('€')
+                    ->hidden(fn (Forms\Get $get) => ($get('currency') ?: 'EUR') === 'EUR')
+                    ->helperText('Aprēķināts automātiski, bet var labot manuāli'),
+                Forms\Components\Select::make('category_id')
+                    ->label('Kategorija')
+                    ->options(\App\Models\Category::pluck('name', 'id'))
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('counterparty_name')
+                            ->label('Partneris'),
+                        Forms\Components\TextInput::make('counterparty_account')
+                            ->label('Partnera konts'),
+                    ]),
+                Forms\Components\Textarea::make('description')
                     ->label('Apraksts')
+                    ->rows(2)
                     ->required(),
-                Forms\Components\TextInput::make('reference')
-                    ->label('Dokumenta detaļas'),
-                Forms\Components\TextInput::make('notes')
-                    ->label('Piezīmes (Sasaite)'),
+                Forms\Components\Grid::make(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('reference')
+                            ->label('Dokumenta nr.'),
+                        Forms\Components\Select::make('status')
+                            ->label('Statuss')
+                            ->options([
+                                'DRAFT'        => 'Melnraksts',
+                                'COMPLETED'    => 'Apstiprināts',
+                                'NEEDS_REVIEW' => 'Nepieciešama pārbaude',
+                            ])
+                            ->required()
+                            ->native(false),
+                    ]),
             ])
-            ->fillForm(fn (array $arguments) => \App\Models\Transaction::find($arguments['transaction_id'])?->toArray())
+            ->fillForm(function (array $arguments) {
+                $transaction = \App\Models\Transaction::find($arguments['transaction_id']);
+                if (! $transaction) {
+                    return [];
+                }
+                $data = $transaction->toArray();
+                // Always show positive amount to the user (sign is determined by type)
+                $data['amount']     = abs((float) $transaction->amount);
+                $data['amount_eur'] = abs((float) ($transaction->amount_eur ?? $transaction->amount));
+                return $data;
+            })
             ->action(function (array $data, array $arguments) {
                 $transaction = \App\Models\Transaction::find($arguments['transaction_id']);
                 if ($transaction) {
+                    // If EUR, keep amount_eur in sync
+                    if (($data['currency'] ?? 'EUR') === 'EUR') {
+                        $data['amount_eur']    = $data['amount'];
+                        $data['exchange_rate'] = 1;
+                    }
                     $transaction->update($data);
                     $this->calculateMonthData();
+                    if ($this->selectedYear) {
+                        $this->calculateMonthlySummary();
+                        $this->calculateYearlySummary();
+                    }
 
                     \Filament\Notifications\Notification::make()
                         ->title('Darījums saglabāts')

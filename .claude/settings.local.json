@@ -5,7 +5,9 @@
       "Bash(cmd /c \"dir c:\\\\www\\\\MDBirojs 2>&1\")",
       "Bash(cmd /c:*)",
       "Bash(powershell -Command:*)",
-      "Bash(powershell \"Get-ChildItem ''C:\\\\www\\\\MDBirojs\\\\vendor'' | Select-Object Name | Format-Table -AutoSize\")"
+      "Bash(powershell \"Get-ChildItem ''C:\\\\www\\\\MDBirojs\\\\vendor'' | Select-Object Name | Format-Table -AutoSize\")",
+      "Bash(php artisan config:clear:*)",
+      "Bash(php -l:*)"
     ]
   }
 }
