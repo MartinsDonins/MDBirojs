@@ -559,8 +559,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     {
         return Action::make('editCategory')
             ->label('Mainīt kategoriju')
-            ->modalWidth('md')
+            ->modalWidth('lg')
             ->form([
+                // ── Kategorija ────────────────────────────────────────────
                 Forms\Components\Select::make('category_id')
                     ->label('Kategorija')
                     ->options(\App\Models\Category::query()->pluck('name', 'id'))
@@ -572,45 +573,174 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                             ->required()
                             ->label('Nosaukums'),
                         Forms\Components\Select::make('type')
-                            ->options([
-                                'INCOME' => 'Ieņēmumi',
-                                'EXPENSE' => 'Izdevumi',
-                            ])
+                            ->options(['INCOME' => 'Ieņēmumi', 'EXPENSE' => 'Izdevumi'])
                             ->label('Veids'),
                         Forms\Components\Select::make('vid_column')
                             ->label('Žurnāla kolonna')
                             ->options(function () {
                                 $opts = [];
-                                $allCols = \App\Models\JournalColumn::orderBy('group')->orderBy('sort_order')->get();
-                                foreach ($allCols as $jc) {
+                                foreach (\App\Models\JournalColumn::orderBy('group')->orderBy('sort_order')->get() as $jc) {
                                     $groupLabel = ($jc->group === 'income' ? 'Ieņēmumi' : 'Izdevumi') . ' → ' . $jc->abbr;
-                                    foreach (array_map('intval', $jc->vid_columns ?? []) as $vidNum) {
-                                        $opts[$groupLabel][$vidNum] = 'Kol.' . $vidNum . ' (' . $jc->abbr . ')';
+                                    foreach (array_map('intval', $jc->vid_columns ?? []) as $v) {
+                                        $opts[$groupLabel][$v] = 'Kol.' . $v . ' (' . $jc->abbr . ')';
                                     }
                                 }
                                 return $opts;
                             })
                             ->nullable()
-                            ->searchable()
+                            ->searchable(),
                     ])
-                    ->createOptionUsing(function (array $data) {
-                        return \App\Models\Category::create($data)->id;
-                    }),
+                    ->createOptionUsing(fn (array $data) => \App\Models\Category::create($data)->id),
+
+                // ── Kārtulas sekcija ──────────────────────────────────────
+                Forms\Components\Toggle::make('create_rule')
+                    ->label('Izveidot automātisku kārtulu līdzīgiem darījumiem')
+                    ->helperText('Kārtula turpmāk automātiski piešķirs šo kategoriju darījumiem, kas atbilst izvēlētajiem kritērijiem.')
+                    ->live()
+                    ->columnSpanFull(),
+
+                Forms\Components\Section::make('Kārtulas konfigurācija')
+                    ->description('Izvēlieties pēc kādām pazīmēm atpazīt līdzīgus darījumus. Ieslēgtie kritēriji tiks pievienoti kārtulai.')
+                    ->schema([
+                        Forms\Components\TextInput::make('rule_name')
+                            ->label('Kārtulas nosaukums')
+                            ->required(fn (Forms\Get $get) => (bool) $get('create_rule'))
+                            ->columnSpanFull(),
+
+                        // counterparty_account
+                        Forms\Components\Toggle::make('crit_counterparty_account')
+                            ->label('Partnera konta nr. (precīza atbilstība)')
+                            ->inline(false),
+                        Forms\Components\TextInput::make('crit_counterparty_account_value')
+                            ->label('Konta numurs')
+                            ->placeholder('LV...')
+                            ->helperText('Konta numurs, uz kuru vai no kura veikts maksājums'),
+
+                        // counterparty_name
+                        Forms\Components\Toggle::make('crit_counterparty_name')
+                            ->label('Partnera nosaukums (precīza atbilstība)')
+                            ->inline(false),
+                        Forms\Components\TextInput::make('crit_counterparty_name_value')
+                            ->label('Partnera nosaukums'),
+
+                        // account_name
+                        Forms\Components\Toggle::make('crit_account_name')
+                            ->label('Mans konts (no kura pārskaitīts)')
+                            ->inline(false),
+                        Forms\Components\Select::make('crit_account_name_value')
+                            ->label('Konts')
+                            ->options(\App\Models\Account::orderBy('name')->pluck('name', 'name'))
+                            ->native(false)
+                            ->searchable(),
+
+                        // description
+                        Forms\Components\Toggle::make('crit_description')
+                            ->label('Apraksts satur tekstu')
+                            ->inline(false),
+                        Forms\Components\TextInput::make('crit_description_value')
+                            ->label('Teksts aprakstā')
+                            ->placeholder('daļa no apraksta...'),
+                    ])
+                    ->columns(2)
+                    ->visible(fn (Forms\Get $get) => (bool) $get('create_rule')),
             ])
-            ->fillForm(fn (array $arguments) => [
-                'category_id' => \App\Models\Transaction::find($arguments['transaction_id'])?->category_id,
-            ])
+            ->fillForm(function (array $arguments) {
+                $transaction = \App\Models\Transaction::with('account', 'category')->find($arguments['transaction_id']);
+                if (! $transaction) {
+                    return [];
+                }
+
+                $categoryName = $transaction->category?->name ?? '';
+                $partnerName  = $transaction->counterparty_name ?? '';
+
+                return [
+                    'category_id'   => $transaction->category_id,
+                    'create_rule'   => false,
+
+                    // Pre-fill rule name
+                    'rule_name' => trim(implode(' — ', array_filter([
+                        'Auto',
+                        $categoryName ?: null,
+                        $partnerName  ?: null,
+                    ]))),
+
+                    // Pre-fill criterion toggles — enable if data exists
+                    'crit_counterparty_account'       => ! empty($transaction->counterparty_account),
+                    'crit_counterparty_account_value' => $transaction->counterparty_account ?? '',
+
+                    'crit_counterparty_name'          => ! empty($transaction->counterparty_name),
+                    'crit_counterparty_name_value'    => $transaction->counterparty_name ?? '',
+
+                    'crit_account_name'               => false,
+                    'crit_account_name_value'         => $transaction->account?->name ?? '',
+
+                    'crit_description'                => false,
+                    'crit_description_value'          => $transaction->description ?? '',
+                ];
+            })
             ->action(function (array $data, array $arguments) {
                 $transaction = \App\Models\Transaction::find($arguments['transaction_id']);
-                if ($transaction) {
-                    $transaction->update(['category_id' => $data['category_id']]);
-                    $this->calculateMonthData();
-                    
-                    \Filament\Notifications\Notification::make()
-                        ->title('Kategorija atjaunota')
-                        ->success()
-                        ->send();
+                if (! $transaction) {
+                    return;
                 }
+
+                $transaction->update(['category_id' => $data['category_id']]);
+
+                $ruleCreated = false;
+                if (! empty($data['create_rule'])) {
+                    $andCriteria = [];
+
+                    if (! empty($data['crit_counterparty_account']) && ! empty($data['crit_counterparty_account_value'])) {
+                        $andCriteria[] = [
+                            'field'    => 'counterparty_account',
+                            'operator' => 'equals',
+                            'value'    => trim($data['crit_counterparty_account_value']),
+                        ];
+                    }
+                    if (! empty($data['crit_counterparty_name']) && ! empty($data['crit_counterparty_name_value'])) {
+                        $andCriteria[] = [
+                            'field'    => 'counterparty_name',
+                            'operator' => 'equals',
+                            'value'    => trim($data['crit_counterparty_name_value']),
+                        ];
+                    }
+                    if (! empty($data['crit_account_name']) && ! empty($data['crit_account_name_value'])) {
+                        $andCriteria[] = [
+                            'field'    => 'account_name',
+                            'operator' => 'equals',
+                            'value'    => $data['crit_account_name_value'],
+                        ];
+                    }
+                    if (! empty($data['crit_description']) && ! empty($data['crit_description_value'])) {
+                        $andCriteria[] = [
+                            'field'    => 'description',
+                            'operator' => 'contains',
+                            'value'    => trim($data['crit_description_value']),
+                        ];
+                    }
+
+                    \App\Models\Rule::create([
+                        'name'      => $data['rule_name'] ?: 'Auto kārtula',
+                        'priority'  => 10,
+                        'is_active' => true,
+                        'criteria'  => [
+                            'and_criteria' => $andCriteria,
+                            'or_criteria'  => [],
+                        ],
+                        'action' => [
+                            'category_id' => (int) $data['category_id'],
+                        ],
+                    ]);
+
+                    $ruleCreated = true;
+                }
+
+                $this->calculateMonthData();
+
+                \Filament\Notifications\Notification::make()
+                    ->title($ruleCreated ? 'Kategorija atjaunota + kārtula izveidota' : 'Kategorija atjaunota')
+                    ->success()
+                    ->send();
             });
     }
 
