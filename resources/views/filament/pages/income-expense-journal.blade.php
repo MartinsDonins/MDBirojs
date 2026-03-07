@@ -415,12 +415,45 @@
             $fcCount           = count($foreignCurrencies);
             $detailColSpan     = 8 + $fcCount + count($accounts) * 3 + $incomeColCount + 1 + $expenseColCount + 1 + 1;
         @endphp
-        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+        <style>
+            /* Drag/sort controls — uses plain CSS so Tailwind purge doesn't affect them */
+            .jnl-drag-handle {
+                cursor: grab;
+                opacity: 0.25;
+                color: #9ca3af;
+                font-size: 11px;
+                user-select: none;
+                line-height: 1;
+                padding: 0 1px;
+                transition: opacity 0.15s;
+            }
+            .transaction-row:hover .jnl-drag-handle { opacity: 1; color: #6b7280; }
+            .jnl-drag-handle:active { cursor: grabbing; }
+            .jnl-sort-btn {
+                opacity: 0;
+                cursor: pointer;
+                font-size: 9px;
+                color: #9ca3af;
+                user-select: none;
+                line-height: 1;
+                display: block;
+                width: 100%;
+                text-align: center;
+                border-radius: 2px;
+                transition: opacity 0.15s;
+            }
+            .transaction-row:hover .jnl-sort-btn { opacity: 1; }
+            .transaction-row:hover .jnl-sort-btn:hover { color: #374151; background: #dbeafe; }
+            /* SortableJS ghost/drag styles */
+            .sortable-ghost { opacity: 0.4; background: #eff6ff !important; }
+            .sortable-drag  { opacity: 0.9; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        </style>
         <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm"
              x-data="{
                  _sortable: null,
                  initSortable() {
-                     if (!window.Sortable) return;
+                     if (!window.Sortable) { setTimeout(() => this.initSortable(), 150); return; }
                      if (this._sortable) { this._sortable.destroy(); this._sortable = null; }
                      const tbody = this.$refs.sortableTbody;
                      if (!tbody) return;
@@ -562,18 +595,15 @@
                             @click="$store.journal.expandedRows.includes({{ $row['entry_number'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : $store.journal.expandedRows.push({{ $row['entry_number'] }})">
 
                             {{-- 1. Identifikācija --}}
-                            <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Nr. — vilkt: pārkārtot; ▲▼: kustināt">
-                                <div class="flex items-center gap-0.5 justify-center leading-none">
+                            <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Nr. — vilkt vai ▲▼: kārtot">
+                                <div style="display:flex; align-items:center; justify-content:center; gap:2px; line-height:1;">
                                     {{-- Drag handle --}}
-                                    <span class="drag-handle opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-[10px] select-none transition-opacity"
-                                          @click.stop title="Vilkt, lai pārkārtotu">⠿</span>
+                                    <span class="drag-handle jnl-drag-handle" @click.stop title="Vilkt, lai pārkārtotu">⠿</span>
                                     {{-- Up/Down arrows + number --}}
-                                    <div class="flex flex-col items-center leading-none">
-                                        <span @click.stop wire:click="moveTransactionUp({{ $row['transaction_id'] }})"
-                                              class="opacity-0 group-hover:opacity-100 cursor-pointer text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-opacity select-none w-full text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-sm">▲</span>
-                                        <span class="py-0.5">{{ $row['entry_number'] }}</span>
-                                        <span @click.stop wire:click="moveTransactionDown({{ $row['transaction_id'] }})"
-                                              class="opacity-0 group-hover:opacity-100 cursor-pointer text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-opacity select-none w-full text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-sm">▼</span>
+                                    <div style="display:flex; flex-direction:column; align-items:center; line-height:1;">
+                                        <span class="jnl-sort-btn" @click.stop wire:click="moveTransactionUp({{ $row['transaction_id'] }})">▲</span>
+                                        <span style="padding: 2px 0;">{{ $row['entry_number'] }}</span>
+                                        <span class="jnl-sort-btn" @click.stop wire:click="moveTransactionDown({{ $row['transaction_id'] }})">▼</span>
                                     </div>
                                 </div>
                             </td>
