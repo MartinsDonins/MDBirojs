@@ -257,6 +257,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         $this->rows = $data;
         $this->closing_balances = $currentBalances;
+        $this->dispatch('journal-rows-updated');
     }
 
     protected function getViewData(): array
@@ -609,6 +610,22 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         Transaction::where('id', $a->id)->update(['sort_order' => $b->sort_order]);
         Transaction::where('id', $b->id)->update(['sort_order' => $a->sort_order]);
 
+        $this->calculateMonthData();
+    }
+
+    /**
+     * Bulk-reorder transactions after a drag-and-drop operation.
+     * $orderedIds is the full list of visible transaction IDs in the new display order.
+     * Each ID gets sort_order = (position + 1) * 10.
+     */
+    public function reorderTransactions(array $orderedIds): void
+    {
+        foreach ($orderedIds as $i => $id) {
+            $id = (int) $id;
+            if ($id > 0) {
+                Transaction::where('id', $id)->update(['sort_order' => ($i + 1) * 10]);
+            }
+        }
         $this->calculateMonthData();
     }
 

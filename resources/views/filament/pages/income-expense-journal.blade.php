@@ -415,9 +415,34 @@
             $fcCount           = count($foreignCurrencies);
             $detailColSpan     = 8 + $fcCount + count($accounts) * 3 + $incomeColCount + 1 + $expenseColCount + 1 + 1;
         @endphp
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" defer></script>
         <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm"
-             x-data="{}"
-             x-init="if (!Alpine.store('journal')) { Alpine.store('journal', { expandedRows: [] }); }">
+             x-data="{
+                 _sortable: null,
+                 initSortable() {
+                     if (!window.Sortable) return;
+                     if (this._sortable) { this._sortable.destroy(); this._sortable = null; }
+                     const tbody = this.$refs.sortableTbody;
+                     if (!tbody) return;
+                     const wire = this.$wire;
+                     this._sortable = Sortable.create(tbody, {
+                         animation: 150,
+                         handle: '.drag-handle',
+                         filter: '.no-sort-row',
+                         onMove: (evt) => !evt.related.classList.contains('no-sort-row'),
+                         onEnd: () => {
+                             const ids = [...tbody.querySelectorAll('tr.transaction-row')]
+                                 .map(r => parseInt(r.dataset.txid));
+                             wire.reorderTransactions(ids);
+                         }
+                     });
+                 }
+             }"
+             x-init="
+                 if (!Alpine.store('journal')) { Alpine.store('journal', { expandedRows: [] }); }
+                 $nextTick(() => this.initSortable());
+             "
+             @journal-rows-updated.window="$nextTick(() => this.initSortable())">
             <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                 <thead>
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px] font-semibold">
@@ -502,9 +527,9 @@
                         <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white dark:bg-gray-900">
+                <tbody class="bg-white dark:bg-gray-900" x-ref="sortableTbody">
                     {{-- Opening Balances Row --}}
-                    <tr class="bg-yellow-50 dark:bg-yellow-900/10 font-bold text-gray-700 dark:text-gray-300">
+                    <tr class="no-sort-row bg-yellow-50 dark:bg-yellow-900/10 font-bold text-gray-700 dark:text-gray-300">
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-xs">Sākuma atlikums:</td>
                         <td class="border border-gray-300 dark:border-gray-700"></td>
                         @foreach($foreignCurrencies as $curr)
@@ -531,17 +556,25 @@
 
                     @foreach($rows as $row)
                     @if(!$showOnlyInvalid || !$row['is_mapped'])
-                        <tr wire:key="row-{{ $row['entry_number'] }}" class="group cursor-pointer {{ in_array($row['transaction_type'], ['EXPENSE', 'FEE']) ? 'bg-red-50/50 dark:bg-red-900/10' : '' }} hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        <tr wire:key="row-{{ $row['entry_number'] }}"
+                            class="transaction-row group cursor-pointer {{ in_array($row['transaction_type'], ['EXPENSE', 'FEE']) ? 'bg-red-50/50 dark:bg-red-900/10' : '' }} hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            data-txid="{{ $row['transaction_id'] }}"
                             @click="$store.journal.expandedRows.includes({{ $row['entry_number'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : $store.journal.expandedRows.push({{ $row['entry_number'] }})">
 
                             {{-- 1. Identifikācija --}}
-                            <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Nr. — hover: kārtot">
-                                <div class="flex flex-col items-center leading-none">
-                                    <span @click.stop wire:click="moveTransactionUp({{ $row['transaction_id'] }})"
-                                          class="opacity-0 group-hover:opacity-100 cursor-pointer text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-opacity select-none w-full text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-sm">▲</span>
-                                    <span class="py-0.5">{{ $row['entry_number'] }}</span>
-                                    <span @click.stop wire:click="moveTransactionDown({{ $row['transaction_id'] }})"
-                                          class="opacity-0 group-hover:opacity-100 cursor-pointer text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-opacity select-none w-full text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-sm">▼</span>
+                            <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Nr. — vilkt: pārkārtot; ▲▼: kustināt">
+                                <div class="flex items-center gap-0.5 justify-center leading-none">
+                                    {{-- Drag handle --}}
+                                    <span class="drag-handle opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-[10px] select-none transition-opacity"
+                                          @click.stop title="Vilkt, lai pārkārtotu">⠿</span>
+                                    {{-- Up/Down arrows + number --}}
+                                    <div class="flex flex-col items-center leading-none">
+                                        <span @click.stop wire:click="moveTransactionUp({{ $row['transaction_id'] }})"
+                                              class="opacity-0 group-hover:opacity-100 cursor-pointer text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-opacity select-none w-full text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-sm">▲</span>
+                                        <span class="py-0.5">{{ $row['entry_number'] }}</span>
+                                        <span @click.stop wire:click="moveTransactionDown({{ $row['transaction_id'] }})"
+                                              class="opacity-0 group-hover:opacity-100 cursor-pointer text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-opacity select-none w-full text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-sm">▼</span>
+                                    </div>
                                 </div>
                             </td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-8 z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['date'] }}</td>
@@ -666,7 +699,7 @@
                         </tr>
 
                         {{-- Expandable Detail Row --}}
-                        <tr x-show="$store.journal && $store.journal.expandedRows.includes({{ $row['entry_number'] }})" class="bg-blue-50/50 dark:bg-blue-900/10">
+                        <tr x-show="$store.journal && $store.journal.expandedRows.includes({{ $row['entry_number'] }})" class="no-sort-row bg-blue-50/50 dark:bg-blue-900/10">
                             <td colspan="{{ $detailColSpan }}" class="px-4 py-2 border border-gray-300 dark:border-gray-700">
                                 <div class="flex items-start justify-between gap-4 text-xs">
                                     <div>
@@ -691,7 +724,7 @@
                     @endforeach
 
                     {{-- Closing Balances Row --}}
-                    <tr class="bg-yellow-100 dark:bg-yellow-900/20 font-bold text-gray-800 dark:text-gray-200 border-t-2 border-gray-400">
+                    <tr class="no-sort-row bg-yellow-100 dark:bg-yellow-900/20 font-bold text-gray-800 dark:text-gray-200 border-t-2 border-gray-400">
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">Beigu atlikums:</td>
                         <td class="border border-gray-300 dark:border-gray-700"></td>
                         @foreach($foreignCurrencies as $curr)
