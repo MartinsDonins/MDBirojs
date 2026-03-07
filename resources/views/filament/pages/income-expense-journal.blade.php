@@ -65,8 +65,14 @@
                     {{ $this->getTitle() }}
                 </h2>
                 <div class="flex gap-2">
-                    <x-filament::button wire:click="mountAction('createTransaction')">
+                    <x-filament::button wire:click="mountAction('createTransaction')" icon="heroicon-o-plus">
                         Pievienot darījumu
+                    </x-filament::button>
+                    <x-filament::button
+                        wire:click="mountAction('clearYearData')"
+                        color="danger"
+                        icon="heroicon-o-trash">
+                        Notīrīt gada datus
                     </x-filament::button>
                 </div>
             </div>

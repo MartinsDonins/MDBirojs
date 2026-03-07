@@ -1124,7 +1124,38 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             $this->linkTransactionAction(),
             $this->editOpeningBalanceAction(),
             $this->createTransactionAction(),
+            $this->clearYearDataAction(),
         ]);
+    }
+
+    public function clearYearDataAction(): Action
+    {
+        return Action::make('clearYearData')
+            ->label('Notīrīt gada datus')
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading(fn () => ($this->selectedYear ?? '?') . '. gada datu notīrīšana')
+            ->modalDescription(function () {
+                $count = Transaction::whereYear('occurred_at', $this->selectedYear)->count();
+                return "Tiks neatgriezeniski dzēsti visi {$count} darījumi no {$this->selectedYear}. gada. Šo darbību nevar atcelt!";
+            })
+            ->modalSubmitActionLabel('Jā, dzēst visus darījumus')
+            ->modalIcon('heroicon-o-exclamation-triangle')
+            ->modalIconColor('danger')
+            ->action(function () {
+                $count = Transaction::whereYear('occurred_at', $this->selectedYear)->count();
+                Transaction::whereYear('occurred_at', $this->selectedYear)->delete();
+
+                $this->calculateYearlySummary();
+                $this->calculateMonthlySummary();
+                $this->calculateMonthData();
+
+                \Filament\Notifications\Notification::make()
+                    ->title("{$this->selectedYear}. gada dati notīrīti ({$count} darījumi dzēsti)")
+                    ->success()
+                    ->send();
+            });
     }
 
     public function toggleInvalidFilter(): void
