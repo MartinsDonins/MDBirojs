@@ -187,10 +187,12 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         }
 
         // 2. Get transactions for the selected period
+        // sort_order: manual order within the same date; NULL falls back to id (import order)
         $transactions = Transaction::with(['account', 'category', 'linkedTransaction.account'])
             ->where('occurred_at', '>=', $periodStart)
             ->where('occurred_at', '<=', $periodEnd)
             ->orderBy('occurred_at')
+            ->orderByRaw('COALESCE(sort_order, 999999)')
             ->orderBy('id')
             ->get();
 
@@ -554,6 +556,57 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public function mountStatusModal($transactionId)
     {
         $this->mountAction('editStatus', ['transaction_id' => $transactionId]);
+    }
+
+    public function moveTransactionUp(int $transactionId): void
+    {
+        $this->shiftTransaction($transactionId, 'up');
+    }
+
+    public function moveTransactionDown(int $transactionId): void
+    {
+        $this->shiftTransaction($transactionId, 'down');
+    }
+
+    private function shiftTransaction(int $transactionId, string $direction): void
+    {
+        $transaction = Transaction::find($transactionId);
+        if (! $transaction) return;
+
+        // All transactions on the same date in current display order
+        $sameDateTxns = Transaction::where('occurred_at', $transaction->occurred_at)
+            ->orderByRaw('COALESCE(sort_order, 999999)')
+            ->orderBy('id')
+            ->get()
+            ->values();
+
+        $currentIdx = $sameDateTxns->search(fn ($t) => $t->id === $transactionId);
+        if ($currentIdx === false) return;
+
+        $swapIdx = $direction === 'up' ? $currentIdx - 1 : $currentIdx + 1;
+
+        if ($swapIdx < 0 || $swapIdx >= $sameDateTxns->count()) {
+            // Already at top/bottom — nothing to do
+            return;
+        }
+
+        // Normalize all sort_orders for this date to 10, 20, 30, ...
+        // so that any previously-null rows get explicit values before we swap.
+        foreach ($sameDateTxns as $i => $t) {
+            $newSo = ($i + 1) * 10;
+            if ($t->sort_order !== $newSo) {
+                Transaction::where('id', $t->id)->update(['sort_order' => $newSo]);
+                $t->sort_order = $newSo;
+            }
+        }
+
+        // Swap the two adjacent entries
+        $a = $sameDateTxns[$currentIdx];
+        $b = $sameDateTxns[$swapIdx];
+        Transaction::where('id', $a->id)->update(['sort_order' => $b->sort_order]);
+        Transaction::where('id', $b->id)->update(['sort_order' => $a->sort_order]);
+
+        $this->calculateMonthData();
     }
 
     /**
@@ -1076,28 +1129,98 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                     Forms\Components\Placeholder::make('account_name')
                         ->label('Konts')
                         ->content($account?->name ?? '—'),
+
+                    Forms\Components\Select::make('currency')
+                        ->label('Atlikuma valūta')
+                        ->options([
+                            'EUR' => 'EUR — Euro',
+                            'LVL' => 'LVL — Latvijas lats',
+                            'USD' => 'USD — ASV dolārs',
+                            'GBP' => 'GBP — Britu mārciņa',
+                        ])
+                        ->required()
+                        ->live()
+                        ->native(false),
+
+                    Forms\Components\TextInput::make('balance_input')
+                        ->label(fn (Forms\Get $get): string => 'Sākuma atlikums (' . ($get('currency') ?: 'EUR') . ')')
+                        ->numeric()
+                        ->required()
+                        ->live(debounce: 500)
+                        ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                            $currency = $get('currency') ?: 'EUR';
+                            $rate     = (float) ($get('balance_exchange_rate') ?: 1);
+                            if ($currency === 'EUR') {
+                                $set('balance', $state);
+                            } elseif ($rate > 0) {
+                                $set('balance', round((float) $state / $rate, 2));
+                            }
+                        }),
+
+                    Forms\Components\TextInput::make('balance_exchange_rate')
+                        ->label(fn (Forms\Get $get): string => 'Kurss (1 EUR = X ' . ($get('currency') ?: '') . ')')
+                        ->numeric()
+                        ->live(debounce: 500)
+                        ->hidden(fn (Forms\Get $get) => ($get('currency') ?: 'EUR') === 'EUR')
+                        ->helperText('LVL piemērs: 0.702804  (1 EUR = 0.702804 LVL)')
+                        ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                            $amount = (float) ($get('balance_input') ?: 0);
+                            $rate   = (float) ($state ?: 1);
+                            if ($rate > 0) {
+                                $set('balance', round($amount / $rate, 2));
+                            }
+                        }),
+
                     Forms\Components\TextInput::make('balance')
-                        ->label('Sākuma atlikums (EUR)')
+                        ->label('Ekvivalents EUR')
                         ->numeric()
                         ->prefix('€')
-                        ->required()
-                        ->helperText('Bilance pirms pirmā darījuma šajā kontā. Izmantojiet, lai iestatītu vēsturisko sākuma atlikumu.'),
+                        ->hidden(fn (Forms\Get $get) => ($get('currency') ?: 'EUR') === 'EUR')
+                        ->helperText('Aprēķināts automātiski no summas un kursa. Var labot manuāli.'),
                 ];
             })
-            ->fillForm(fn (array $arguments) => [
-                'balance' => \App\Models\Account::find($arguments['account_id'])?->balance ?? 0,
-            ])
-            ->action(function (array $data, array $arguments) {
-                $account = \App\Models\Account::find($arguments['account_id']);
-                if ($account) {
-                    $account->update(['balance' => $data['balance']]);
-                    $this->calculateMonthData();
+            ->fillForm(function (array $arguments) {
+                $account  = \App\Models\Account::find($arguments['account_id']);
+                $currency = $account?->currency ?? 'EUR';
+                $rate     = (float) ($account?->balance_exchange_rate ?? 1);
+                $balEur   = (float) ($account?->balance ?? 0);
+                // Derive original-currency amount for display
+                $balOrig  = ($currency !== 'EUR' && $rate > 0) ? round($balEur * $rate, 2) : $balEur;
 
-                    \Filament\Notifications\Notification::make()
-                        ->title('Sākuma atlikums saglabāts')
-                        ->success()
-                        ->send();
+                return [
+                    'currency'              => $currency,
+                    'balance_input'         => $balOrig,
+                    'balance_exchange_rate' => $rate ?: 1,
+                    'balance'               => $balEur,
+                ];
+            })
+            ->action(function (array $data, array $arguments) {
+                $account  = \App\Models\Account::find($arguments['account_id']);
+                if (! $account) return;
+
+                $currency = $data['currency'] ?? 'EUR';
+
+                if ($currency === 'EUR') {
+                    $balEur      = (float) ($data['balance_input'] ?? 0);
+                    $rate        = null;
+                } else {
+                    $balEur      = (float) ($data['balance'] ?? 0);
+                    $rate        = ($data['balance_exchange_rate'] > 0) ? (float) $data['balance_exchange_rate'] : null;
                 }
+
+                $account->update([
+                    'currency'              => $currency,
+                    'balance'               => $balEur,
+                    'balance_exchange_rate' => $rate,
+                ]);
+
+                $this->calculateMonthData();
+                $this->calculateMonthlySummary();
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Sākuma atlikums saglabāts')
+                    ->success()
+                    ->send();
             });
     }
 

@@ -518,6 +518,12 @@
                                     <span>{{ number_format($opening_balances[$acc->id] ?? 0, 2, ',', ' ') }}</span>
                                     <span class="text-[8px] text-yellow-500 opacity-0 group-hover/bal:opacity-100">✎</span>
                                 </div>
+                                @if(($acc->currency ?? 'EUR') !== 'EUR' && ($acc->balance_exchange_rate ?? 0) > 0)
+                                    @php $origAmt = round(($acc->balance ?? 0) * $acc->balance_exchange_rate, 2); @endphp
+                                    <div class="text-[9px] text-yellow-600 dark:text-yellow-400 text-right">
+                                        {{ number_format($origAmt, 2, ',', ' ') }} {{ $acc->currency }}
+                                    </div>
+                                @endif
                             </td>
                         @endforeach
                         <td colspan="{{ $totalAnalysisCols }}" class="border border-gray-300 dark:border-gray-700"></td>
@@ -662,12 +668,19 @@
                                         <strong>Bankas info:</strong> {{ $row['partner'] }} ({{ $row['document_details'] }})
                                     </div>
                                     @if($row['transaction_id'])
-                                    <div class="shrink-0"
-                                         @click.stop
-                                         wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
-                                        <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil">
-                                            Rediģēt
-                                        </x-filament::button>
+                                    <div class="shrink-0 flex items-center gap-1">
+                                        {{-- Kārtošanas pogas (augšup/lejup vienā dienā) --}}
+                                        <div @click.stop wire:click="moveTransactionUp({{ $row['transaction_id'] }})" title="Pārcelt augšup">
+                                            <x-filament::button size="xs" color="gray" icon="heroicon-o-chevron-up" />
+                                        </div>
+                                        <div @click.stop wire:click="moveTransactionDown({{ $row['transaction_id'] }})" title="Pārcelt lejup">
+                                            <x-filament::button size="xs" color="gray" icon="heroicon-o-chevron-down" />
+                                        </div>
+                                        <div @click.stop wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
+                                            <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil">
+                                                Rediģēt
+                                            </x-filament::button>
+                                        </div>
                                     </div>
                                     @endif
                                 </div>
