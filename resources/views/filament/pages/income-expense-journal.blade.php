@@ -535,7 +535,15 @@
                             @click="$store.journal.expandedRows.includes({{ $row['entry_number'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : $store.journal.expandedRows.push({{ $row['entry_number'] }})">
 
                             {{-- 1. Identifikācija --}}
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Ieraksta Nr.">{{ $row['entry_number'] }}</td>
+                            <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Nr. — hover: kārtot">
+                                <div class="flex flex-col items-center leading-none">
+                                    <span @click.stop wire:click="moveTransactionUp({{ $row['transaction_id'] }})"
+                                          class="opacity-0 group-hover:opacity-100 cursor-pointer text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-opacity select-none w-full text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-sm">▲</span>
+                                    <span class="py-0.5">{{ $row['entry_number'] }}</span>
+                                    <span @click.stop wire:click="moveTransactionDown({{ $row['transaction_id'] }})"
+                                          class="opacity-0 group-hover:opacity-100 cursor-pointer text-[9px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-opacity select-none w-full text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-sm">▼</span>
+                                </div>
+                            </td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-8 z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['date'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all text-gray-900 dark:text-gray-100">{{ $row['document_details'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[100px] text-gray-900 dark:text-gray-100" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
@@ -668,19 +676,12 @@
                                         <strong>Bankas info:</strong> {{ $row['partner'] }} ({{ $row['document_details'] }})
                                     </div>
                                     @if($row['transaction_id'])
-                                    <div class="shrink-0 flex items-center gap-1">
-                                        {{-- Kārtošanas pogas (augšup/lejup vienā dienā) --}}
-                                        <div @click.stop wire:click="moveTransactionUp({{ $row['transaction_id'] }})" title="Pārcelt augšup">
-                                            <x-filament::button size="xs" color="gray" icon="heroicon-o-chevron-up" />
-                                        </div>
-                                        <div @click.stop wire:click="moveTransactionDown({{ $row['transaction_id'] }})" title="Pārcelt lejup">
-                                            <x-filament::button size="xs" color="gray" icon="heroicon-o-chevron-down" />
-                                        </div>
-                                        <div @click.stop wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
-                                            <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil">
-                                                Rediģēt
-                                            </x-filament::button>
-                                        </div>
+                                    <div class="shrink-0"
+                                         @click.stop
+                                         wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
+                                        <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil">
+                                            Rediģēt
+                                        </x-filament::button>
                                     </div>
                                     @endif
                                 </div>

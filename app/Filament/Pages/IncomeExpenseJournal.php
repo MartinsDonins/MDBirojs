@@ -181,7 +181,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             // Use ABS to handle amounts stored as negative values (e.g. Swedbank exports)
             $transactionsSum = Transaction::where('account_id', $acc->id)
                 ->where('occurred_at', '<', $periodStart)
-                ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN ABS(amount) WHEN type = 'TRANSFER' THEN amount ELSE -ABS(amount) END"));
+                ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN ABS(COALESCE(amount_eur, amount)) WHEN type = 'TRANSFER' THEN COALESCE(amount_eur, amount) ELSE -ABS(COALESCE(amount_eur, amount)) END"));
                 
             $this->opening_balances[$acc->id] = $initialBalance + $transactionsSum;
         }
@@ -212,14 +212,17 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $currentBalances = $this->opening_balances;
 
         foreach ($transactions as $transaction) {
-            // Update balance for the specific account based on transaction type.
+            // Always use the EUR-equivalent amount so that foreign-currency transactions
+            // (LVL, USD, etc.) are tracked in EUR in the running account balance.
+            $amountEur = (float) ($transaction->amount_eur ?? $transaction->amount);
+
             if ($transaction->type === 'INCOME') {
-                $currentBalances[$transaction->account_id] += abs($transaction->amount);
+                $currentBalances[$transaction->account_id] += abs($amountEur);
             } elseif ($transaction->type === 'TRANSFER') {
-                $currentBalances[$transaction->account_id] += $transaction->amount; // signed: positive=in, negative=out
+                $currentBalances[$transaction->account_id] += $amountEur; // signed: positive=in, negative=out
             } else {
                 // EXPENSE, FEE, etc.
-                $currentBalances[$transaction->account_id] -= abs($transaction->amount);
+                $currentBalances[$transaction->account_id] -= abs($amountEur);
             }
 
             $row = [
@@ -279,8 +282,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->where('status', 'COMPLETED')
             ->selectRaw('
                 EXTRACT(YEAR FROM occurred_at) as year,
-                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as income,
-                SUM(CASE WHEN type = ? THEN ABS(amount) ELSE 0 END) as expense
+                SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) ELSE 0 END) as income,
+                SUM(CASE WHEN type = ? THEN ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as expense
             ', ['INCOME', 'EXPENSE'])
             ->groupBy('year')
             ->orderBy('year', 'asc') // Calculate chronologically for running balance
@@ -316,7 +319,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $openingBalance = $totalInitialBalance + (Transaction::query()
             ->where('status', 'COMPLETED')
             ->whereYear('occurred_at', '<', $this->selectedYear)
-            ->selectRaw('SUM(CASE WHEN type = ? THEN amount WHEN type = ? THEN -ABS(amount) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
+            ->selectRaw('SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
             ->value('balance') ?? 0);
 
         // 1b. Per-account opening balances at start of selected year
@@ -325,7 +328,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             $txBeforeYear = Transaction::where('account_id', $acc->id)
                 ->where('status', 'COMPLETED')
                 ->whereYear('occurred_at', '<', $this->selectedYear)
-                ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN ABS(amount) WHEN type = 'TRANSFER' THEN amount ELSE -ABS(amount) END"));
+                ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN ABS(COALESCE(amount_eur, amount)) WHEN type = 'TRANSFER' THEN COALESCE(amount_eur, amount) ELSE -ABS(COALESCE(amount_eur, amount)) END"));
             $accountOpeningBalances[$acc->id] = ($acc->balance ?? 0) + $txBeforeYear;
         }
 
@@ -335,8 +338,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->whereYear('occurred_at', $this->selectedYear)
             ->selectRaw('
                 EXTRACT(MONTH FROM occurred_at) as month_number,
-                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as income,
-                SUM(CASE WHEN type = ? THEN ABS(amount) ELSE 0 END) as expense
+                SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) ELSE 0 END) as income,
+                SUM(CASE WHEN type = ? THEN ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as expense
             ', ['INCOME', 'EXPENSE'])
             ->groupBy('month_number')
             ->orderBy('month_number')
@@ -352,7 +355,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 transactions.type,
                 COALESCE(categories.name, '— nav kategorijas') as category_name,
                 categories.vid_column,
-                SUM(ABS(transactions.amount)) as total
+                SUM(ABS(COALESCE(transactions.amount_eur, transactions.amount))) as total
             ")
             ->groupBy(
                 DB::raw('EXTRACT(MONTH FROM transactions.occurred_at)'),
@@ -370,7 +373,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->selectRaw("
                 EXTRACT(MONTH FROM occurred_at) as month_number,
                 account_id,
-                SUM(CASE WHEN type = 'INCOME' THEN ABS(amount) WHEN type = 'TRANSFER' THEN amount ELSE -ABS(amount) END) as net_change
+                SUM(CASE WHEN type = 'INCOME' THEN ABS(COALESCE(amount_eur, amount)) WHEN type = 'TRANSFER' THEN COALESCE(amount_eur, amount) ELSE -ABS(COALESCE(amount_eur, amount)) END) as net_change
             ")
             ->groupBy(DB::raw('EXTRACT(MONTH FROM occurred_at)'), 'account_id')
             ->get();
@@ -473,7 +476,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $openingBalance = $totalInitialBalance + (Transaction::query()
             ->where('status', 'COMPLETED')
             ->whereYear('occurred_at', '<', $this->selectedYear)
-            ->selectRaw('SUM(CASE WHEN type = ? THEN amount WHEN type = ? THEN -ABS(amount) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
+            ->selectRaw('SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
             ->value('balance') ?? 0);
 
         $totalIncome = $summary->total_income ?? 0;
