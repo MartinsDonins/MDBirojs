@@ -290,7 +290,7 @@
 
             <div class="text-center mb-4">
                 <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">
-                    {{ strtoupper($latvianMonths[$selectedMonth] ?? '') }} {{ $selectedYear }}
+                    {{ mb_strtoupper($latvianMonths[$selectedMonth] ?? '', 'UTF-8') }} {{ $selectedYear }}
                 </h2>
             </div>
 
@@ -369,28 +369,28 @@
                     {{-- BALANCE + ACCOUNTS --}}
                     <div class="w-44 shrink-0">
                         <div class="px-3 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-white/10">
-                            <span class="text-[11px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Bilance</span>
+                            <span class="text-[11px] font-semibold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Bilance</span>
                         </div>
                         <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5">
-                            <span class="text-gray-500 dark:text-gray-400">Ieņēmumi</span>
+                            <span class="text-gray-700 dark:text-gray-200">Ieņēmumi</span>
                             <span class="text-green-600 dark:text-green-400 font-medium">+{{ number_format($monthData['income'], 2, ',', ' ') }}</span>
                         </div>
                         <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5">
-                            <span class="text-gray-500 dark:text-gray-400">Izdevumi</span>
+                            <span class="text-gray-700 dark:text-gray-200">Izdevumi</span>
                             <span class="text-red-600 dark:text-red-400 font-medium">−{{ number_format($monthData['expense'], 2, ',', ' ') }}</span>
                         </div>
                         <div class="px-3 py-1 flex justify-between border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800">
-                            <span class="text-[11px] font-bold text-gray-700 dark:text-gray-300">Rezultāts</span>
+                            <span class="text-[11px] font-bold text-gray-900 dark:text-white">Rezultāts</span>
                             <span class="text-xs font-bold {{ $result >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ ($result >= 0 ? '+' : '') . number_format($result, 2, ',', ' ') }}</span>
                         </div>
                         <div class="px-3 pt-1.5 pb-0.5">
-                            <span class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Kontu atlikumi</span>
+                            <span class="text-[10px] uppercase tracking-wide text-gray-600 dark:text-gray-300">Kontu atlikumi</span>
                         </div>
                         @foreach($accounts as $acc)
                             @php $bal = $monthData['account_balances'][$acc->id] ?? 0; @endphp
                             <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5 last:border-0">
-                                <span class="text-gray-500 dark:text-gray-400 truncate mr-1" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 14) }}</span>
-                                <span class="font-medium whitespace-nowrap {{ $bal < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300' }}">{{ number_format($bal, 2, ',', ' ') }}</span>
+                                <span class="text-gray-700 dark:text-gray-200 truncate mr-1" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 14) }}</span>
+                                <span class="font-medium whitespace-nowrap {{ $bal < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">{{ number_format($bal, 2, ',', ' ') }}</span>
                             </div>
                         @endforeach
                     </div>
