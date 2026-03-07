@@ -47,6 +47,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public array $monthlySummary = [];
     public $accounts;
     public bool $showOnlyInvalid = false;
+    /** Non-EUR currencies present in the currently displayed month (populated by calculateMonthData) */
+    public array $foreignCurrencies = [];
 
     // Cached dynamic column configs (loaded from journal_columns table)
     private ?array $cachedIncomeColumns  = null;
@@ -159,6 +161,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             $this->rows = [];
             $this->opening_balances = [];
             $this->closing_balances = [];
+            $this->foreignCurrencies = [];
             return;
         }
 
@@ -191,9 +194,18 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->orderBy('id')
             ->get();
 
+        // Collect non-EUR currencies present this month (shown as extra columns in the table)
+        $this->foreignCurrencies = $transactions
+            ->map(fn ($t) => $t->currency ?? 'EUR')
+            ->filter(fn ($c) => $c !== 'EUR')
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
+
         $data = [];
-        $runningEntryNumber = 1; 
-        
+        $runningEntryNumber = 1;
+
         // Initialize running balances with opening balances
         $currentBalances = $this->opening_balances;
 
@@ -226,9 +238,13 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'transaction_account_id' => $transaction->account_id,
                 'transaction_amount' => $transaction->amount,
                 'transaction_type' => $transaction->type,
-                
+
+                // Original currency (for foreign-currency columns)
+                'transaction_currency' => $transaction->currency ?? 'EUR',
+                'transaction_amount_original' => $transaction->amount, // original-currency amount (same field)
+
                 // Snapshot of balances AFTER this transaction
-                'account_balances' => $currentBalances, 
+                'account_balances' => $currentBalances,
             ];
             
             $data[] = $row;

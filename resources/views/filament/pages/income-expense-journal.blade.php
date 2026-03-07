@@ -412,7 +412,8 @@
             $expenseColCount   = count($journalExpenseColumns);
             // 8 fixed cols + 3*accounts + income cols + 1 kopā + expense cols + 1 kopā + 1 atb
             $totalAnalysisCols = $incomeColCount + 1 + $expenseColCount + 1 + 1;
-            $detailColSpan     = 8 + count($accounts) * 3 + $incomeColCount + 1 + $expenseColCount + 1 + 1;
+            $fcCount           = count($foreignCurrencies);
+            $detailColSpan     = 8 + $fcCount + count($accounts) * 3 + $incomeColCount + 1 + $expenseColCount + 1 + 1;
         @endphp
         <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm"
              x-data="{}"
@@ -428,6 +429,11 @@
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 80px;">Kategorija</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100">Sasaite</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 40px;">Statuss</th>
+
+                        {{-- Ārzemju valūtu kolonnas (dinamiski, tikai ja mēnesī ir tādi darījumi) --}}
+                        @foreach($foreignCurrencies as $curr)
+                            <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 text-center" style="min-width: 55px;" title="Oriģinālā summa {{ $curr }}">{{ $curr }}</th>
+                        @endforeach
 
                         {{-- Konto kolonnas --}}
                         @foreach($accounts as $acc)
@@ -476,6 +482,9 @@
                         <th class="border border-gray-300 dark:border-gray-700">8</th>
 
                         @php $colNum = 9; @endphp
+                        @foreach($foreignCurrencies as $curr)
+                            <th class="border border-gray-300 dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20">{{ $colNum++ }}</th>
+                        @endforeach
                         @foreach($accounts as $acc)
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
@@ -498,6 +507,9 @@
                     <tr class="bg-yellow-50 dark:bg-yellow-900/10 font-bold text-gray-700 dark:text-gray-300">
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-xs">Sākuma atlikums:</td>
                         <td class="border border-gray-300 dark:border-gray-700"></td>
+                        @foreach($foreignCurrencies as $curr)
+                            <td class="border border-gray-300 dark:border-gray-700 bg-yellow-50/40 dark:bg-yellow-900/10"></td>
+                        @endforeach
                         @foreach($accounts as $acc)
                             <td colspan="2" class="border border-gray-300 dark:border-gray-700"></td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right hover:bg-yellow-100 dark:hover:bg-yellow-800/30 cursor-pointer group/bal"
@@ -572,6 +584,15 @@
                                 </div>
                                 @endif
                             </td>
+
+                            {{-- Ārzemju valūtu oriģinālās summas --}}
+                            @foreach($foreignCurrencies as $curr)
+                                <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-[10px] bg-yellow-50/30 dark:bg-yellow-900/10 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
+                                    @if(($row['transaction_currency'] ?? 'EUR') === $curr)
+                                        <span class="text-yellow-800 dark:text-yellow-300 font-medium">{{ number_format(abs($row['transaction_amount_original']), 2, ',', ' ') }}</span>
+                                    @endif
+                                </td>
+                            @endforeach
 
                             {{-- 2. Konti --}}
                             @foreach($accounts as $acc)
@@ -659,6 +680,9 @@
                     <tr class="bg-yellow-100 dark:bg-yellow-900/20 font-bold text-gray-800 dark:text-gray-200 border-t-2 border-gray-400">
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">Beigu atlikums:</td>
                         <td class="border border-gray-300 dark:border-gray-700"></td>
+                        @foreach($foreignCurrencies as $curr)
+                            <td class="border border-gray-300 dark:border-gray-700 bg-yellow-50/40 dark:bg-yellow-900/10"></td>
+                        @endforeach
                         @foreach($accounts as $acc)
                             <td colspan="2" class="border border-gray-300 dark:border-gray-700"></td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right {{ ($closing_balances[$acc->id] ?? 0) < 0 ? 'text-red-600' : '' }}">
