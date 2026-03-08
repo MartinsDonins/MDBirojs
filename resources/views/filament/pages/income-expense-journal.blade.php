@@ -691,14 +691,14 @@
                             {{-- 3. Ieņēmumu analīze (dynamic columns) --}}
                             @foreach($journalIncomeColumns as $col)
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">
-                                @if($row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], $col['vid_columns']))
+                                @if($row['status'] === 'COMPLETED' && $row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], $col['vid_columns']))
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
                             @endforeach
                             {{-- Ieņēmumi Kopā --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-green-600 dark:text-green-400">
-                                @if($row['transaction_type'] == 'INCOME' && $row['is_mapped'])
+                                @if($row['status'] === 'COMPLETED' && $row['transaction_type'] == 'INCOME' && $row['is_mapped'])
                                     {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
@@ -706,14 +706,14 @@
                             {{-- 4. Izdevumu analīze (dynamic columns) --}}
                             @foreach($journalExpenseColumns as $col)
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">
-                                @if($row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], $col['vid_columns']))
+                                @if($row['status'] === 'COMPLETED' && $row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], $col['vid_columns']))
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
                             @endforeach
                             {{-- Izdevumi Kopā --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-red-600 dark:text-red-400">
-                                @if($row['transaction_type'] == 'EXPENSE' && $row['is_mapped'])
+                                @if($row['status'] === 'COMPLETED' && $row['transaction_type'] == 'EXPENSE' && $row['is_mapped'])
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
