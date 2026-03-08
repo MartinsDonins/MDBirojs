@@ -239,6 +239,28 @@ class RuleResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('run_selected')
+                        ->label('Izpildīt atzīmētās')
+                        ->icon('heroicon-o-play')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Izpildīt atzīmētās kārtulas')
+                        ->modalDescription('Atzīmētās kārtulas tiks piemērotas visiem DRAFT un NEEDS_REVIEW darījumiem pēc prioritātes kārtībā.')
+                        ->action(function ($records) {
+                            $service = app(AutoApprovalService::class);
+                            $totalApplied = 0;
+                            foreach ($records->sortByDesc('priority') as $rule) {
+                                $stats = $service->applyCustomRule($rule);
+                                $totalApplied += $stats['applied'];
+                            }
+                            Notification::make()
+                                ->title('Kārtulas izpildītas')
+                                ->body("Kopā piemērotas {$totalApplied} darījumiem")
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
