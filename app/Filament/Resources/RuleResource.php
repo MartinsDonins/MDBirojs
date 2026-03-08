@@ -98,6 +98,20 @@ class RuleResource extends Resource
                             ->label('Auto-sasaiste: meklēt atbilstošu darījumu')
                             ->helperText('Ja ieslēgts — meklēs darījumu CITĀ kontā ar vienādu datumu (±1 diena), summu un aprakstu un izveidos sasaisti. Noderīgi pārskaitījumiem starp saviem kontiem.')
                             ->columnSpanFull(),
+
+                        Forms\Components\Select::make('action.income_category_id')
+                            ->label('Kategorija (Ieņēmumu darījumam)')
+                            ->options(\App\Models\Category::whereIn('type', ['INCOME', 'TRANSFER'])->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->nullable()
+                            ->helperText('Piemērota darījumiem ar tipu INCOME. Arī saistītajam darījumam, ja tas ir INCOME.'),
+
+                        Forms\Components\Select::make('action.expense_category_id')
+                            ->label('Kategorija (Izdevumu darījumam)')
+                            ->options(\App\Models\Category::whereIn('type', ['EXPENSE', 'FEE', 'TRANSFER'])->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->nullable()
+                            ->helperText('Piemērota darījumiem ar tipu EXPENSE vai FEE. Arī pretējam darījumam, ja tas ir EXPENSE.'),
                     ])->columns(2),
             ]);
     }

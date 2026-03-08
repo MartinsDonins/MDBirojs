@@ -1031,19 +1031,21 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                         ->hidden(fn (Forms\Get $get) => $get('action_type') !== 'link_existing'),
 
                     Forms\Components\Select::make('existing_transaction_id')
-                        ->label('Darījums')
+                        ->label('Darījums (tāda pati summa, ±2 dienas)')
                         ->options(function (Forms\Get $get) use ($transaction) {
                             $accountId = $get('target_account_id');
                             if (!$accountId) return [];
+                            $absAmount = abs($transaction?->amount_eur ?? $transaction?->amount ?? 0);
                             return Transaction::where('account_id', $accountId)
                                 ->whereBetween('occurred_at', [
-                                    $transaction?->occurred_at?->subDays(60),
-                                    $transaction?->occurred_at?->addDays(60),
+                                    $transaction?->occurred_at?->subDays(2),
+                                    $transaction?->occurred_at?->addDays(2),
                                 ])
+                                ->whereRaw('ABS(ABS(COALESCE(amount_eur, amount)) - ?) < 0.01', [$absAmount])
                                 ->orderBy('occurred_at')
                                 ->get()
                                 ->mapWithKeys(fn ($t) => [
-                                    $t->id => $t->occurred_at->format('d.m.Y') . ' | ' . number_format(abs($t->amount), 2, ',', ' ') . ' EUR | ' . ($t->counterparty_name ?? $t->description ?? '—')
+                                    $t->id => $t->occurred_at->format('d.m.Y') . ' | ' . number_format(abs($t->amount), 2, ',', ' ') . ' | ' . ($t->counterparty_name ?? $t->description ?? '—')
                                 ]);
                         })
                         ->required()

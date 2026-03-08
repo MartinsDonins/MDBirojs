@@ -6,10 +6,22 @@ use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\Account;
 use App\Models\Rule;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class AutoApprovalService
 {
+    /** Cache active rules per service instance to avoid repeated DB queries during batch import. */
+    private ?Collection $cachedActiveRules = null;
+
+    private function getActiveRules(): Collection
+    {
+        if ($this->cachedActiveRules === null) {
+            $this->cachedActiveRules = Rule::where('is_active', true)->orderByDesc('priority')->get();
+        }
+        return $this->cachedActiveRules;
+    }
+
     /**
      * Process transaction and apply auto-approval rules.
      *
@@ -32,6 +44,14 @@ class AutoApprovalService
         if ($this->isBankFee($transaction)) {
             $this->applyRuleAndApprove($transaction, 'bank_fee');
             return true;
+        }
+
+        // User-configured custom rules (before generic similar-transaction fallback)
+        foreach ($this->getActiveRules() as $rule) {
+            if ($this->matchesCriteria($transaction, $rule->criteria ?? [])) {
+                $this->applyCustomRuleAction($transaction, $rule);
+                return true;
+            }
         }
 
         if ($similarTransaction = $this->findSimilarTransaction($transaction)) {
@@ -269,7 +289,14 @@ class AutoApprovalService
             $transaction->type = $action['type'];
         }
 
-        if (!empty($action['category_id'])) {
+        // Category: bilateral (income_category_id / expense_category_id) takes priority over single category_id
+        if (!empty($action['income_category_id']) || !empty($action['expense_category_id'])) {
+            if (in_array($transaction->type, ['INCOME']) && !empty($action['income_category_id'])) {
+                $transaction->category_id = (int) $action['income_category_id'];
+            } elseif (in_array($transaction->type, ['EXPENSE', 'FEE']) && !empty($action['expense_category_id'])) {
+                $transaction->category_id = (int) $action['expense_category_id'];
+            }
+        } elseif (!empty($action['category_id'])) {
             $transaction->category_id = (int) $action['category_id'];
         }
 
@@ -278,13 +305,37 @@ class AutoApprovalService
 
         // Auto-link with matching transaction in another account
         if (!empty($action['auto_link_matching'])) {
-            $this->tryAutoLink($transaction);
+            $linked = $this->tryAutoLink($transaction);
+
+            // If link was created, also set the bilateral category on the linked transaction
+            if ($linked && $transaction->linked_transaction_id
+                && (!empty($action['income_category_id']) || !empty($action['expense_category_id']))) {
+                $linkedTx = Transaction::find($transaction->linked_transaction_id);
+                if ($linkedTx) {
+                    if ($linkedTx->type === 'INCOME' && !empty($action['income_category_id'])) {
+                        $linkedTx->category_id = (int) $action['income_category_id'];
+                    } elseif (in_array($linkedTx->type, ['EXPENSE', 'FEE']) && !empty($action['expense_category_id'])) {
+                        $linkedTx->category_id = (int) $action['expense_category_id'];
+                    }
+                    $linkedTx->applied_rule_id = $rule->id;
+                    $linkedTx->save();
+                }
+            }
         }
 
         // Create reverse transaction if configured
         if (!empty($action['reverse_account_id']) && !$transaction->linked_transaction_id) {
             // Always use INCOME/EXPENSE (never TRANSFER) for reversed transactions
             $reverseType = $transaction->type === 'EXPENSE' ? 'INCOME' : 'EXPENSE';
+
+            // Category for the reverse transaction (opposite type)
+            $reverseCategoryId = null;
+            if ($reverseType === 'INCOME' && !empty($action['income_category_id'])) {
+                $reverseCategoryId = (int) $action['income_category_id'];
+            } elseif ($reverseType === 'EXPENSE' && !empty($action['expense_category_id'])) {
+                $reverseCategoryId = (int) $action['expense_category_id'];
+            }
+
             $reversed = Transaction::create([
                 'account_id'            => (int) $action['reverse_account_id'],
                 'occurred_at'           => $transaction->occurred_at,
@@ -297,15 +348,16 @@ class AutoApprovalService
                 'description'           => $transaction->description,
                 'counterparty_name'     => $transaction->counterparty_name,
                 'reference'             => $transaction->reference,
+                'category_id'           => $reverseCategoryId,
                 'applied_rule_id'       => $rule->id,
                 'linked_transaction_id' => $transaction->id,
             ]);
             $transaction->linked_transaction_id = $reversed->id;
 
             Log::info('Reverse transaction created by rule', [
-                'original_id'  => $transaction->id,
-                'reversed_id'  => $reversed->id,
-                'rule_id'      => $rule->id,
+                'original_id'    => $transaction->id,
+                'reversed_id'    => $reversed->id,
+                'rule_id'        => $rule->id,
                 'target_account' => $action['reverse_account_id'],
             ]);
         }
