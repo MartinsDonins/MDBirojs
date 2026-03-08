@@ -31,6 +31,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     protected static ?string $title = 'Saimnieciskās darbības ieņēmumu un izdevumu uzskaites žurnāls';
 
     protected static string $view = 'filament.pages.income-expense-journal';
+
+    protected ?string $maxContentWidth = 'full';
     
     protected static ?int $navigationSort = 3;
 
