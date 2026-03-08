@@ -284,6 +284,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     }
     protected function calculateYearlySummary(): void
     {
+        // Income/expense for analytical display — COMPLETED only
         $yearlyData = Transaction::query()
             ->where('status', 'COMPLETED')
             ->selectRaw('
@@ -292,17 +293,35 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 SUM(CASE WHEN type = ? THEN ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as expense
             ', ['INCOME', 'EXPENSE'])
             ->groupBy('year')
-            ->orderBy('year', 'asc') // Calculate chronologically for running balance
+            ->orderBy('year', 'asc')
             ->get();
 
-        $this->yearlySummary = [];
-        $runningBalance = 0;
+        // Balance changes from ALL transactions (including DRAFT/NEEDS_REVIEW)
+        $yearlyBalanceData = Transaction::query()
+            ->selectRaw('
+                EXTRACT(YEAR FROM occurred_at) as year,
+                SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as balance_change
+            ', ['INCOME', 'EXPENSE'])
+            ->groupBy('year')
+            ->orderBy('year', 'asc')
+            ->pluck('balance_change', 'year');
 
-        foreach ($yearlyData as $data) {
-            $income = $data->income ?? 0;
-            $expense = $data->expense ?? 0;
+        // Collect all years present in either dataset
+        $allYears = $yearlyData->pluck('year')
+            ->merge($yearlyBalanceData->keys())
+            ->unique()
+            ->sort()
+            ->values();
+
+        $this->yearlySummary = [];
+        $runningBalance      = \App\Models\Account::sum('balance');
+
+        foreach ($allYears as $year) {
+            $data    = $yearlyData->firstWhere('year', $year);
+            $income  = (float) ($data->income  ?? 0);
+            $expense = (float) ($data->expense ?? 0);
             $annualResult = $income - $expense;
-            $runningBalance += $annualResult;
+            $runningBalance += (float) ($yearlyBalanceData[$year] ?? 0);
 
             // Prepend to array to show newest first, but keep running balance correct
             array_unshift($this->yearlySummary, [
@@ -319,26 +338,24 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     {
         if (!$this->selectedYear) return;
 
-        // 1. Calculate Opening Balance for the year
+        // 1. Opening Balance — ALL transactions (DRAFT included) for accurate balance
         $totalInitialBalance = \App\Models\Account::sum('balance');
 
         $openingBalance = $totalInitialBalance + (Transaction::query()
-            ->where('status', 'COMPLETED')
-            ->whereYear('occurred_at', '<', $this->selectedYear)
+            ->whereYear('occurred_at', '<', $this->selectedYear)  // no status filter
             ->selectRaw('SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
             ->value('balance') ?? 0);
 
-        // 1b. Per-account opening balances at start of selected year
+        // 1b. Per-account opening balances — ALL transactions
         $accountOpeningBalances = [];
         foreach ($this->accounts as $acc) {
             $txBeforeYear = Transaction::where('account_id', $acc->id)
-                ->where('status', 'COMPLETED')
-                ->whereYear('occurred_at', '<', $this->selectedYear)
+                ->whereYear('occurred_at', '<', $this->selectedYear)  // no status filter
                 ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN ABS(COALESCE(amount_eur, amount)) WHEN type = 'TRANSFER' THEN COALESCE(amount_eur, amount) ELSE -ABS(COALESCE(amount_eur, amount)) END"));
             $accountOpeningBalances[$acc->id] = ($acc->balance ?? 0) + $txBeforeYear;
         }
 
-        // 2. Get monthly totals
+        // 2. Monthly income/expense totals — COMPLETED only (for analytical columns display)
         $monthlyData = Transaction::query()
             ->where('status', 'COMPLETED')
             ->whereYear('occurred_at', $this->selectedYear)
@@ -351,7 +368,18 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->orderBy('month_number')
             ->get();
 
-        // 3. Per-category breakdown per month (for analysis columns)
+        // 2b. Monthly net balance changes — ALL transactions (for running balance column)
+        $monthlyAllNetChanges = Transaction::query()
+            ->whereYear('occurred_at', $this->selectedYear)  // no status filter
+            ->selectRaw('
+                EXTRACT(MONTH FROM occurred_at) as month_number,
+                SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as net_change
+            ', ['INCOME', 'EXPENSE'])
+            ->groupBy('month_number')
+            ->orderBy('month_number')
+            ->pluck('net_change', 'month_number');
+
+        // 3. Per-category breakdown — COMPLETED only (analytical columns)
         $categoryBreakdown = Transaction::query()
             ->where('transactions.status', 'COMPLETED')
             ->whereYear('transactions.occurred_at', $this->selectedYear)
@@ -372,10 +400,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->orderBy('month_number')
             ->get();
 
-        // 3b. Monthly per-account net changes
+        // 3b. Monthly per-account net changes — ALL transactions (for account balance columns)
         $monthlyAccountChanges = Transaction::query()
-            ->where('status', 'COMPLETED')
-            ->whereYear('occurred_at', $this->selectedYear)
+            ->whereYear('occurred_at', $this->selectedYear)  // no status filter
             ->selectRaw("
                 EXTRACT(MONTH FROM occurred_at) as month_number,
                 account_id,
@@ -395,10 +422,13 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $runningAccountBalances = $accountOpeningBalances;
 
         for ($month = 1; $month <= 12; $month++) {
+            // COMPLETED income/expense for analytical column display
             $data    = $monthlyData->firstWhere('month_number', $month);
-            $income  = $data->income ?? 0;
-            $expense = $data->expense ?? 0;
-            $runningBalance += ($income - $expense);
+            $income  = (float) ($data->income  ?? 0);
+            $expense = (float) ($data->expense ?? 0);
+
+            // Running balance uses ALL transactions (DRAFT included)
+            $runningBalance += (float) ($monthlyAllNetChanges[$month] ?? 0);
 
             // Update per-account running balances for this month
             foreach ($this->accounts as $acc) {
@@ -476,22 +506,18 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ', ['INCOME', 'EXPENSE'])
             ->first();
 
-        // Calculate opening balance again for the summary card's total balance
+        // Balance uses ALL transactions — DRAFT included for accurate account balance
         $totalInitialBalance = \App\Models\Account::sum('balance');
-        
-        $openingBalance = $totalInitialBalance + (Transaction::query()
-            ->where('status', 'COMPLETED')
-            ->whereYear('occurred_at', '<', $this->selectedYear)
-            ->selectRaw('SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
-            ->value('balance') ?? 0);
 
-        $totalIncome = $summary->total_income ?? 0;
-        $totalExpense = $summary->total_expense ?? 0;
+        $allTxBalance = Transaction::query()
+            ->whereYear('occurred_at', '<=', $this->selectedYear)  // no status filter
+            ->selectRaw('SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
+            ->value('balance') ?? 0;
 
         $this->summary = [
-            'total_income' => $totalIncome,
-            'total_expense' => $totalExpense,
-            'balance' => $openingBalance + $totalIncome - $totalExpense,
+            'total_income'  => $summary->total_income  ?? 0,
+            'total_expense' => $summary->total_expense ?? 0,
+            'balance'       => $totalInitialBalance + $allTxBalance,
         ];
     }
 
