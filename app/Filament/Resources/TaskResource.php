@@ -364,7 +364,7 @@ class TaskResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->with(['category', 'items']);
+            ->modifyQueryUsing(fn ($query) => $query->with(['category', 'items']));
     }
 
     public static function getPages(): array
