@@ -1,0 +1,16 @@
+<?php
+
+namespace App\Filament\Resources\TaskCategoryResource\Pages;
+
+use App\Filament\Resources\TaskCategoryResource;
+use Filament\Resources\Pages\CreateRecord;
+
+class CreateTaskCategory extends CreateRecord
+{
+    protected static string $resource = TaskCategoryResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+}
