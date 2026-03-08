@@ -29,11 +29,6 @@ class AutoApprovalService
             return true;
         }
 
-        if ($this->isCashTransaction($transaction)) {
-            $this->applyRuleAndApprove($transaction, 'cash_transaction');
-            return true;
-        }
-
         if ($this->isBankFee($transaction)) {
             $this->applyRuleAndApprove($transaction, 'bank_fee');
             return true;
@@ -63,25 +58,6 @@ class AutoApprovalService
 
         // Check if counterparty account matches any user account
         return in_array($transaction->counterparty_account, $userAccounts);
-    }
-
-    /**
-     * Check if transaction is related to cash.
-     */
-    protected function isCashTransaction(Transaction $transaction): bool
-    {
-        $cashKeywords = ['kase', 'kasē', 'cash', 'skaidra nauda', 'skaidrā naudā', 'bankomāt', 'atm'];
-        
-        $description = strtolower($transaction->description ?? '');
-        $counterparty = strtolower($transaction->counterparty_name ?? '');
-        
-        foreach ($cashKeywords as $keyword) {
-            if (str_contains($description, $keyword) || str_contains($counterparty, $keyword)) {
-                return true;
-            }
-        }
-        
-        return false;
     }
 
     /**
@@ -138,17 +114,6 @@ class AutoApprovalService
                 $category = \App\Models\Category::firstOrCreate(
                     ['name' => 'Pārskaitījumi starp kontiem'],
                     ['type' => 'TRANSFER']
-                );
-                $transaction->category_id = $category->id;
-                break;
-
-            case 'cash_transaction':
-                $transaction->status = 'COMPLETED';
-                
-                // Try to find or create "Skaidra nauda" category
-                $category = \App\Models\Category::firstOrCreate(
-                    ['name' => 'Skaidra nauda'],
-                    ['type' => $transaction->type]
                 );
                 $transaction->category_id = $category->id;
                 break;
@@ -425,33 +390,7 @@ class AutoApprovalService
             ]
         );
 
-        // --- Rule 2: Skaidra nauda / ATM ---
-        $cashCategory = Category::firstOrCreate(
-            ['name' => 'Skaidra nauda'],
-            ['type' => 'EXPENSE']
-        );
-        Rule::firstOrCreate(
-            ['name' => '⚙ Skaidra nauda / ATM'],
-            [
-                'priority'  => 90,
-                'is_active' => true,
-                'criteria'  => [
-                    'and_criteria' => [],
-                    'or_criteria'  => [
-                        ['field' => 'description',      'operator' => 'contains', 'value' => 'bankomāt'],
-                        ['field' => 'description',      'operator' => 'contains', 'value' => 'atm'],
-                        ['field' => 'description',      'operator' => 'contains', 'value' => 'skaidra nauda'],
-                        ['field' => 'description',      'operator' => 'contains', 'value' => 'cash'],
-                        ['field' => 'counterparty_name','operator' => 'contains', 'value' => 'kase'],
-                    ],
-                ],
-                'action'    => [
-                    'category_id' => $cashCategory->id,
-                ],
-            ]
-        );
-
-        // --- Rule 3: Auto-sasaiste starp kontiem ---
+        // --- Rule 2: Auto-sasaiste starp kontiem ---
         Rule::firstOrCreate(
             ['name' => '⚙ Auto-sasaiste starp kontiem'],
             [
@@ -478,7 +417,6 @@ class AutoApprovalService
             'approved' => 0,
             'rules' => [
                 'inter_account_transfer' => 0,
-                'cash_transaction' => 0,
                 'similar_transaction' => 0,
             ],
         ];
