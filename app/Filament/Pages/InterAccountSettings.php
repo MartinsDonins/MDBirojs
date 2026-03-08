@@ -106,18 +106,18 @@ class InterAccountSettings extends Page implements HasForms
                             ->columnSpanFull(),
 
                         Forms\Components\Select::make('income_category_id')
-                            ->label('Kategorija — nauda ienāk')
-                            ->options(Category::whereIn('type', ['INCOME', 'TRANSFER'])->orderBy('name')->pluck('name', 'id'))
+                            ->label('Kategorija — nauda ienāk (Ieņēmumu darījums)')
+                            ->options(Category::orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->nullable()
-                            ->helperText('Darījums, kur nauda IENĀK šajā kontā no cita konta.'),
+                            ->helperText('Ieņēmumu darījums (nauda IENĀK). Ja iestatīts — darījums paliek kā INCOME un parādās žurnāla ienākumu kolonnā. Ja nav iestatīts — tips mainās uz TRANSFER un žurnālā nerādās.'),
 
                         Forms\Components\Select::make('expense_category_id')
-                            ->label('Kategorija — nauda iziet')
-                            ->options(Category::whereIn('type', ['EXPENSE', 'FEE', 'TRANSFER'])->orderBy('name')->pluck('name', 'id'))
+                            ->label('Kategorija — nauda iziet (Izdevumu darījums)')
+                            ->options(Category::orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->nullable()
-                            ->helperText('Darījums, kur nauda IZIET no šī konta uz citu kontu.'),
+                            ->helperText('Izdevumu darījums (nauda IZIET). Ja iestatīts — darījums paliek kā EXPENSE un parādās žurnāla izdevumu kolonnā. Ja nav iestatīts — tips mainās uz TRANSFER un žurnālā nerādās.'),
 
                         Forms\Components\Toggle::make('auto_link_matching')
                             ->label('Auto-sasaiste: saistīt abus darījumus')

@@ -128,8 +128,7 @@ class AutoApprovalService
         switch ($rule) {
             case 'inter_account_transfer':
                 $transaction->status = 'COMPLETED';
-                $originalType         = $transaction->type;
-                $transaction->type    = 'TRANSFER';
+                $originalType = $transaction->type;
 
                 // Use categories from the Inter-Account Settings page rule (if configured)
                 $settingsRule   = Rule::where('name', \App\Filament\Pages\InterAccountSettings::RULE_NAME)->first();
@@ -137,14 +136,19 @@ class AutoApprovalService
                 $assignedCategory = false;
 
                 if ($originalType === 'INCOME' && !empty($settingsAction['income_category_id'])) {
+                    // Keep INCOME type so the transaction appears in journal income columns
                     $transaction->category_id = (int) $settingsAction['income_category_id'];
                     $assignedCategory = true;
-                } elseif (in_array($originalType, ['EXPENSE', 'FEE', 'TRANSFER']) && !empty($settingsAction['expense_category_id'])) {
+                } elseif (in_array($originalType, ['EXPENSE', 'FEE']) && !empty($settingsAction['expense_category_id'])) {
+                    // Keep EXPENSE type so the transaction appears in journal expense columns
+                    $transaction->type        = 'EXPENSE';
                     $transaction->category_id = (int) $settingsAction['expense_category_id'];
                     $assignedCategory = true;
                 }
 
                 if (!$assignedCategory) {
+                    // No categories configured → fall back to neutral TRANSFER type
+                    $transaction->type = 'TRANSFER';
                     $category = \App\Models\Category::firstOrCreate(
                         ['name' => 'Pārskaitījumi starp kontiem'],
                         ['type' => 'TRANSFER']
