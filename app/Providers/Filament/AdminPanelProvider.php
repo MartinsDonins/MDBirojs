@@ -58,6 +58,6 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook('panels::footer', function () {
                 $version = 'v0.1.0 (' . date('Y-m-d') . ')';
                 return view('filament.hooks.footer', ['version' => $version]);
-            })
+            });
     }
 }
