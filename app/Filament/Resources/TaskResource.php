@@ -58,12 +58,14 @@ class TaskResource extends Resource
                                         Forms\Components\Checkbox::make('is_completed')
                                             ->label('')
                                             ->inline()
+                                            ->extraAttributes(['class' => 'flex items-center h-full pt-1'])
                                             ->columnSpan(1),
 
                                         Forms\Components\TextInput::make('title')
-                                            ->label('Uzdevums')
+                                            ->hiddenLabel()
                                             ->required()
                                             ->maxLength(255)
+                                            ->placeholder('Apakšuzdevuma nosaukums...')
                                             ->columnSpan(11),
                                     ])
                                     ->columns(12)
@@ -72,7 +74,8 @@ class TaskResource extends Resource
                                     ->cloneable(false)
                                     ->collapsible(false)
                                     ->defaultItems(0)
-                                    ->columnSpanFull(),
+                                    ->columnSpanFull()
+                                    ->extraAttributes(['class' => 'task-items-repeater']),
                             ])
                             ->collapsible(),
 

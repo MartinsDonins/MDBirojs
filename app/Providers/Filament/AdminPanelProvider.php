@@ -58,6 +58,28 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook('panels::footer', function () {
                 $version = 'v0.1.0 (' . date('Y-m-d') . ')';
                 return view('filament.hooks.footer', ['version' => $version]);
-            });
+            })
+            ->renderHook('panels::head.end', fn (): string => <<<'HTML'
+                <style>
+                    /* Compact task checklist repeater items */
+                    .task-items-repeater .fi-fo-repeater-item {
+                        padding-top: 0.375rem !important;
+                        padding-bottom: 0.375rem !important;
+                    }
+                    .task-items-repeater .fi-fo-repeater-item-content {
+                        gap: 0 !important;
+                        align-items: center;
+                    }
+                    .task-items-repeater .fi-fo-repeater-item-content .fi-fo-field-wrp {
+                        margin-bottom: 0 !important;
+                    }
+                    .task-items-repeater .fi-fo-repeater-item-content .fi-fo-field-wrp-label {
+                        display: none !important;
+                    }
+                    .task-items-repeater .fi-fo-repeater-action-delete {
+                        align-self: center;
+                    }
+                </style>
+                HTML);
     }
 }
