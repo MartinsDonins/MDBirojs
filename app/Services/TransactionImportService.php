@@ -142,9 +142,12 @@ class TransactionImportService
             $description = '';
             $reference = '';
             
+            // Entry-level reference (NtryRef) — unique per entry in the bank statement
+            $ntryRef = (string) ($ntry->xpath('camt:NtryRef')[0] ?? '');
+
             if ($txDtls) {
                 $txDtls->registerXPathNamespace('camt', 'urn:iso:std:iso:20022:tech:xsd:camt.053.001.02');
-                
+
                 // Counterparty (Debtor or Creditor depending on direction)
                 if ($cdtDbtInd === 'DBIT') {
                     // Debit - we paid, so Creditor is the counterparty
@@ -155,28 +158,37 @@ class TransactionImportService
                     $counterpartyName = (string) ($txDtls->xpath('camt:RltdPties/camt:Dbtr/camt:Nm')[0] ?? '');
                     $counterpartyAccount = (string) ($txDtls->xpath('camt:RltdPties/camt:DbtrAcct/camt:Id/camt:IBAN')[0] ?? '');
                 }
-                
+
                 // Description
                 $description = (string) ($txDtls->xpath('camt:RmtInf/camt:Ustrd')[0] ?? '');
-                
-                // Reference
-                $reference = (string) ($txDtls->xpath('camt:Refs/camt:EndToEndId')[0] ?? '');
+
+                // AcctSvcrRef = bank's own unique ID for this transaction (most reliable)
+                // EndToEndId  = originator's reference (often "NOTPROVIDED" for own-account transfers)
+                $acctSvcrRef = (string) ($txDtls->xpath('camt:Refs/camt:AcctSvcrRef')[0] ?? '');
+                $endToEndId  = (string) ($txDtls->xpath('camt:Refs/camt:EndToEndId')[0]  ?? '');
+
+                // Use AcctSvcrRef as the primary reference; fall back to EndToEndId
+                $reference = $acctSvcrRef ?: $endToEndId;
             }
 
             // Extract Bank Transaction Code (Prtry/Cd)
             // Path: BkTxCd -> Prtry -> Cd
             $bankCode = (string) ($ntry->xpath('camt:BkTxCd/camt:Prtry/camt:Cd')[0] ?? '');
-            
-            // Build entry array
+
+            // Build entry array.
+            // NtryRef and AcctSvcrRef are included so that two identical-looking
+            // transactions (same date/amount/description) get distinct fingerprints.
             $entries[] = [
-                'Datums' => $bookingDate,
+                'Datums'              => $bookingDate,
                 'Saņēmējs/Maksātājs' => $counterpartyName,
-                'Apraksts' => $description,
-                'Summa' => $cdtDbtInd === 'DBIT' ? '-' . $amount : $amount,
-                'Valūta' => $currency,
-                'Maksājuma atsauce' => $reference,
-                'Kontrahenta konts' => $counterpartyAccount,
-                'Bankas_kods' => $bankCode,
+                'Apraksts'            => $description,
+                'Summa'               => $cdtDbtInd === 'DBIT' ? '-' . $amount : $amount,
+                'Valūta'              => $currency,
+                'Maksājuma atsauce'   => $reference,
+                'Kontrahenta konts'   => $counterpartyAccount,
+                'Bankas_kods'         => $bankCode,
+                'NtryRef'             => $ntryRef,
+                'AcctSvcrRef'         => $acctSvcrRef ?? '',
             ];
         }
         
