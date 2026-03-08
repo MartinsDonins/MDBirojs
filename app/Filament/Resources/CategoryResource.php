@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CategoryResource\Pages;
 use App\Filament\Resources\CategoryResource\RelationManagers;
+use App\Filament\Resources\CategoryResource\RelationManagers\TransactionsRelationManager;
 use App\Models\Category;
 use App\Models\JournalColumn;
 use Filament\Forms;
@@ -119,6 +120,12 @@ class CategoryResource extends Resource
                 Tables\Columns\TextColumn::make('parent.name')
                     ->label('Virs-kategorija')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('transactions_count')
+                    ->label('Darījumi')
+                    ->counts('transactions')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Izveidots')
                     ->dateTime()
@@ -129,6 +136,11 @@ class CategoryResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\Action::make('view_transactions')
+                    ->label('Darījumi')
+                    ->icon('heroicon-o-list-bullet')
+                    ->color('info')
+                    ->url(fn (Category $record) => CategoryResource::getUrl('edit', ['record' => $record->id]) . '#transactions'),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -141,7 +153,7 @@ class CategoryResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            TransactionsRelationManager::class,
         ];
     }
 

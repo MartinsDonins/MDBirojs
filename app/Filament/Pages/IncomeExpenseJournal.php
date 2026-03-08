@@ -3,6 +3,9 @@
 namespace App\Filament\Pages;
 
 use App\Models\Transaction;
+use App\Models\Rule;
+use App\Services\AutoApprovalService;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -1271,7 +1274,42 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 ->action('backToAllYears');
         }
 
+        // Run rules button — visible in month detail view
+        if ($this->selectedYear !== null && $this->selectedMonth !== null) {
+            $actions[] = \Filament\Actions\Action::make('run_rules')
+                ->label('Izpildīt kārtulas')
+                ->icon('heroicon-o-play-circle')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Izpildīt visas aktīvās kārtulas')
+                ->modalDescription('Visas aktīvās kārtulas tiks piemērotas visiem DRAFT un NEEDS_REVIEW darījumiem pēc prioritātes secības. Pēc izpildes mēneša dati tiks pārrēķināti.')
+                ->action('runActiveRules');
+        }
+
         return $actions;
+    }
+
+    public function runActiveRules(): void
+    {
+        $service = app(AutoApprovalService::class);
+        $rules   = Rule::where('is_active', true)->orderByDesc('priority')->get();
+
+        $totalApplied   = 0;
+        $totalProcessed = 0;
+
+        foreach ($rules as $rule) {
+            $stats = $service->applyCustomRule($rule);
+            $totalApplied   += $stats['applied'];
+            $totalProcessed += $stats['processed'];
+        }
+
+        $this->calculateMonthData();
+
+        Notification::make()
+            ->title('Kārtulas izpildītas')
+            ->body("Pārskatīti: {$totalProcessed} darījumi, piemērotas kārtulas: {$totalApplied}")
+            ->success()
+            ->send();
     }
 
     /**
