@@ -11,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
 class TaskResource extends Resource
@@ -51,6 +52,7 @@ class TaskResource extends Resource
 
                         Forms\Components\Section::make('Apakšuzdevumi')
                             ->schema([
+                                // On CREATE: standard Repeater (task ID not known yet)
                                 Forms\Components\Repeater::make('items')
                                     ->label('')
                                     ->relationship()
@@ -58,9 +60,7 @@ class TaskResource extends Resource
                                         Forms\Components\Checkbox::make('is_completed')
                                             ->label('')
                                             ->inline()
-                                            ->extraAttributes(['class' => 'flex items-center h-full pt-1'])
                                             ->columnSpan(1),
-
                                         Forms\Components\TextInput::make('title')
                                             ->hiddenLabel()
                                             ->required()
@@ -75,7 +75,18 @@ class TaskResource extends Resource
                                     ->collapsible(false)
                                     ->defaultItems(0)
                                     ->columnSpanFull()
-                                    ->extraAttributes(['class' => 'task-items-repeater']),
+                                    ->visibleOn('create'),
+
+                                // On EDIT: custom inline-edit Livewire checklist
+                                Forms\Components\Placeholder::make('checklist_live')
+                                    ->label('')
+                                    ->content(fn (?Task $record): HtmlString|string =>
+                                        $record
+                                            ? view('filament.forms.components.task-checklist-wrapper', ['taskId' => $record->id])
+                                            : ''
+                                    )
+                                    ->columnSpanFull()
+                                    ->visibleOn('edit'),
                             ])
                             ->collapsible(),
 
