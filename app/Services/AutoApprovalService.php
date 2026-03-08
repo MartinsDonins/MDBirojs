@@ -128,14 +128,34 @@ class AutoApprovalService
         switch ($rule) {
             case 'inter_account_transfer':
                 $transaction->status = 'COMPLETED';
-                $transaction->type = 'TRANSFER';
-                
-                // Try to find or create "Pārskaitījumi" category
-                $category = \App\Models\Category::firstOrCreate(
-                    ['name' => 'Pārskaitījumi starp kontiem'],
-                    ['type' => 'TRANSFER']
-                );
-                $transaction->category_id = $category->id;
+                $originalType         = $transaction->type;
+                $transaction->type    = 'TRANSFER';
+
+                // Use categories from the Inter-Account Settings page rule (if configured)
+                $settingsRule   = Rule::where('name', \App\Filament\Pages\InterAccountSettings::RULE_NAME)->first();
+                $settingsAction = $settingsRule?->action ?? [];
+                $assignedCategory = false;
+
+                if ($originalType === 'INCOME' && !empty($settingsAction['income_category_id'])) {
+                    $transaction->category_id = (int) $settingsAction['income_category_id'];
+                    $assignedCategory = true;
+                } elseif (in_array($originalType, ['EXPENSE', 'FEE', 'TRANSFER']) && !empty($settingsAction['expense_category_id'])) {
+                    $transaction->category_id = (int) $settingsAction['expense_category_id'];
+                    $assignedCategory = true;
+                }
+
+                if (!$assignedCategory) {
+                    $category = \App\Models\Category::firstOrCreate(
+                        ['name' => 'Pārskaitījumi starp kontiem'],
+                        ['type' => 'TRANSFER']
+                    );
+                    $transaction->category_id = $category->id;
+                }
+
+                // Auto-link if enabled in settings
+                if (!empty($settingsAction['auto_link_matching'])) {
+                    $this->tryAutoLink($transaction);
+                }
                 break;
 
             case 'bank_fee':

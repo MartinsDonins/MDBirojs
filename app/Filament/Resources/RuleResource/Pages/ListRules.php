@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RuleResource\Pages;
 
+use App\Filament\Pages\InterAccountSettings;
 use App\Filament\Resources\RuleResource;
 use App\Models\Rule;
 use App\Services\AutoApprovalService;
@@ -18,6 +19,12 @@ class ListRules extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label('Pievienot'),
+
+            Actions\Action::make('inter_account_settings')
+                ->label('Starp kontiem')
+                ->icon('heroicon-o-arrows-right-left')
+                ->color('gray')
+                ->url(InterAccountSettings::getUrl()),
 
             Actions\Action::make('run_all')
                 ->label('Izpildīt visas')
