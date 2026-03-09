@@ -15,7 +15,8 @@
                 <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-white/5">
-                            <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-start text-sm font-medium text-gray-950 dark:text-white align-bottom" style="min-width:70px">Gads</th>
+                            <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700 align-bottom w-16"></th>
+                            <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-start text-sm font-medium text-gray-950 dark:text-white align-bottom whitespace-nowrap" style="min-width:110px">Gads</th>
                             {{-- Per-account group headers (3 sub-cols each) --}}
                             @foreach($accounts as $acc)
                             <th colspan="3" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 text-center text-sm font-medium text-gray-950 dark:text-white" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 14) }}</th>
@@ -24,7 +25,6 @@
                             <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom whitespace-nowrap" style="min-width:100px">Ieņēmumi</th>
                             <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom whitespace-nowrap" style="min-width:100px">Izdevumi</th>
                             <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom whitespace-nowrap" style="min-width:100px">Rezultāts</th>
-                            <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700 align-bottom w-20"></th>
                         </tr>
                         <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px]">
                             @foreach($accounts as $acc)
@@ -37,20 +37,29 @@
                     <tbody class="divide-y divide-gray-200 dark:divide-white/5">
                         @foreach($yearlySummary as $yearData)
                             <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20">
-                                <td class="px-3 py-3 text-sm font-bold text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700">
-                                    <span class="flex items-center gap-1 flex-wrap">
-                                        {{ $yearData['year'] }}
-                                        @if($yearData['tx_total'] > 0)
-                                            @if($yearData['all_completed'])
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" title="Visi {{ $yearData['tx_total'] }} darījumi apstiprināti">✓</span>
-                                            @else
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" title="{{ $yearData['tx_completed'] }}/{{ $yearData['tx_total'] }} apstiprināti">{{ $yearData['tx_completed'] }}/{{ $yearData['tx_total'] }}</span>
-                                            @endif
-                                            @if($yearData['columns_ok'])
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" title="Žurnāla ailes aizpildītas">OK</span>
-                                            @endif
+                                {{-- Action button — first column --}}
+                                <td class="px-2 py-2 text-center border border-gray-300 dark:border-gray-700">
+                                    <x-filament::button
+                                        size="sm"
+                                        icon="heroicon-o-eye"
+                                        wire:click="selectYear({{ $yearData['year'] }})"
+                                    >
+                                        Atvērt
+                                    </x-filament::button>
+                                </td>
+                                {{-- Year + status badges --}}
+                                <td class="px-3 py-3 text-sm font-bold text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700 whitespace-nowrap">
+                                    {{ $yearData['year'] }}
+                                    @if($yearData['tx_total'] > 0)
+                                        @if($yearData['all_completed'])
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" title="Visi {{ $yearData['tx_total'] }} darījumi apstiprināti">✓</span>
+                                        @else
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" title="{{ $yearData['tx_completed'] }}/{{ $yearData['tx_total'] }} apstiprināti">{{ $yearData['tx_completed'] }}/{{ $yearData['tx_total'] }}</span>
                                         @endif
-                                    </span>
+                                        @if($yearData['columns_ok'])
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" title="Žurnāla ailes aizpildītas">OK</span>
+                                        @endif
+                                    @endif
                                 </td>
                                 {{-- Per-account: Ieņ. | Izd. | Atlikums --}}
                                 @foreach($accounts as $acc)
@@ -76,15 +85,6 @@
                                 <td class="px-3 py-3 text-sm text-end font-medium whitespace-nowrap border border-gray-300 dark:border-gray-700 {{ $yearData['result'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
                                     {{ number_format($yearData['result'], 2, ',', ' ') }} €
                                 </td>
-                                <td class="px-3 py-3 text-end border border-gray-300 dark:border-gray-700">
-                                    <x-filament::button
-                                        size="sm"
-                                        icon="heroicon-o-eye"
-                                        wire:click="selectYear({{ $yearData['year'] }})"
-                                    >
-                                        Atvērt
-                                    </x-filament::button>
-                                </td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -95,10 +95,22 @@
     @elseif($selectedMonth === null)
         {{-- Year Summary View --}}
         <div class="mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold tracking-tight text-gray-950 dark:text-white">
-                    {{ $this->getTitle() }}
-                </h2>
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <div class="flex items-center gap-2">
+                    <x-filament::button color="gray" icon="heroicon-o-arrow-left" wire:click="backToAllYears">
+                        Visi gadi
+                    </x-filament::button>
+                    {{-- Year navigation --}}
+                    <x-filament::button color="gray" icon="heroicon-o-chevron-left" wire:click="goToPrevYear">
+                        Iepriekšējais
+                    </x-filament::button>
+                    <span class="text-base font-bold text-gray-800 dark:text-gray-200 min-w-[80px] text-center">
+                        {{ $selectedYear }}. gads
+                    </span>
+                    <x-filament::button color="gray" icon="heroicon-o-chevron-right" icon-position="after" wire:click="goToNextYear">
+                        Nākošais
+                    </x-filament::button>
+                </div>
                 <div class="flex gap-2">
                     <x-filament::button wire:click="mountAction('createTransaction')" icon="heroicon-o-plus">
                         Pievienot darījumu
@@ -155,7 +167,8 @@
             <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                 <thead>
                     <tr class="bg-gray-50 dark:bg-white/5">
-                        <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-start text-sm font-medium text-gray-950 dark:text-white align-bottom" style="min-width:120px">Mēnesis</th>
+                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700 align-bottom w-12"></th>
+                        <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-start text-sm font-medium text-gray-950 dark:text-white align-bottom whitespace-nowrap" style="min-width:160px">Mēnesis</th>
                         {{-- Per-account group headers (3 sub-cols each: Ieņ. | Izd. | Atlikums) --}}
                         @foreach($accounts as $acc)
                         <th colspan="3" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 text-center text-sm font-medium text-gray-950 dark:text-white" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 14) }}</th>
@@ -163,7 +176,6 @@
                         <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom">Bilance</th>
                         <th colspan="{{ $incomeColCount + 1 }}" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Ieņēmumi (EUR)</th>
                         <th colspan="{{ $expenseColCount + 1 }}" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Izdevumi (EUR)</th>
-                        <th rowspan="2" class="px-2 py-2 border border-gray-300 dark:border-gray-700 align-bottom w-16"></th>
                     </tr>
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px]">
                         {{-- Per-account sub-headers --}}
@@ -187,6 +199,7 @@
                 <tbody>
                     {{-- Opening Balance Row --}}
                     <tr class="bg-yellow-50 dark:bg-yellow-900/10 font-bold text-gray-700 dark:text-gray-300">
+                        <td class="border border-gray-300 dark:border-gray-700"></td>
                         <td class="px-3 py-2 text-xs text-right border border-gray-300 dark:border-gray-700">Sākuma atlikums:</td>
                         @foreach($accounts as $acc)
                             <td class="border border-gray-300 dark:border-gray-700"></td>
@@ -199,7 +212,6 @@
                             {{ number_format($yearOpeningTotal, 2, ',', ' ') }}
                         </td>
                         <td colspan="{{ $incomeColCount + 1 + $expenseColCount + 1 }}" class="border border-gray-300 dark:border-gray-700"></td>
-                        <td class="border border-gray-300 dark:border-gray-700"></td>
                     </tr>
 
                     @foreach($monthlySummary as $mSummary)
@@ -208,21 +220,26 @@
                             @click="$store.yearView.expandedMonths.includes({{ $mSummary['month_number'] }})
                                 ? $store.yearView.expandedMonths = $store.yearView.expandedMonths.filter(m => m !== {{ $mSummary['month_number'] }})
                                 : $store.yearView.expandedMonths.push({{ $mSummary['month_number'] }})">
-                            <td class="px-3 py-2 text-sm font-medium text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700">
-                                <span class="flex items-center gap-1 flex-wrap">
-                                    <span x-text="$store.yearView && $store.yearView.expandedMonths.includes({{ $mSummary['month_number'] }}) ? '▾' : '▸'" class="text-gray-400 text-[10px]"></span>
-                                    {{ $mSummary['month'] }}
-                                    @if($mSummary['tx_total'] > 0)
-                                        @if($mSummary['all_completed'])
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" title="Visi {{ $mSummary['tx_total'] }} darījumi apstiprināti">✓</span>
-                                        @else
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" title="{{ $mSummary['tx_completed'] }}/{{ $mSummary['tx_total'] }} apstiprināti">{{ $mSummary['tx_completed'] }}/{{ $mSummary['tx_total'] }}</span>
-                                        @endif
-                                        @if($mSummary['columns_ok'])
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" title="Žurnāla ailes aizpildītas">OK</span>
-                                        @endif
+                            {{-- Action button — first column --}}
+                            <td class="px-1 py-1 text-center border border-gray-300 dark:border-gray-700" @click.stop>
+                                <x-filament::button size="xs" color="gray" icon="heroicon-o-eye"
+                                    wire:click="viewMonthDetails({{ $mSummary['month_number'] }})">
+                                    Skatīt
+                                </x-filament::button>
+                            </td>
+                            {{-- Month name + status badges --}}
+                            <td class="px-3 py-2 text-sm font-medium text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700 whitespace-nowrap">
+                                <span x-text="$store.yearView && $store.yearView.expandedMonths.includes({{ $mSummary['month_number'] }}) ? '▾' : '▸'" class="text-gray-400 text-[10px] mr-1"></span>{{ $mSummary['month'] }}
+                                @if($mSummary['tx_total'] > 0)
+                                    @if($mSummary['all_completed'])
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" title="Visi {{ $mSummary['tx_total'] }} darījumi apstiprināti">✓</span>
+                                    @else
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" title="{{ $mSummary['tx_completed'] }}/{{ $mSummary['tx_total'] }} apstiprināti">{{ $mSummary['tx_completed'] }}/{{ $mSummary['tx_total'] }}</span>
                                     @endif
-                                </span>
+                                    @if($mSummary['columns_ok'])
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" title="Žurnāla ailes aizpildītas">OK</span>
+                                    @endif
+                                @endif
                             </td>
                             {{-- Per-account: Ieņ. | Izd. | Atlikums --}}
                             @foreach($accounts as $acc)
@@ -255,18 +272,13 @@
                             <td class="px-2 py-2 text-xs text-end font-bold border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/10 text-danger-700 dark:text-danger-400 whitespace-nowrap">
                                 @if($mSummary['expense_kopaa'] > 0){{ number_format($mSummary['expense_kopaa'], 2, ',', ' ') }}@endif
                             </td>
-                            <td class="px-2 py-2 text-end border border-gray-300 dark:border-gray-700" @click.stop>
-                                <x-filament::button size="xs" color="gray" icon="heroicon-o-eye"
-                                    wire:click="viewMonthDetails({{ $mSummary['month_number'] }})">
-                                    Skatīt
-                                </x-filament::button>
-                            </td>
                         </tr>
 
                         {{-- Expandable: per-category breakdown rows --}}
                         @foreach($mSummary['categories'] as $cat)
                             <tr x-show="$store.yearView && $store.yearView.expandedMonths.includes({{ $mSummary['month_number'] }})"
                                 class="{{ $cat['type'] === 'INCOME' ? 'bg-green-50/40 dark:bg-green-900/5' : 'bg-red-50/40 dark:bg-red-900/5' }}">
+                                <td class="border border-gray-200 dark:border-gray-700"></td>
                                 <td class="pl-7 pr-2 py-1 text-[10px] border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">
                                     <span class="{{ $cat['type'] === 'INCOME' ? 'text-success-500' : 'text-danger-500' }} mr-1">{{ $cat['type'] === 'INCOME' ? '↑' : '↓' }}</span>
                                     {{ $cat['name'] }}
@@ -300,13 +312,13 @@
                                         {{ number_format($cat['total'], 2, ',', ' ') }}
                                     </td>
                                 @endif
-                                <td class="border border-gray-200 dark:border-gray-700"></td>
                             </tr>
                         @endforeach
                     @endforeach
 
                     {{-- Total Row --}}
                     <tr class="bg-gray-100 dark:bg-white/5 font-bold border-t-2 border-gray-400">
+                        <td class="border border-gray-300 dark:border-gray-700"></td>
                         <td class="px-3 py-2 text-sm text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700">GADA KOPĀ</td>
                         {{-- Per-account totals: sum of Ieņ./Izd. + last month's Atlikums --}}
                         @foreach($accounts as $acc)
@@ -339,7 +351,6 @@
                         <td class="px-2 py-2 text-xs text-end font-bold bg-red-50 dark:bg-red-900/10 text-danger-700 dark:text-danger-400 border border-gray-300 dark:border-gray-700 whitespace-nowrap">
                             {{ number_format(collect($monthlySummary)->sum('expense_kopaa'), 2, ',', ' ') }}
                         </td>
-                        <td class="border border-gray-300 dark:border-gray-700"></td>
                     </tr>
                 </tbody>
             </table>

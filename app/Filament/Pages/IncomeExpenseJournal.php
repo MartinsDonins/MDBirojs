@@ -675,12 +675,31 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $this->selectedMonth = null;
         $this->calculateYearlySummary();
         $this->calculateMonthlySummary();
+        $this->calculateSummary();
     }
 
     public function viewMonthDetails(int $month): void
     {
         $this->selectedMonth = $month;
         $this->calculateMonthData();
+    }
+
+    public function goToPrevYear(): void
+    {
+        $this->selectedYear--;
+        $this->selectedMonth = null;
+        $this->calculateYearlySummary();
+        $this->calculateMonthlySummary();
+        $this->calculateSummary();
+    }
+
+    public function goToNextYear(): void
+    {
+        $this->selectedYear++;
+        $this->selectedMonth = null;
+        $this->calculateYearlySummary();
+        $this->calculateMonthlySummary();
+        $this->calculateSummary();
     }
 
     public function goToPrevMonth(): void
