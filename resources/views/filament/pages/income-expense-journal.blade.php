@@ -38,7 +38,19 @@
                         @foreach($yearlySummary as $yearData)
                             <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20">
                                 <td class="px-3 py-3 text-sm font-bold text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700">
-                                    {{ $yearData['year'] }}
+                                    <span class="flex items-center gap-1 flex-wrap">
+                                        {{ $yearData['year'] }}
+                                        @if($yearData['tx_total'] > 0)
+                                            @if($yearData['all_completed'])
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" title="Visi {{ $yearData['tx_total'] }} darījumi apstiprināti">✓</span>
+                                            @else
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" title="{{ $yearData['tx_completed'] }}/{{ $yearData['tx_total'] }} apstiprināti">{{ $yearData['tx_completed'] }}/{{ $yearData['tx_total'] }}</span>
+                                            @endif
+                                            @if($yearData['columns_ok'])
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" title="Žurnāla ailes aizpildītas">OK</span>
+                                            @endif
+                                        @endif
+                                    </span>
                                 </td>
                                 {{-- Per-account: Ieņ. | Izd. | Atlikums --}}
                                 @foreach($accounts as $acc)
@@ -197,9 +209,19 @@
                                 ? $store.yearView.expandedMonths = $store.yearView.expandedMonths.filter(m => m !== {{ $mSummary['month_number'] }})
                                 : $store.yearView.expandedMonths.push({{ $mSummary['month_number'] }})">
                             <td class="px-3 py-2 text-sm font-medium text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700">
-                                <span class="flex items-center gap-1">
+                                <span class="flex items-center gap-1 flex-wrap">
                                     <span x-text="$store.yearView && $store.yearView.expandedMonths.includes({{ $mSummary['month_number'] }}) ? '▾' : '▸'" class="text-gray-400 text-[10px]"></span>
                                     {{ $mSummary['month'] }}
+                                    @if($mSummary['tx_total'] > 0)
+                                        @if($mSummary['all_completed'])
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" title="Visi {{ $mSummary['tx_total'] }} darījumi apstiprināti">✓</span>
+                                        @else
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" title="{{ $mSummary['tx_completed'] }}/{{ $mSummary['tx_total'] }} apstiprināti">{{ $mSummary['tx_completed'] }}/{{ $mSummary['tx_total'] }}</span>
+                                        @endif
+                                        @if($mSummary['columns_ok'])
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" title="Žurnāla ailes aizpildītas">OK</span>
+                                        @endif
+                                    @endif
                                 </span>
                             </td>
                             {{-- Per-account: Ieņ. | Izd. | Atlikums --}}

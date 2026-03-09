@@ -330,6 +330,34 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->groupBy(DB::raw('EXTRACT(YEAR FROM occurred_at)'), 'account_id')
             ->get();
 
+        // Per-year transaction status counts — for "all approved" status badge
+        $yearlyStatusCounts = Transaction::query()
+            ->selectRaw("
+                EXTRACT(YEAR FROM occurred_at) as year,
+                COUNT(*) as total_count,
+                SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count
+            ")
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM occurred_at)'))
+            ->get();
+
+        // Per-year: COMPLETED income/expense count mapped to journal columns (vid_column > 0)
+        $yearlyMappedCount = Transaction::query()
+            ->join('categories', 'transactions.category_id', '=', 'categories.id')
+            ->where('transactions.status', 'COMPLETED')
+            ->whereIn('transactions.type', ['INCOME', 'EXPENSE', 'FEE'])
+            ->where('categories.vid_column', '>', 0)
+            ->selectRaw("EXTRACT(YEAR FROM transactions.occurred_at) as year, COUNT(*) as cnt")
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM transactions.occurred_at)'))
+            ->get();
+
+        // Per-year: total COMPLETED income/expense transaction count (needs to match mapped)
+        $yearlyIeCount = Transaction::query()
+            ->where('status', 'COMPLETED')
+            ->whereIn('type', ['INCOME', 'EXPENSE', 'FEE'])
+            ->selectRaw("EXTRACT(YEAR FROM occurred_at) as year, COUNT(*) as cnt")
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM occurred_at)'))
+            ->get();
+
         // Collect all years present in either dataset
         $allYears = $yearlyData->pluck('year')
             ->merge($yearlyBalanceData->keys())
@@ -354,20 +382,31 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             $runningBalance += (float) ($yearlyBalanceData[$year] ?? 0);
 
             // Build per-account income/expense and update running balances for this year
+            $yearKey = (int) round((float) $year);
             $accountIncome  = [];
             $accountExpense = [];
             foreach ($this->accounts as $acc) {
                 $accCompleted = $yearlyAccountIncomeExpense
-                    ->filter(fn ($item) => (int) round((float) $item->year) === (int) round((float) $year) && $item->account_id === $acc->id)
+                    ->filter(fn ($item) => (int) round((float) $item->year) === $yearKey && $item->account_id === $acc->id)
                     ->first();
                 $accountIncome[$acc->id]  = (float) ($accCompleted?->income  ?? 0);
                 $accountExpense[$acc->id] = (float) ($accCompleted?->expense ?? 0);
 
                 $accBalChange = $yearlyAccountBalanceChanges
-                    ->filter(fn ($item) => (int) round((float) $item->year) === (int) round((float) $year) && $item->account_id === $acc->id)
+                    ->filter(fn ($item) => (int) round((float) $item->year) === $yearKey && $item->account_id === $acc->id)
                     ->first();
                 $runningAccountBalances[$acc->id] += (float) ($accBalChange?->balance_change ?? 0);
             }
+
+            // Status badges for year row
+            $yearStatusData  = $yearlyStatusCounts->filter(fn ($item) => (int) round((float) $item->year) === $yearKey)->first();
+            $yearTotalTx     = (int) ($yearStatusData?->total_count     ?? 0);
+            $yearCompletedTx = (int) ($yearStatusData?->completed_count ?? 0);
+            $yearAllCompleted = $yearTotalTx > 0 && $yearTotalTx === $yearCompletedTx;
+            $yearIe     = (int) ($yearlyIeCount->filter(fn ($item) => (int) round((float) $item->year) === $yearKey)->first()?->cnt ?? 0);
+            $yearMapped = (int) ($yearlyMappedCount->filter(fn ($item) => (int) round((float) $item->year) === $yearKey)->first()?->cnt ?? 0);
+            // columns_ok for year: all approved + all COMPLETED income/expense mapped to journal columns
+            $yearColumnsOk = $yearAllCompleted && $yearIe > 0 && $yearIe === $yearMapped;
 
             // Prepend to array to show newest first, but keep running balance correct
             array_unshift($this->yearlySummary, [
@@ -379,6 +418,11 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'account_income'   => $accountIncome,
                 'account_expense'  => $accountExpense,
                 'account_balances' => $runningAccountBalances,
+                // Status badges
+                'tx_total'      => $yearTotalTx,
+                'tx_completed'  => $yearCompletedTx,
+                'all_completed' => $yearAllCompleted,
+                'columns_ok'    => $yearColumnsOk,
             ]);
         }
     }
@@ -473,6 +517,17 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->groupBy(DB::raw('EXTRACT(MONTH FROM occurred_at)'), 'account_id')
             ->get();
 
+        // 3d. Monthly transaction status counts — for "all approved" status badge
+        $monthlyStatusCounts = Transaction::query()
+            ->whereYear('occurred_at', $this->selectedYear)
+            ->selectRaw("
+                EXTRACT(MONTH FROM occurred_at) as month_number,
+                COUNT(*) as total_count,
+                SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count
+            ")
+            ->groupBy(DB::raw('EXTRACT(MONTH FROM occurred_at)'))
+            ->get();
+
         $monthNames = [
             1 => 'Janvāris', 2 => 'Februāris', 3 => 'Marts', 4 => 'Aprīlis',
             5 => 'Maijs', 6 => 'Jūnijs', 7 => 'Jūlijs', 8 => 'Augusts',
@@ -539,6 +594,19 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 $expenseKopaa += $total;
             }
 
+            // Status badges
+            $statusData  = $monthlyStatusCounts->filter(fn ($item) => (int) round((float) $item->month_number) === $month)->first();
+            $totalTx     = (int) ($statusData?->total_count     ?? 0);
+            $completedTx = (int) ($statusData?->completed_count ?? 0);
+            // all_completed: all transactions in this month are COMPLETED
+            $allCompleted = $totalTx > 0 && $totalTx === $completedTx;
+            // columns_ok: all COMPLETED + income/expense amounts fully allocated to journal columns
+            // Fix: if transactions are DRAFT, income==incomeKopaa==0 would be falsely "ok" — require all_completed first
+            $columnsOk = $allCompleted
+                && ($income > 0.005 || $expense > 0.005)
+                && ($income  <= 0.005 || abs($income  - $incomeKopaa)  < 0.005)
+                && ($expense <= 0.005 || abs($expense - $expenseKopaa) < 0.005);
+
             $this->monthlySummary[] = [
                 'month'        => $monthNames[$month],
                 'month_number' => $month,
@@ -553,6 +621,11 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'account_balances' => $runningAccountBalances,
                 'account_income'   => $accountMonthIncome,
                 'account_expense'  => $accountMonthExpense,
+                // Status badges
+                'tx_total'      => $totalTx,
+                'tx_completed'  => $completedTx,
+                'all_completed' => $allCompleted,
+                'columns_ok'    => $columnsOk,
                 // Per-category detail (sorted: INCOME first, then EXPENSE; alphabetically within each)
                 'categories'   => $monthCats
                     ->sortBy(fn ($c) => ($c->type === 'INCOME' ? '0' : '1') . ($c->category_name ?? ''))
