@@ -308,6 +308,28 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->orderBy('year', 'asc')
             ->pluck('balance_change', 'year');
 
+        // Per-account income/expense per year — COMPLETED only (for Ieņ./Izd. columns)
+        $yearlyAccountIncomeExpense = Transaction::query()
+            ->where('status', 'COMPLETED')
+            ->selectRaw("
+                EXTRACT(YEAR FROM occurred_at) as year,
+                account_id,
+                SUM(CASE WHEN type = 'INCOME' THEN ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as income,
+                SUM(CASE WHEN type IN ('EXPENSE', 'FEE') THEN ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as expense
+            ")
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM occurred_at)'), 'account_id')
+            ->get();
+
+        // Per-account balance changes per year — ALL transactions (for running Atlikums)
+        $yearlyAccountBalanceChanges = Transaction::query()
+            ->selectRaw("
+                EXTRACT(YEAR FROM occurred_at) as year,
+                account_id,
+                SUM(CASE WHEN type = 'INCOME' THEN ABS(COALESCE(amount_eur, amount)) WHEN type = 'TRANSFER' THEN COALESCE(amount_eur, amount) ELSE -ABS(COALESCE(amount_eur, amount)) END) as balance_change
+            ")
+            ->groupBy(DB::raw('EXTRACT(YEAR FROM occurred_at)'), 'account_id')
+            ->get();
+
         // Collect all years present in either dataset
         $allYears = $yearlyData->pluck('year')
             ->merge($yearlyBalanceData->keys())
@@ -318,6 +340,12 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $this->yearlySummary = [];
         $runningBalance      = \App\Models\Account::sum('balance');
 
+        // Initialize per-account running balances from account initial balances
+        $runningAccountBalances = [];
+        foreach ($this->accounts as $acc) {
+            $runningAccountBalances[$acc->id] = (float) ($acc->balance ?? 0);
+        }
+
         foreach ($allYears as $year) {
             $data    = $yearlyData->firstWhere('year', $year);
             $income  = (float) ($data->income  ?? 0);
@@ -325,13 +353,32 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             $annualResult = $income - $expense;
             $runningBalance += (float) ($yearlyBalanceData[$year] ?? 0);
 
+            // Build per-account income/expense and update running balances for this year
+            $accountIncome  = [];
+            $accountExpense = [];
+            foreach ($this->accounts as $acc) {
+                $accCompleted = $yearlyAccountIncomeExpense
+                    ->filter(fn ($item) => (int) round((float) $item->year) === (int) round((float) $year) && $item->account_id === $acc->id)
+                    ->first();
+                $accountIncome[$acc->id]  = (float) ($accCompleted?->income  ?? 0);
+                $accountExpense[$acc->id] = (float) ($accCompleted?->expense ?? 0);
+
+                $accBalChange = $yearlyAccountBalanceChanges
+                    ->filter(fn ($item) => (int) round((float) $item->year) === (int) round((float) $year) && $item->account_id === $acc->id)
+                    ->first();
+                $runningAccountBalances[$acc->id] += (float) ($accBalChange?->balance_change ?? 0);
+            }
+
             // Prepend to array to show newest first, but keep running balance correct
             array_unshift($this->yearlySummary, [
-                'year' => (int) $data->year,
-                'income' => $income,
-                'expense' => $expense,
-                'result' => $annualResult,
-                'end_balance' => $runningBalance,
+                'year'             => (int) $data->year,
+                'income'           => $income,
+                'expense'          => $expense,
+                'result'           => $annualResult,
+                'end_balance'      => $runningBalance,
+                'account_income'   => $accountIncome,
+                'account_expense'  => $accountExpense,
+                'account_balances' => $runningAccountBalances,
             ]);
         }
     }
