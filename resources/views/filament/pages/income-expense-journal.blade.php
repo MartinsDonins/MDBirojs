@@ -213,35 +213,35 @@
                     @endphp
                     @if($grandTxTotal > 0)
                     <tfoot>
-                        <tr class="bg-gray-100 dark:bg-gray-800 font-semibold border-t-2 border-gray-400 dark:border-gray-600">
-                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700"></td>
-                            <td class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-xs font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                        <tr class="font-semibold border-t-2 border-gray-400 dark:border-gray-500">
+                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700"></td>
+                            <td class="px-3 py-2 border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700 text-xs font-bold text-gray-900 dark:text-white whitespace-nowrap">
                                 KOPĀ
                                 <div class="flex flex-wrap gap-1 mt-0.5">
                                     @if($grandTxPending === 0)
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" title="Visi darījumi apstiprināti">✓ Visi apstiprināti</span>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-200 text-green-800 dark:bg-green-900/60 dark:text-green-300" title="Visi darījumi apstiprināti">✓ Visi apstiprināti</span>
                                     @else
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" title="{{ $grandTxCompleted }}/{{ $grandTxTotal }} apstiprināti">{{ $grandTxCompleted }}/{{ $grandTxTotal }} apst.</span>
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400" title="Vēl jāapstiprina">{{ $grandTxPending }} neapst.</span>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-200 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300" title="{{ $grandTxCompleted }}/{{ $grandTxTotal }} apstiprināti">{{ $grandTxCompleted }}/{{ $grandTxTotal }} apst.</span>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-red-200 text-red-800 dark:bg-red-900/60 dark:text-red-300" title="Vēl jāapstiprina">{{ $grandTxPending }} neapst.</span>
                                     @endif
                                 </div>
                             </td>
                             {{-- Empty cells for per-account columns --}}
                             @foreach($accounts as $acc)
-                                <td class="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"></td>
-                                <td class="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"></td>
-                                <td class="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"></td>
+                                <td class="border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700"></td>
+                                <td class="border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700"></td>
+                                <td class="border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700"></td>
                             @endforeach
                             {{-- Grand totals: balance, income, expense, result --}}
-                            <td class="border border-gray-300 dark:border-gray-700"></td>
-                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/10 text-success-700 dark:text-success-400">
+                            <td class="border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700"></td>
+                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-green-200 dark:bg-green-900/30 text-green-900 dark:text-green-300">
                                 {{ number_format(collect($yearlySummary)->sum('income'), 2, ',', ' ') }} €
                             </td>
-                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/10 text-danger-700 dark:text-danger-400">
+                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-red-200 dark:bg-red-900/30 text-red-900 dark:text-red-300">
                                 {{ number_format(collect($yearlySummary)->sum('expense'), 2, ',', ' ') }} €
                             </td>
                             @php $grandResult = collect($yearlySummary)->sum('income') - collect($yearlySummary)->sum('expense'); @endphp
-                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 {{ $grandResult >= 0 ? 'text-success-700 dark:text-success-400' : 'text-danger-700 dark:text-danger-400' }}">
+                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700 {{ $grandResult >= 0 ? 'text-green-900 dark:text-green-300' : 'text-red-900 dark:text-red-300' }}">
                                 {{ number_format($grandResult, 2, ',', ' ') }} €
                             </td>
                         </tr>
