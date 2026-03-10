@@ -257,6 +257,41 @@ class RuleResource extends Resource
                         $service  = app(AutoApprovalService::class);
                         $criteria = $record->criteria ?? [];
 
+                        // --- Diagnostic header ---
+                        $lines   = [];
+                        $lines[] = 'Aktīva: ' . ($record->is_active ? 'JĀ' : 'NĒ');
+                        $lines[] = 'Kritēriji: ' . json_encode($criteria, JSON_UNESCAPED_UNICODE);
+                        $lines[] = '';
+
+                        // --- Test first 3 DRAFT/NEEDS_REVIEW transactions ---
+                        $andList = $criteria['and_criteria'] ?? (isset($criteria['and_criteria']) || isset($criteria['or_criteria']) ? [] : $criteria);
+                        $sampleTx = \App\Models\Transaction::whereIn('status', ['DRAFT', 'NEEDS_REVIEW'])
+                            ->with('account')
+                            ->limit(3)
+                            ->get();
+
+                        if ($sampleTx->isEmpty()) {
+                            $lines[] = 'Nav DRAFT/NEEDS_REVIEW darījumu!';
+                        } else {
+                            $lines[] = 'Pirmie 3 DRAFT darījumi:';
+                            foreach ($sampleTx as $tx) {
+                                $match = $service->testCriteria($tx, $criteria);
+                                $icon  = $match ? '✓' : '✗';
+                                $fieldParts = [];
+                                foreach (is_array($andList) ? $andList : [] as $c) {
+                                    $f   = $c['field'] ?? '?';
+                                    $v   = $c['value'] ?? '(null)';
+                                    $fv  = $f === 'account_name'
+                                        ? ($tx->account?->name ?? '')
+                                        : ($tx->{$f} ?? '');
+                                    $fieldParts[] = "{$f}='" . substr((string) $fv, 0, 25) . "' vs '{$v}'";
+                                }
+                                $lines[] = "{$icon} ID:{$tx->id} " . implode(' | ', $fieldParts);
+                            }
+                            $lines[] = '';
+                        }
+
+                        // --- Full count ---
                         $draft     = 0;
                         $completed = 0;
                         $samples   = [];
@@ -276,8 +311,10 @@ class RuleResource extends Resource
                             }
                         }
 
-                        $total = $draft + $completed;
-                        $lines = ["Kopā atbilstoši: {$total}", "• DRAFT/NEEDS_REVIEW (izpildīsies): {$draft}", "• Jau COMPLETED: {$completed}"];
+                        $total   = $draft + $completed;
+                        $lines[] = "Kopā atbilstoši: {$total}";
+                        $lines[] = "• DRAFT/NEEDS_REVIEW (izpildīsies): {$draft}";
+                        $lines[] = "• Jau COMPLETED: {$completed}";
                         if ($samples) {
                             $lines[] = '';
                             $lines[] = 'Piemēri (neapstiprināti):';

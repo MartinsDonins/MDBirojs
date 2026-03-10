@@ -237,6 +237,18 @@ class AutoApprovalService
             return false;
         }
 
+        // Debug: log criteria structure once
+        static $criteriaLogged = false;
+        if (!$criteriaLogged) {
+            $criteriaLogged = true;
+            Log::debug('matchesCriteria first call', [
+                'criteria'     => $criteria,
+                'tx_id'        => $transaction->id,
+                'tx_status'    => $transaction->status,
+                'tx_desc'      => substr($transaction->description ?? '', 0, 80),
+            ]);
+        }
+
         // --- New AND/OR format ---
         if (isset($criteria['and_criteria']) || isset($criteria['or_criteria'])) {
             $andList = $criteria['and_criteria'] ?? [];
@@ -299,7 +311,7 @@ class AutoApprovalService
             default        => (string) ($transaction->{$field} ?? ''),
         };
 
-        return match ($operator) {
+        $result = match ($operator) {
             'contains'    => str_contains(strtolower($fieldValue), strtolower($value)),
             'equals'      => strtolower($fieldValue) === strtolower($value),
             'starts_with' => str_starts_with(strtolower($fieldValue), strtolower($value)),
@@ -308,6 +320,21 @@ class AutoApprovalService
             'lt'          => (float) $fieldValue < (float) $value,
             default       => false,
         };
+
+        // Debug first few non-matches to diagnose rule issues
+        static $debugCount = 0;
+        if (!$result && $debugCount < 5) {
+            $debugCount++;
+            Log::debug('matchesCriterion MISS', [
+                'tx_id'      => $transaction->id,
+                'field'      => $field,
+                'operator'   => $operator,
+                'value'      => $value,
+                'fieldValue' => substr($fieldValue, 0, 80),
+            ]);
+        }
+
+        return $result;
     }
 
     /**
