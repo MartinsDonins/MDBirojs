@@ -103,9 +103,9 @@
                             {{-- Expandable analysis panel row --}}
                             <tr x-show="expanded === {{ $yearData['year'] }}" x-cloak>
                                 <td colspan="{{ $yearsTotalCols }}" class="p-0 border-x border-b border-gray-300 dark:border-gray-700">
-                                    <div class="bg-gray-50 dark:bg-gray-800/60">
+                                    <div class="bg-gray-100 dark:bg-gray-800">
                                         {{-- Panel title --}}
-                                        <div class="px-4 py-2 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/50">
+                                        <div class="px-4 py-2 border-b border-gray-200 dark:border-white/10 bg-gray-200 dark:bg-gray-900/80">
                                             <span class="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">{{ $yearData['year'] }}. gada žurnāla analīze</span>
                                         </div>
                                         <div class="flex divide-x divide-gray-200 dark:divide-white/10">
@@ -119,82 +119,82 @@
                                                 <table class="w-full">
                                                     @foreach($journalIncomeColumns as $i => $col)
                                                         @php $ct = $yearData['income_cols'][$i] ?? 0; @endphp
-                                                        <tr class="{{ $ct > 0 ? '' : 'opacity-35' }} border-b border-gray-100 dark:border-white/5">
-                                                            <td class="px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[1px]" title="{{ $col['name'] }}">
-                                                                <span class="font-mono text-gray-400 dark:text-gray-600">{{ $col['abbr'] }}</span>
+                                                        <tr class="{{ $ct > 0 ? 'bg-white/50 dark:bg-white/5' : 'opacity-40 bg-white/30 dark:bg-white/0' }} border-b border-gray-200 dark:border-white/5">
+                                                            <td class="px-2 py-0.5 text-[11px] text-gray-700 dark:text-gray-300 truncate max-w-[1px]" title="{{ $col['name'] }}">
+                                                                <span class="font-mono text-gray-500 dark:text-gray-500">{{ $col['abbr'] }}</span>
                                                                 <span class="ml-1">{{ $col['name'] }}</span>
                                                             </td>
                                                             <td class="px-2 py-0.5 text-[11px] text-right font-medium text-green-700 dark:text-green-400 whitespace-nowrap w-28">{{ $ct > 0 ? number_format($ct, 2, ',', ' ') : '—' }}</td>
                                                         </tr>
                                                     @endforeach
                                                     @if($yIncomeUncat > 0.005)
-                                                        <tr class="border-b border-orange-100 dark:border-orange-900/30 bg-orange-50/60 dark:bg-orange-900/10">
-                                                            <td class="px-2 py-0.5 text-[11px] text-orange-600 dark:text-orange-400 italic">Nav kartēti</td>
-                                                            <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-600 dark:text-orange-400 w-28">{{ number_format($yIncomeUncat, 2, ',', ' ') }}</td>
+                                                        <tr class="border-b border-orange-200 dark:border-orange-900/30 bg-orange-100/60 dark:bg-orange-900/10">
+                                                            <td class="px-2 py-0.5 text-[11px] text-orange-700 dark:text-orange-400 italic">Nav kartēti</td>
+                                                            <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-700 dark:text-orange-400 w-28">{{ number_format($yIncomeUncat, 2, ',', ' ') }}</td>
                                                         </tr>
                                                     @endif
-                                                    <tr class="bg-green-50/70 dark:bg-green-900/10">
-                                                        <td class="px-2 py-1 text-[11px] font-semibold text-green-800 dark:text-green-300">Kopā kartēti</td>
-                                                        <td class="px-2 py-1 text-[11px] text-right font-bold text-green-700 dark:text-green-400 w-28">{{ number_format($yearData['income_kopaa'], 2, ',', ' ') }}</td>
+                                                    <tr class="bg-green-100 dark:bg-green-900/20">
+                                                        <td class="px-2 py-1 text-[11px] font-semibold text-green-900 dark:text-green-300">Kopā kartēti</td>
+                                                        <td class="px-2 py-1 text-[11px] text-right font-bold text-green-800 dark:text-green-400 w-28">{{ number_format($yearData['income_kopaa'], 2, ',', ' ') }}</td>
                                                     </tr>
                                                 </table>
                                             </div>
 
                                             {{-- EXPENSE --}}
                                             <div class="flex-1 min-w-0">
-                                                <div class="px-3 py-1 bg-red-50 dark:bg-red-900/20 flex justify-between items-center border-b border-red-100 dark:border-red-900/40">
-                                                    <span class="text-[11px] font-semibold text-red-800 dark:text-red-300 uppercase tracking-wide">Izdevumi</span>
-                                                    <span class="text-xs font-bold text-red-700 dark:text-red-400">{{ number_format($yearData['expense'], 2, ',', ' ') }}</span>
+                                                <div class="px-3 py-1 bg-red-100 dark:bg-red-900/20 flex justify-between items-center border-b border-red-200 dark:border-red-900/40">
+                                                    <span class="text-[11px] font-semibold text-red-900 dark:text-red-300 uppercase tracking-wide">Izdevumi</span>
+                                                    <span class="text-xs font-bold text-red-800 dark:text-red-400">{{ number_format($yearData['expense'], 2, ',', ' ') }}</span>
                                                 </div>
                                                 <table class="w-full">
                                                     @foreach($journalExpenseColumns as $i => $col)
                                                         @php $ct = $yearData['expense_cols'][$i] ?? 0; @endphp
-                                                        <tr class="{{ $ct > 0 ? '' : 'opacity-35' }} border-b border-gray-100 dark:border-white/5">
-                                                            <td class="px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[1px]" title="{{ $col['name'] }}">
-                                                                <span class="font-mono text-gray-400 dark:text-gray-600">{{ $col['abbr'] }}</span>
+                                                        <tr class="{{ $ct > 0 ? 'bg-white/50 dark:bg-white/5' : 'opacity-40 bg-white/30 dark:bg-white/0' }} border-b border-gray-200 dark:border-white/5">
+                                                            <td class="px-2 py-0.5 text-[11px] text-gray-700 dark:text-gray-300 truncate max-w-[1px]" title="{{ $col['name'] }}">
+                                                                <span class="font-mono text-gray-500 dark:text-gray-500">{{ $col['abbr'] }}</span>
                                                                 <span class="ml-1">{{ $col['name'] }}</span>
                                                             </td>
                                                             <td class="px-2 py-0.5 text-[11px] text-right font-medium text-red-700 dark:text-red-400 whitespace-nowrap w-28">{{ $ct > 0 ? number_format($ct, 2, ',', ' ') : '—' }}</td>
                                                         </tr>
                                                     @endforeach
                                                     @if($yExpenseUncat > 0.005)
-                                                        <tr class="border-b border-orange-100 dark:border-orange-900/30 bg-orange-50/60 dark:bg-orange-900/10">
-                                                            <td class="px-2 py-0.5 text-[11px] text-orange-600 dark:text-orange-400 italic">Nav kartēti</td>
-                                                            <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-600 dark:text-orange-400 w-28">{{ number_format($yExpenseUncat, 2, ',', ' ') }}</td>
+                                                        <tr class="border-b border-orange-200 dark:border-orange-900/30 bg-orange-100/60 dark:bg-orange-900/10">
+                                                            <td class="px-2 py-0.5 text-[11px] text-orange-700 dark:text-orange-400 italic">Nav kartēti</td>
+                                                            <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-700 dark:text-orange-400 w-28">{{ number_format($yExpenseUncat, 2, ',', ' ') }}</td>
                                                         </tr>
                                                     @endif
-                                                    <tr class="bg-red-50/70 dark:bg-red-900/10">
-                                                        <td class="px-2 py-1 text-[11px] font-semibold text-red-800 dark:text-red-300">Kopā kartēti</td>
-                                                        <td class="px-2 py-1 text-[11px] text-right font-bold text-red-700 dark:text-red-400 w-28">{{ number_format($yearData['expense_kopaa'], 2, ',', ' ') }}</td>
+                                                    <tr class="bg-red-100 dark:bg-red-900/20">
+                                                        <td class="px-2 py-1 text-[11px] font-semibold text-red-900 dark:text-red-300">Kopā kartēti</td>
+                                                        <td class="px-2 py-1 text-[11px] text-right font-bold text-red-800 dark:text-red-400 w-28">{{ number_format($yearData['expense_kopaa'], 2, ',', ' ') }}</td>
                                                     </tr>
                                                 </table>
                                             </div>
 
                                             {{-- BALANCE summary --}}
                                             <div class="w-52 shrink-0">
-                                                <div class="px-3 py-1 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-white/10">
-                                                    <span class="text-[11px] font-semibold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Bilance</span>
+                                                <div class="px-3 py-1 bg-gray-200 dark:bg-gray-800 border-b border-gray-300 dark:border-white/10">
+                                                    <span class="text-[11px] font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Bilance</span>
                                                 </div>
-                                                <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5">
-                                                    <span class="text-gray-700 dark:text-gray-200">Ieņēmumi</span>
-                                                    <span class="text-green-600 dark:text-green-400 font-medium">+{{ number_format($yearData['income'], 2, ',', ' ') }}</span>
+                                                <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-200 dark:border-white/5">
+                                                    <span class="text-gray-800 dark:text-gray-200">Ieņēmumi</span>
+                                                    <span class="text-green-700 dark:text-green-400 font-medium">+{{ number_format($yearData['income'], 2, ',', ' ') }}</span>
                                                 </div>
-                                                <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5">
+                                                <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-200 dark:border-white/5">
                                                     <span class="text-gray-700 dark:text-gray-200">Izdevumi</span>
-                                                    <span class="text-red-600 dark:text-red-400 font-medium">−{{ number_format($yearData['expense'], 2, ',', ' ') }}</span>
+                                                    <span class="text-red-700 dark:text-red-400 font-medium">−{{ number_format($yearData['expense'], 2, ',', ' ') }}</span>
                                                 </div>
-                                                <div class="px-3 py-1 flex justify-between border-b-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800">
+                                                <div class="px-3 py-1 flex justify-between border-b-2 border-gray-400 dark:border-gray-600 bg-gray-200 dark:bg-gray-800">
                                                     <span class="text-[11px] font-bold text-gray-900 dark:text-white">Rezultāts</span>
-                                                    <span class="text-xs font-bold {{ $yearData['result'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ ($yearData['result'] >= 0 ? '+' : '') . number_format($yearData['result'], 2, ',', ' ') }}</span>
+                                                    <span class="text-xs font-bold {{ $yearData['result'] >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400' }}">{{ ($yearData['result'] >= 0 ? '+' : '') . number_format($yearData['result'], 2, ',', ' ') }}</span>
                                                 </div>
                                                 <div class="px-3 pt-1.5 pb-0.5">
-                                                    <span class="text-[10px] uppercase tracking-wide text-gray-600 dark:text-gray-300">Kontu atlikumi (gada beigas)</span>
+                                                    <span class="text-[10px] uppercase tracking-wide text-gray-700 dark:text-gray-300">Kontu atlikumi (gada beigas)</span>
                                                 </div>
                                                 @foreach($accounts as $acc)
                                                     @php $bal = $yearData['account_balances'][$acc->id] ?? 0; @endphp
-                                                    <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5 last:border-0">
-                                                        <span class="text-gray-700 dark:text-gray-200 truncate mr-1" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 16) }}</span>
-                                                        <span class="font-medium whitespace-nowrap {{ $bal < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">{{ number_format($bal, 2, ',', ' ') }}</span>
+                                                    <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-200 dark:border-white/5 last:border-0">
+                                                        <span class="text-gray-800 dark:text-gray-200 truncate mr-1" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 16) }}</span>
+                                                        <span class="font-medium whitespace-nowrap {{ $bal < 0 ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">{{ number_format($bal, 2, ',', ' ') }}</span>
                                                     </div>
                                                 @endforeach
                                             </div>
@@ -205,6 +205,48 @@
                             </tr>
                         @endforeach
                     </tbody>
+                    {{-- TOTALS footer --}}
+                    @php
+                        $grandTxTotal     = collect($yearlySummary)->sum('tx_total');
+                        $grandTxCompleted = collect($yearlySummary)->sum('tx_completed');
+                        $grandTxPending   = $grandTxTotal - $grandTxCompleted;
+                    @endphp
+                    @if($grandTxTotal > 0)
+                    <tfoot>
+                        <tr class="bg-gray-100 dark:bg-gray-800 font-semibold border-t-2 border-gray-400 dark:border-gray-600">
+                            <td class="px-2 py-2 border border-gray-300 dark:border-gray-700"></td>
+                            <td class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-xs font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                                KOPĀ
+                                <div class="flex flex-wrap gap-1 mt-0.5">
+                                    @if($grandTxPending === 0)
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" title="Visi darījumi apstiprināti">✓ Visi apstiprināti</span>
+                                    @else
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" title="{{ $grandTxCompleted }}/{{ $grandTxTotal }} apstiprināti">{{ $grandTxCompleted }}/{{ $grandTxTotal }} apst.</span>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400" title="Vēl jāapstiprina">{{ $grandTxPending }} neapst.</span>
+                                    @endif
+                                </div>
+                            </td>
+                            {{-- Empty cells for per-account columns --}}
+                            @foreach($accounts as $acc)
+                                <td class="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"></td>
+                                <td class="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"></td>
+                                <td class="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"></td>
+                            @endforeach
+                            {{-- Grand totals: balance, income, expense, result --}}
+                            <td class="border border-gray-300 dark:border-gray-700"></td>
+                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/10 text-success-700 dark:text-success-400">
+                                {{ number_format(collect($yearlySummary)->sum('income'), 2, ',', ' ') }} €
+                            </td>
+                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/10 text-danger-700 dark:text-danger-400">
+                                {{ number_format(collect($yearlySummary)->sum('expense'), 2, ',', ' ') }} €
+                            </td>
+                            @php $grandResult = collect($yearlySummary)->sum('income') - collect($yearlySummary)->sum('expense'); @endphp
+                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 {{ $grandResult >= 0 ? 'text-success-700 dark:text-success-400' : 'text-danger-700 dark:text-danger-400' }}">
+                                {{ number_format($grandResult, 2, ',', ' ') }} €
+                            </td>
+                        </tr>
+                    </tfoot>
+                    @endif
                 </table>
             </div>
         </div>
@@ -297,97 +339,97 @@
         @endphp
 
         @if(count($monthlySummary) > 0)
-        <div class="mb-4 bg-white dark:bg-gray-900 rounded-xl shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10 overflow-hidden">
-            <div class="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-white/10">
-                <span class="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">{{ $selectedYear }}. gada žurnāla analīze</span>
+        <div class="mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10 overflow-hidden">
+            <div class="px-4 py-2 bg-gray-200 dark:bg-gray-900/80 border-b border-gray-300 dark:border-white/10">
+                <span class="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">{{ $selectedYear }}. gada žurnāla analīze</span>
             </div>
-            <div class="flex divide-x divide-gray-200 dark:divide-white/10">
+            <div class="flex divide-x divide-gray-300 dark:divide-white/10">
 
                 {{-- INCOME --}}
                 <div class="flex-1 min-w-0">
-                    <div class="px-3 py-1 bg-green-50 dark:bg-green-900/20 flex justify-between items-center border-b border-green-100 dark:border-green-900/40">
-                        <span class="text-[11px] font-semibold text-green-800 dark:text-green-300 uppercase tracking-wide">Ieņēmumi</span>
-                        <span class="text-xs font-bold text-green-700 dark:text-green-400">{{ number_format($yearIncomeTotal, 2, ',', ' ') }}</span>
+                    <div class="px-3 py-1 bg-green-100 dark:bg-green-900/20 flex justify-between items-center border-b border-green-200 dark:border-green-900/40">
+                        <span class="text-[11px] font-semibold text-green-900 dark:text-green-300 uppercase tracking-wide">Ieņēmumi</span>
+                        <span class="text-xs font-bold text-green-800 dark:text-green-400">{{ number_format($yearIncomeTotal, 2, ',', ' ') }}</span>
                     </div>
                     <table class="w-full">
                         @foreach($journalIncomeColumns as $i => $col)
                             @php $ct = $yearIncomeCols[$i] ?? 0; @endphp
-                            <tr class="{{ $ct > 0 ? '' : 'opacity-35' }} border-b border-gray-100 dark:border-white/5">
-                                <td class="px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[1px]" title="{{ $col['name'] }}">
-                                    <span class="font-mono text-gray-400 dark:text-gray-600">{{ $col['abbr'] }}</span>
+                            <tr class="{{ $ct > 0 ? 'bg-white/50 dark:bg-white/5' : 'opacity-40 bg-white/30 dark:bg-white/0' }} border-b border-gray-200 dark:border-white/5">
+                                <td class="px-2 py-0.5 text-[11px] text-gray-700 dark:text-gray-300 truncate max-w-[1px]" title="{{ $col['name'] }}">
+                                    <span class="font-mono text-gray-500 dark:text-gray-500">{{ $col['abbr'] }}</span>
                                     <span class="ml-1">{{ $col['name'] }}</span>
                                 </td>
                                 <td class="px-2 py-0.5 text-[11px] text-right font-medium text-green-700 dark:text-green-400 whitespace-nowrap w-28">{{ $ct > 0 ? number_format($ct, 2, ',', ' ') : '—' }}</td>
                             </tr>
                         @endforeach
                         @if($yearIncomeUncategorized > 0.005)
-                            <tr class="border-b border-orange-100 dark:border-orange-900/30 bg-orange-50/60 dark:bg-orange-900/10">
-                                <td class="px-2 py-0.5 text-[11px] text-orange-600 dark:text-orange-400 italic">Nav kartēti</td>
-                                <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-600 dark:text-orange-400 w-28">{{ number_format($yearIncomeUncategorized, 2, ',', ' ') }}</td>
+                            <tr class="border-b border-orange-200 dark:border-orange-900/30 bg-orange-100/60 dark:bg-orange-900/10">
+                                <td class="px-2 py-0.5 text-[11px] text-orange-700 dark:text-orange-400 italic">Nav kartēti</td>
+                                <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-700 dark:text-orange-400 w-28">{{ number_format($yearIncomeUncategorized, 2, ',', ' ') }}</td>
                             </tr>
                         @endif
-                        <tr class="bg-green-50/70 dark:bg-green-900/10">
-                            <td class="px-2 py-1 text-[11px] font-semibold text-green-800 dark:text-green-300">Kopā kartēti</td>
-                            <td class="px-2 py-1 text-[11px] text-right font-bold text-green-700 dark:text-green-400 w-28">{{ number_format($yearIncomeKopaa, 2, ',', ' ') }}</td>
+                        <tr class="bg-green-100 dark:bg-green-900/20">
+                            <td class="px-2 py-1 text-[11px] font-semibold text-green-900 dark:text-green-300">Kopā kartēti</td>
+                            <td class="px-2 py-1 text-[11px] text-right font-bold text-green-800 dark:text-green-400 w-28">{{ number_format($yearIncomeKopaa, 2, ',', ' ') }}</td>
                         </tr>
                     </table>
                 </div>
 
                 {{-- EXPENSE --}}
                 <div class="flex-1 min-w-0">
-                    <div class="px-3 py-1 bg-red-50 dark:bg-red-900/20 flex justify-between items-center border-b border-red-100 dark:border-red-900/40">
-                        <span class="text-[11px] font-semibold text-red-800 dark:text-red-300 uppercase tracking-wide">Izdevumi</span>
-                        <span class="text-xs font-bold text-red-700 dark:text-red-400">{{ number_format($yearExpenseTotal, 2, ',', ' ') }}</span>
+                    <div class="px-3 py-1 bg-red-100 dark:bg-red-900/20 flex justify-between items-center border-b border-red-200 dark:border-red-900/40">
+                        <span class="text-[11px] font-semibold text-red-900 dark:text-red-300 uppercase tracking-wide">Izdevumi</span>
+                        <span class="text-xs font-bold text-red-800 dark:text-red-400">{{ number_format($yearExpenseTotal, 2, ',', ' ') }}</span>
                     </div>
                     <table class="w-full">
                         @foreach($journalExpenseColumns as $i => $col)
                             @php $ct = $yearExpenseCols[$i] ?? 0; @endphp
-                            <tr class="{{ $ct > 0 ? '' : 'opacity-35' }} border-b border-gray-100 dark:border-white/5">
-                                <td class="px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[1px]" title="{{ $col['name'] }}">
-                                    <span class="font-mono text-gray-400 dark:text-gray-600">{{ $col['abbr'] }}</span>
+                            <tr class="{{ $ct > 0 ? 'bg-white/50 dark:bg-white/5' : 'opacity-40 bg-white/30 dark:bg-white/0' }} border-b border-gray-200 dark:border-white/5">
+                                <td class="px-2 py-0.5 text-[11px] text-gray-700 dark:text-gray-300 truncate max-w-[1px]" title="{{ $col['name'] }}">
+                                    <span class="font-mono text-gray-500 dark:text-gray-500">{{ $col['abbr'] }}</span>
                                     <span class="ml-1">{{ $col['name'] }}</span>
                                 </td>
                                 <td class="px-2 py-0.5 text-[11px] text-right font-medium text-red-700 dark:text-red-400 whitespace-nowrap w-28">{{ $ct > 0 ? number_format($ct, 2, ',', ' ') : '—' }}</td>
                             </tr>
                         @endforeach
                         @if($yearExpenseUncategorized > 0.005)
-                            <tr class="border-b border-orange-100 dark:border-orange-900/30 bg-orange-50/60 dark:bg-orange-900/10">
-                                <td class="px-2 py-0.5 text-[11px] text-orange-600 dark:text-orange-400 italic">Nav kartēti</td>
-                                <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-600 dark:text-orange-400 w-28">{{ number_format($yearExpenseUncategorized, 2, ',', ' ') }}</td>
+                            <tr class="border-b border-orange-200 dark:border-orange-900/30 bg-orange-100/60 dark:bg-orange-900/10">
+                                <td class="px-2 py-0.5 text-[11px] text-orange-700 dark:text-orange-400 italic">Nav kartēti</td>
+                                <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-700 dark:text-orange-400 w-28">{{ number_format($yearExpenseUncategorized, 2, ',', ' ') }}</td>
                             </tr>
                         @endif
-                        <tr class="bg-red-50/70 dark:bg-red-900/10">
-                            <td class="px-2 py-1 text-[11px] font-semibold text-red-800 dark:text-red-300">Kopā kartēti</td>
-                            <td class="px-2 py-1 text-[11px] text-right font-bold text-red-700 dark:text-red-400 w-28">{{ number_format($yearExpenseKopaa, 2, ',', ' ') }}</td>
+                        <tr class="bg-red-100 dark:bg-red-900/20">
+                            <td class="px-2 py-1 text-[11px] font-semibold text-red-900 dark:text-red-300">Kopā kartēti</td>
+                            <td class="px-2 py-1 text-[11px] text-right font-bold text-red-800 dark:text-red-400 w-28">{{ number_format($yearExpenseKopaa, 2, ',', ' ') }}</td>
                         </tr>
                     </table>
                 </div>
 
                 {{-- BALANCE + ACCOUNTS --}}
                 <div class="w-52 shrink-0">
-                    <div class="px-3 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-white/10">
-                        <span class="text-[11px] font-semibold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Bilance</span>
+                    <div class="px-3 py-1 bg-gray-200 dark:bg-gray-800 border-b border-gray-300 dark:border-white/10">
+                        <span class="text-[11px] font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Bilance</span>
                     </div>
-                    <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5">
-                        <span class="text-gray-700 dark:text-gray-200">Ieņēmumi</span>
-                        <span class="text-green-600 dark:text-green-400 font-medium">+{{ number_format($yearIncomeTotal, 2, ',', ' ') }}</span>
+                    <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-200 dark:border-white/5">
+                        <span class="text-gray-800 dark:text-gray-200">Ieņēmumi</span>
+                        <span class="text-green-700 dark:text-green-400 font-medium">+{{ number_format($yearIncomeTotal, 2, ',', ' ') }}</span>
                     </div>
-                    <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5">
-                        <span class="text-gray-700 dark:text-gray-200">Izdevumi</span>
-                        <span class="text-red-600 dark:text-red-400 font-medium">−{{ number_format($yearExpenseTotal, 2, ',', ' ') }}</span>
+                    <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-200 dark:border-white/5">
+                        <span class="text-gray-800 dark:text-gray-200">Izdevumi</span>
+                        <span class="text-red-700 dark:text-red-400 font-medium">−{{ number_format($yearExpenseTotal, 2, ',', ' ') }}</span>
                     </div>
-                    <div class="px-3 py-1 flex justify-between border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800">
+                    <div class="px-3 py-1 flex justify-between border-b-2 border-gray-400 dark:border-gray-600 bg-gray-200 dark:bg-gray-800">
                         <span class="text-[11px] font-bold text-gray-900 dark:text-white">Rezultāts</span>
-                        <span class="text-xs font-bold {{ $yearResult >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ ($yearResult >= 0 ? '+' : '') . number_format($yearResult, 2, ',', ' ') }}</span>
+                        <span class="text-xs font-bold {{ $yearResult >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400' }}">{{ ($yearResult >= 0 ? '+' : '') . number_format($yearResult, 2, ',', ' ') }}</span>
                     </div>
                     <div class="px-3 pt-1.5 pb-0.5">
-                        <span class="text-[10px] uppercase tracking-wide text-gray-600 dark:text-gray-300">Kontu atlikumi (gada beigas)</span>
+                        <span class="text-[10px] uppercase tracking-wide text-gray-700 dark:text-gray-300">Kontu atlikumi (gada beigas)</span>
                     </div>
                     @foreach($accounts as $acc)
                         @php $bal = $yearLastAccountBalances[$acc->id] ?? 0; @endphp
-                        <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5 last:border-0">
-                            <span class="text-gray-700 dark:text-gray-200 truncate mr-1" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 16) }}</span>
-                            <span class="font-medium whitespace-nowrap {{ $bal < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">{{ number_format($bal, 2, ',', ' ') }}</span>
+                        <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-200 dark:border-white/5 last:border-0">
+                            <span class="text-gray-800 dark:text-gray-200 truncate mr-1" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 16) }}</span>
+                            <span class="font-medium whitespace-nowrap {{ $bal < 0 ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">{{ number_format($bal, 2, ',', ' ') }}</span>
                         </div>
                     @endforeach
                 </div>
@@ -650,94 +692,94 @@
             @endphp
 
             @if($monthData)
-            <div class="mb-4 bg-white dark:bg-gray-900 rounded-xl shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10 overflow-hidden">
-                <div class="flex divide-x divide-gray-200 dark:divide-white/10">
+            <div class="mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-gray-950/5 dark:ring-white/10 overflow-hidden">
+                <div class="flex divide-x divide-gray-300 dark:divide-white/10">
 
                     {{-- INCOME --}}
                     <div class="flex-1 min-w-0">
-                        <div class="px-3 py-1 bg-green-50 dark:bg-green-900/20 flex justify-between items-center border-b border-green-100 dark:border-green-900/40">
-                            <span class="text-[11px] font-semibold text-green-800 dark:text-green-300 uppercase tracking-wide">Ieņēmumi</span>
-                            <span class="text-xs font-bold text-green-700 dark:text-green-400">{{ number_format($monthData['income'], 2, ',', ' ') }}</span>
+                        <div class="px-3 py-1 bg-green-100 dark:bg-green-900/20 flex justify-between items-center border-b border-green-200 dark:border-green-900/40">
+                            <span class="text-[11px] font-semibold text-green-900 dark:text-green-300 uppercase tracking-wide">Ieņēmumi</span>
+                            <span class="text-xs font-bold text-green-800 dark:text-green-400">{{ number_format($monthData['income'], 2, ',', ' ') }}</span>
                         </div>
                         <table class="w-full">
                             @foreach($journalIncomeColumns as $i => $col)
                                 @php $ct = $monthData['income_cols'][$i] ?? 0; @endphp
-                                <tr class="{{ $ct > 0 ? '' : 'opacity-35' }} border-b border-gray-100 dark:border-white/5">
-                                    <td class="px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[1px]" title="{{ $col['name'] }}">
-                                        <span class="font-mono text-gray-400 dark:text-gray-600">{{ $col['abbr'] }}</span>
+                                <tr class="{{ $ct > 0 ? 'bg-white/50 dark:bg-white/5' : 'opacity-40 bg-white/30 dark:bg-white/0' }} border-b border-gray-200 dark:border-white/5">
+                                    <td class="px-2 py-0.5 text-[11px] text-gray-700 dark:text-gray-300 truncate max-w-[1px]" title="{{ $col['name'] }}">
+                                        <span class="font-mono text-gray-500 dark:text-gray-500">{{ $col['abbr'] }}</span>
                                         <span class="ml-1">{{ $col['name'] }}</span>
                                     </td>
                                     <td class="px-2 py-0.5 text-[11px] text-right font-medium text-green-700 dark:text-green-400 whitespace-nowrap w-24">{{ $ct > 0 ? number_format($ct, 2, ',', ' ') : '—' }}</td>
                                 </tr>
                             @endforeach
                             @if($incomeUncategorized > 0.005)
-                                <tr class="border-b border-orange-100 dark:border-orange-900/30 bg-orange-50/60 dark:bg-orange-900/10">
-                                    <td class="px-2 py-0.5 text-[11px] text-orange-600 dark:text-orange-400 italic">Nav kartēti</td>
-                                    <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-600 dark:text-orange-400 w-24">{{ number_format($incomeUncategorized, 2, ',', ' ') }}</td>
+                                <tr class="border-b border-orange-200 dark:border-orange-900/30 bg-orange-100/60 dark:bg-orange-900/10">
+                                    <td class="px-2 py-0.5 text-[11px] text-orange-700 dark:text-orange-400 italic">Nav kartēti</td>
+                                    <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-700 dark:text-orange-400 w-24">{{ number_format($incomeUncategorized, 2, ',', ' ') }}</td>
                                 </tr>
                             @endif
-                            <tr class="bg-green-50/70 dark:bg-green-900/10">
-                                <td class="px-2 py-1 text-[11px] font-semibold text-green-800 dark:text-green-300">Kopā kartēti</td>
-                                <td class="px-2 py-1 text-[11px] text-right font-bold text-green-700 dark:text-green-400 w-24">{{ number_format($monthData['income_kopaa'], 2, ',', ' ') }}</td>
+                            <tr class="bg-green-100 dark:bg-green-900/20">
+                                <td class="px-2 py-1 text-[11px] font-semibold text-green-900 dark:text-green-300">Kopā kartēti</td>
+                                <td class="px-2 py-1 text-[11px] text-right font-bold text-green-800 dark:text-green-400 w-24">{{ number_format($monthData['income_kopaa'], 2, ',', ' ') }}</td>
                             </tr>
                         </table>
                     </div>
 
                     {{-- EXPENSE --}}
                     <div class="flex-1 min-w-0">
-                        <div class="px-3 py-1 bg-red-50 dark:bg-red-900/20 flex justify-between items-center border-b border-red-100 dark:border-red-900/40">
-                            <span class="text-[11px] font-semibold text-red-800 dark:text-red-300 uppercase tracking-wide">Izdevumi</span>
-                            <span class="text-xs font-bold text-red-700 dark:text-red-400">{{ number_format($monthData['expense'], 2, ',', ' ') }}</span>
+                        <div class="px-3 py-1 bg-red-100 dark:bg-red-900/20 flex justify-between items-center border-b border-red-200 dark:border-red-900/40">
+                            <span class="text-[11px] font-semibold text-red-900 dark:text-red-300 uppercase tracking-wide">Izdevumi</span>
+                            <span class="text-xs font-bold text-red-800 dark:text-red-400">{{ number_format($monthData['expense'], 2, ',', ' ') }}</span>
                         </div>
                         <table class="w-full">
                             @foreach($journalExpenseColumns as $i => $col)
                                 @php $ct = $monthData['expense_cols'][$i] ?? 0; @endphp
-                                <tr class="{{ $ct > 0 ? '' : 'opacity-35' }} border-b border-gray-100 dark:border-white/5">
-                                    <td class="px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[1px]" title="{{ $col['name'] }}">
-                                        <span class="font-mono text-gray-400 dark:text-gray-600">{{ $col['abbr'] }}</span>
+                                <tr class="{{ $ct > 0 ? 'bg-white/50 dark:bg-white/5' : 'opacity-40 bg-white/30 dark:bg-white/0' }} border-b border-gray-200 dark:border-white/5">
+                                    <td class="px-2 py-0.5 text-[11px] text-gray-700 dark:text-gray-300 truncate max-w-[1px]" title="{{ $col['name'] }}">
+                                        <span class="font-mono text-gray-500 dark:text-gray-500">{{ $col['abbr'] }}</span>
                                         <span class="ml-1">{{ $col['name'] }}</span>
                                     </td>
                                     <td class="px-2 py-0.5 text-[11px] text-right font-medium text-red-700 dark:text-red-400 whitespace-nowrap w-24">{{ $ct > 0 ? number_format($ct, 2, ',', ' ') : '—' }}</td>
                                 </tr>
                             @endforeach
                             @if($expenseUncategorized > 0.005)
-                                <tr class="border-b border-orange-100 dark:border-orange-900/30 bg-orange-50/60 dark:bg-orange-900/10">
-                                    <td class="px-2 py-0.5 text-[11px] text-orange-600 dark:text-orange-400 italic">Nav kartēti</td>
-                                    <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-600 dark:text-orange-400 w-24">{{ number_format($expenseUncategorized, 2, ',', ' ') }}</td>
+                                <tr class="border-b border-orange-200 dark:border-orange-900/30 bg-orange-100/60 dark:bg-orange-900/10">
+                                    <td class="px-2 py-0.5 text-[11px] text-orange-700 dark:text-orange-400 italic">Nav kartēti</td>
+                                    <td class="px-2 py-0.5 text-[11px] text-right font-medium text-orange-700 dark:text-orange-400 w-24">{{ number_format($expenseUncategorized, 2, ',', ' ') }}</td>
                                 </tr>
                             @endif
-                            <tr class="bg-red-50/70 dark:bg-red-900/10">
-                                <td class="px-2 py-1 text-[11px] font-semibold text-red-800 dark:text-red-300">Kopā kartēti</td>
-                                <td class="px-2 py-1 text-[11px] text-right font-bold text-red-700 dark:text-red-400 w-24">{{ number_format($monthData['expense_kopaa'], 2, ',', ' ') }}</td>
+                            <tr class="bg-red-100 dark:bg-red-900/20">
+                                <td class="px-2 py-1 text-[11px] font-semibold text-red-900 dark:text-red-300">Kopā kartēti</td>
+                                <td class="px-2 py-1 text-[11px] text-right font-bold text-red-800 dark:text-red-400 w-24">{{ number_format($monthData['expense_kopaa'], 2, ',', ' ') }}</td>
                             </tr>
                         </table>
                     </div>
 
                     {{-- BALANCE + ACCOUNTS --}}
                     <div class="w-44 shrink-0">
-                        <div class="px-3 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-white/10">
-                            <span class="text-[11px] font-semibold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Bilance</span>
+                        <div class="px-3 py-1 bg-gray-200 dark:bg-gray-800 border-b border-gray-300 dark:border-white/10">
+                            <span class="text-[11px] font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Bilance</span>
                         </div>
-                        <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5">
-                            <span class="text-gray-700 dark:text-gray-200">Ieņēmumi</span>
-                            <span class="text-green-600 dark:text-green-400 font-medium">+{{ number_format($monthData['income'], 2, ',', ' ') }}</span>
+                        <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-200 dark:border-white/5">
+                            <span class="text-gray-800 dark:text-gray-200">Ieņēmumi</span>
+                            <span class="text-green-700 dark:text-green-400 font-medium">+{{ number_format($monthData['income'], 2, ',', ' ') }}</span>
                         </div>
-                        <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5">
-                            <span class="text-gray-700 dark:text-gray-200">Izdevumi</span>
-                            <span class="text-red-600 dark:text-red-400 font-medium">−{{ number_format($monthData['expense'], 2, ',', ' ') }}</span>
+                        <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-200 dark:border-white/5">
+                            <span class="text-gray-800 dark:text-gray-200">Izdevumi</span>
+                            <span class="text-red-700 dark:text-red-400 font-medium">−{{ number_format($monthData['expense'], 2, ',', ' ') }}</span>
                         </div>
-                        <div class="px-3 py-1 flex justify-between border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800">
+                        <div class="px-3 py-1 flex justify-between border-b-2 border-gray-400 dark:border-gray-600 bg-gray-200 dark:bg-gray-800">
                             <span class="text-[11px] font-bold text-gray-900 dark:text-white">Rezultāts</span>
-                            <span class="text-xs font-bold {{ $result >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ ($result >= 0 ? '+' : '') . number_format($result, 2, ',', ' ') }}</span>
+                            <span class="text-xs font-bold {{ $result >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400' }}">{{ ($result >= 0 ? '+' : '') . number_format($result, 2, ',', ' ') }}</span>
                         </div>
                         <div class="px-3 pt-1.5 pb-0.5">
-                            <span class="text-[10px] uppercase tracking-wide text-gray-600 dark:text-gray-300">Kontu atlikumi</span>
+                            <span class="text-[10px] uppercase tracking-wide text-gray-700 dark:text-gray-300">Kontu atlikumi</span>
                         </div>
                         @foreach($accounts as $acc)
                             @php $bal = $monthData['account_balances'][$acc->id] ?? 0; @endphp
-                            <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-100 dark:border-white/5 last:border-0">
-                                <span class="text-gray-700 dark:text-gray-200 truncate mr-1" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 14) }}</span>
-                                <span class="font-medium whitespace-nowrap {{ $bal < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">{{ number_format($bal, 2, ',', ' ') }}</span>
+                            <div class="px-3 py-0.5 flex justify-between text-[11px] border-b border-gray-200 dark:border-white/5 last:border-0">
+                                <span class="text-gray-800 dark:text-gray-200 truncate mr-1" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 14) }}</span>
+                                <span class="font-medium whitespace-nowrap {{ $bal < 0 ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">{{ number_format($bal, 2, ',', ' ') }}</span>
                             </div>
                         @endforeach
                     </div>
