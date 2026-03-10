@@ -358,6 +358,23 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->groupBy(DB::raw('EXTRACT(YEAR FROM occurred_at)'))
             ->get();
 
+        // Per-year category breakdown for journal column analysis panel (COMPLETED only)
+        $yearlyColumnBreakdown = Transaction::query()
+            ->where('transactions.status', 'COMPLETED')
+            ->leftJoin('categories', 'transactions.category_id', '=', 'categories.id')
+            ->selectRaw("
+                EXTRACT(YEAR FROM transactions.occurred_at) as year,
+                transactions.type,
+                categories.vid_column,
+                SUM(ABS(COALESCE(transactions.amount_eur, transactions.amount))) as total
+            ")
+            ->groupBy(
+                DB::raw('EXTRACT(YEAR FROM transactions.occurred_at)'),
+                'transactions.type',
+                'categories.vid_column'
+            )
+            ->get();
+
         // Collect all years present in either dataset
         $allYears = $yearlyData->pluck('year')
             ->merge($yearlyBalanceData->keys())
@@ -398,6 +415,32 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 $runningAccountBalances[$acc->id] += (float) ($accBalChange?->balance_change ?? 0);
             }
 
+            // Per-journal-column breakdown for analysis panel
+            $yearIncomeCats  = $yearlyColumnBreakdown->filter(fn ($r) => (int) round((float) $r->year) === $yearKey && $r->type === 'INCOME');
+            $yearExpenseCats = $yearlyColumnBreakdown->filter(fn ($r) => (int) round((float) $r->year) === $yearKey && in_array($r->type, ['EXPENSE', 'FEE']));
+
+            $incomeColsConfig  = $this->getIncomeColsConfig();
+            $expenseColsConfig = $this->getExpenseColsConfig();
+
+            $incomeCols  = [];
+            $incomeKopaa = 0;
+            foreach ($incomeColsConfig as $col) {
+                $total = (float) $yearIncomeCats
+                    ->filter(fn ($c) => in_array((int) $c->vid_column, $col['vid_columns']))
+                    ->sum('total');
+                $incomeCols[] = $total;
+                $incomeKopaa += $total;
+            }
+            $expenseCols  = [];
+            $expenseKopaa = 0;
+            foreach ($expenseColsConfig as $col) {
+                $total = (float) $yearExpenseCats
+                    ->filter(fn ($c) => in_array((int) $c->vid_column, $col['vid_columns']))
+                    ->sum('total');
+                $expenseCols[] = $total;
+                $expenseKopaa += $total;
+            }
+
             // Status badges for year row
             $yearStatusData  = $yearlyStatusCounts->filter(fn ($item) => (int) round((float) $item->year) === $yearKey)->first();
             $yearTotalTx     = (int) ($yearStatusData?->total_count     ?? 0);
@@ -418,6 +461,11 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'account_income'   => $accountIncome,
                 'account_expense'  => $accountExpense,
                 'account_balances' => $runningAccountBalances,
+                // Journal column breakdown for analysis panel
+                'income_cols'   => $incomeCols,
+                'income_kopaa'  => $incomeKopaa,
+                'expense_cols'  => $expenseCols,
+                'expense_kopaa' => $expenseKopaa,
                 // Status badges
                 'tx_total'      => $yearTotalTx,
                 'tx_completed'  => $yearCompletedTx,
