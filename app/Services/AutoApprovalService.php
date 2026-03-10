@@ -237,18 +237,6 @@ class AutoApprovalService
             return false;
         }
 
-        // Debug: log criteria structure once
-        static $criteriaLogged = false;
-        if (!$criteriaLogged) {
-            $criteriaLogged = true;
-            Log::debug('matchesCriteria first call', [
-                'criteria'     => $criteria,
-                'tx_id'        => $transaction->id,
-                'tx_status'    => $transaction->status,
-                'tx_desc'      => substr($transaction->description ?? '', 0, 80),
-            ]);
-        }
-
         // --- New AND/OR format ---
         if (isset($criteria['and_criteria']) || isset($criteria['or_criteria'])) {
             $andList = $criteria['and_criteria'] ?? [];
@@ -294,6 +282,12 @@ class AutoApprovalService
 
     /**
      * Evaluate a single criterion against a transaction.
+     *
+     * Uses mb_strtolower for case-insensitive matching so that
+     * Latvian multi-byte characters (Ā/ā, Ē/ē, Š/š …) are handled correctly.
+     * PHP's strtolower() only converts ASCII a–z and leaves Latvian uppercase
+     * characters unchanged, causing bank descriptions (often in ALL CAPS) to
+     * not match user-entered lowercase criteria values.
      */
     protected function matchesCriterion(Transaction $transaction, array $criterion): bool
     {
@@ -311,30 +305,19 @@ class AutoApprovalService
             default        => (string) ($transaction->{$field} ?? ''),
         };
 
-        $result = match ($operator) {
-            'contains'    => str_contains(strtolower($fieldValue), strtolower($value)),
-            'equals'      => strtolower($fieldValue) === strtolower($value),
-            'starts_with' => str_starts_with(strtolower($fieldValue), strtolower($value)),
-            'ends_with'   => str_ends_with(strtolower($fieldValue), strtolower($value)),
+        // mb_strtolower correctly lowercases Latvian characters (Ā→ā, Ē→ē, Š→š …)
+        $fvLower  = mb_strtolower($fieldValue, 'UTF-8');
+        $valLower = mb_strtolower($value, 'UTF-8');
+
+        return match ($operator) {
+            'contains'    => str_contains($fvLower, $valLower),
+            'equals'      => $fvLower === $valLower,
+            'starts_with' => str_starts_with($fvLower, $valLower),
+            'ends_with'   => str_ends_with($fvLower, $valLower),
             'gt'          => (float) $fieldValue > (float) $value,
             'lt'          => (float) $fieldValue < (float) $value,
             default       => false,
         };
-
-        // Debug first few non-matches to diagnose rule issues
-        static $debugCount = 0;
-        if (!$result && $debugCount < 5) {
-            $debugCount++;
-            Log::debug('matchesCriterion MISS', [
-                'tx_id'      => $transaction->id,
-                'field'      => $field,
-                'operator'   => $operator,
-                'value'      => $value,
-                'fieldValue' => substr($fieldValue, 0, 80),
-            ]);
-        }
-
-        return $result;
     }
 
     /**

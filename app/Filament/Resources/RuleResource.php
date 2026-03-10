@@ -190,6 +190,9 @@ class RuleResource extends Resource
                     'amount'  => 'Piemēram: 100',
                     default   => 'Ievadiet vērtību...',
                 })
+                ->helperText(fn (Get $get) => !in_array($get('field'), ['type', 'account_name', 'amount'])
+                    ? 'Reģistrnejutīgs (arī latv. burti). Simboli kā * un . tiek meklēti kā teksts (ne aizstājēji).'
+                    : null)
                 ->visible(fn (Get $get) => !in_array($get('field'), ['type', 'account_name']))
                 ->dehydrated(fn (Get $get) => !in_array($get('field'), ['type', 'account_name']))
                 ->required(fn (Get $get) => !in_array($get('field'), ['type', 'account_name'])),
@@ -221,6 +224,48 @@ class RuleResource extends Resource
                         return count($state) . ' (AND)';
                     })
                     ->badge(),
+
+                // Conflict indicator — warns if another active rule shares identical criteria
+                Tables\Columns\TextColumn::make('conflict_warning')
+                    ->label('⚠')
+                    ->state(function (Rule $record): ?string {
+                        if (!$record->is_active) {
+                            return null;
+                        }
+
+                        $mine = array_merge(
+                            is_array($record->criteria['and_criteria'] ?? null) ? $record->criteria['and_criteria'] : [],
+                            is_array($record->criteria['or_criteria']  ?? null) ? $record->criteria['or_criteria']  : []
+                        );
+                        if (empty($mine)) {
+                            return null;
+                        }
+
+                        $others = Rule::where('is_active', true)->where('id', '!=', $record->id)->get();
+                        foreach ($others as $other) {
+                            $theirCriteria = array_merge(
+                                is_array($other->criteria['and_criteria'] ?? null) ? $other->criteria['and_criteria'] : [],
+                                is_array($other->criteria['or_criteria']  ?? null) ? $other->criteria['or_criteria']  : []
+                            );
+                            foreach ($mine as $cA) {
+                                foreach ($theirCriteria as $cB) {
+                                    if (($cA['field']    ?? '') === ($cB['field']    ?? '')
+                                        && ($cA['operator'] ?? '') === ($cB['operator'] ?? '')
+                                        && mb_strtolower((string) ($cA['value'] ?? ''), 'UTF-8')
+                                           === mb_strtolower((string) ($cB['value'] ?? ''), 'UTF-8')
+                                    ) {
+                                        return "Dublēts: {$other->name}";
+                                    }
+                                }
+                            }
+                        }
+
+                        return null;
+                    })
+                    ->badge()
+                    ->color('warning')
+                    ->tooltip('Šī aktīvā kārtula satur tādus pašus filtra nosacījumus kā cita aktīva kārtula — iespējams konflikts.'),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Izveidots')
                     ->dateTime()
@@ -257,41 +302,6 @@ class RuleResource extends Resource
                         $service  = app(AutoApprovalService::class);
                         $criteria = $record->criteria ?? [];
 
-                        // --- Diagnostic header ---
-                        $lines   = [];
-                        $lines[] = 'Aktīva: ' . ($record->is_active ? 'JĀ' : 'NĒ');
-                        $lines[] = 'Kritēriji: ' . json_encode($criteria, JSON_UNESCAPED_UNICODE);
-                        $lines[] = '';
-
-                        // --- Test first 3 DRAFT/NEEDS_REVIEW transactions ---
-                        $andList = $criteria['and_criteria'] ?? (isset($criteria['and_criteria']) || isset($criteria['or_criteria']) ? [] : $criteria);
-                        $sampleTx = \App\Models\Transaction::whereIn('status', ['DRAFT', 'NEEDS_REVIEW'])
-                            ->with('account')
-                            ->limit(3)
-                            ->get();
-
-                        if ($sampleTx->isEmpty()) {
-                            $lines[] = 'Nav DRAFT/NEEDS_REVIEW darījumu!';
-                        } else {
-                            $lines[] = 'Pirmie 3 DRAFT darījumi:';
-                            foreach ($sampleTx as $tx) {
-                                $match = $service->testCriteria($tx, $criteria);
-                                $icon  = $match ? '✓' : '✗';
-                                $fieldParts = [];
-                                foreach (is_array($andList) ? $andList : [] as $c) {
-                                    $f   = $c['field'] ?? '?';
-                                    $v   = $c['value'] ?? '(null)';
-                                    $fv  = $f === 'account_name'
-                                        ? ($tx->account?->name ?? '')
-                                        : ($tx->{$f} ?? '');
-                                    $fieldParts[] = "{$f}='" . substr((string) $fv, 0, 25) . "' vs '{$v}'";
-                                }
-                                $lines[] = "{$icon} ID:{$tx->id} " . implode(' | ', $fieldParts);
-                            }
-                            $lines[] = '';
-                        }
-
-                        // --- Full count ---
                         $draft     = 0;
                         $completed = 0;
                         $samples   = [];
@@ -311,10 +321,8 @@ class RuleResource extends Resource
                             }
                         }
 
-                        $total   = $draft + $completed;
-                        $lines[] = "Kopā atbilstoši: {$total}";
-                        $lines[] = "• DRAFT/NEEDS_REVIEW (izpildīsies): {$draft}";
-                        $lines[] = "• Jau COMPLETED: {$completed}";
+                        $total = $draft + $completed;
+                        $lines = ["Kopā atbilstoši: {$total}", "• DRAFT/NEEDS_REVIEW (izpildīsies): {$draft}", "• Jau COMPLETED: {$completed}"];
                         if ($samples) {
                             $lines[] = '';
                             $lines[] = 'Piemēri (neapstiprināti):';
