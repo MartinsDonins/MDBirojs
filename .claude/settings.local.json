@@ -7,7 +7,8 @@
       "Bash(powershell -Command:*)",
       "Bash(powershell \"Get-ChildItem ''C:\\\\www\\\\MDBirojs\\\\vendor'' | Select-Object Name | Format-Table -AutoSize\")",
       "Bash(php artisan config:clear:*)",
-      "Bash(php -l:*)"
+      "Bash(php -l:*)",
+      "Bash(cmd //c \"php -l \"\"C:\\\\www\\\\MDBirojs\\\\app\\\\Filament\\\\Resources\\\\RuleResource.php\"\"\")"
     ]
   }
 }
