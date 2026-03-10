@@ -1607,6 +1607,11 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
     protected function isTransactionMapped(Transaction $transaction): bool
     {
+        // Only COMPLETED transactions can be considered mapped
+        if ($transaction->status !== 'COMPLETED') {
+            return false;
+        }
+
         $vid = (int) ($transaction->category?->vid_column ?? 0);
 
         if (in_array($transaction->type, ['TRANSFER', 'FEE'])) {

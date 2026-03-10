@@ -170,6 +170,7 @@ class RuleResource extends Resource
                 ])
                 ->native(false)
                 ->visible(fn (Get $get) => $get('field') === 'type')
+                ->dehydrated(fn (Get $get) => $get('field') === 'type')
                 ->required(fn (Get $get) => $get('field') === 'type'),
 
             // value: Select from own accounts for 'account_name' field
@@ -179,6 +180,7 @@ class RuleResource extends Resource
                 ->searchable()
                 ->native(false)
                 ->visible(fn (Get $get) => $get('field') === 'account_name')
+                ->dehydrated(fn (Get $get) => $get('field') === 'account_name')
                 ->required(fn (Get $get) => $get('field') === 'account_name'),
 
             // value: free text for all other fields
@@ -189,6 +191,7 @@ class RuleResource extends Resource
                     default   => 'Ievadiet vērtību...',
                 })
                 ->visible(fn (Get $get) => !in_array($get('field'), ['type', 'account_name']))
+                ->dehydrated(fn (Get $get) => !in_array($get('field'), ['type', 'account_name']))
                 ->required(fn (Get $get) => !in_array($get('field'), ['type', 'account_name'])),
         ];
     }
@@ -243,6 +246,51 @@ class RuleResource extends Resource
                             ->title('Kārtula izpildīta')
                             ->body("Piemērota: {$stats['applied']} darījumi (pārskatīti: {$stats['processed']})")
                             ->success()
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('preview')
+                    ->label('Pārbaudīt')
+                    ->icon('heroicon-o-magnifying-glass')
+                    ->color('warning')
+                    ->action(function (Rule $record) {
+                        $service  = app(AutoApprovalService::class);
+                        $criteria = $record->criteria ?? [];
+
+                        $draft     = 0;
+                        $completed = 0;
+                        $samples   = [];
+
+                        foreach (\App\Models\Transaction::with('account')->cursor() as $tx) {
+                            if ($service->testCriteria($tx, $criteria)) {
+                                if ($tx->status === 'COMPLETED') {
+                                    $completed++;
+                                } else {
+                                    $draft++;
+                                    if (count($samples) < 5) {
+                                        $samples[] = "[{$tx->status}] {$tx->account?->name}: "
+                                            . substr($tx->description ?? $tx->counterparty_name ?? '—', 0, 60)
+                                            . " ({$tx->amount})";
+                                    }
+                                }
+                            }
+                        }
+
+                        $total = $draft + $completed;
+                        $lines = ["Kopā atbilstoši: {$total}", "• DRAFT/NEEDS_REVIEW (izpildīsies): {$draft}", "• Jau COMPLETED: {$completed}"];
+                        if ($samples) {
+                            $lines[] = '';
+                            $lines[] = 'Piemēri (neapstiprināti):';
+                            foreach ($samples as $s) {
+                                $lines[] = $s;
+                            }
+                        }
+
+                        Notification::make()
+                            ->title("Pārbaude: {$record->name}")
+                            ->body(implode("\n", $lines))
+                            ->info()
+                            ->persistent()
                             ->send();
                     }),
 

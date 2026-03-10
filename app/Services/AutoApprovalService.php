@@ -191,6 +191,14 @@ class AutoApprovalService
     }
 
     /**
+     * Public wrapper for criteria matching — used by preview/test features.
+     */
+    public function testCriteria(Transaction $transaction, array $criteria): bool
+    {
+        return $this->matchesCriteria($transaction, $criteria);
+    }
+
+    /**
      * Apply a custom rule (from the rules table) to all non-completed transactions.
      */
     public function applyCustomRule(Rule $rule): array
