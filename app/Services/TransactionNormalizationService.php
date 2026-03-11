@@ -34,7 +34,7 @@ class TransactionNormalizationService
         // Mapping for both CSV and XML formats
         // CSV: 'Datums', 'Saņēmējs/Maksātājs', 'Apraksts', 'Summa', 'Valūta', 'Maksājuma atsauce'
         // XML: Same keys from TransactionImportService parsing
-        
+
         $amount = $this->parseAmount($row['Summa'] ?? 0);
         $currency = $row['Valūta'] ?? 'EUR';
         $date = Carbon::parse($row['Datums'] ?? now());
@@ -44,7 +44,7 @@ class TransactionNormalizationService
             'amount' => $amount,
             'currency' => $currency,
             'amount_eur' => $this->currencyService->convert($amount, $currency, 'EUR', $date),
-            'counterparty_name' => $row['Saņēmējs/Maksātājs'] ?? null,
+            'counterparty_name' => $this->normalizeCounterpartyName($row['Saņēmējs/Maksātājs'] ?? null),
             'counterparty_account' => $row['Kontrahenta konts'] ?? null,
             'description' => $row['Apraksts'] ?? null,
             'reference' => $row['Maksājuma atsauce'] ?? null,
@@ -60,21 +60,39 @@ class TransactionNormalizationService
         // Logic for PayPal (Gross, Fee, Net)
         // Usually PayPal has separate columns for Gross, Fee, Net
         // We might need to split this into multiple transactions/lines if we track fees separately
-        
+
         $amount = $this->parseAmount($row['Net'] ?? 0); // Or Gross?
         $currency = $row['Currency'] ?? 'EUR';
-        
+
         return [
             'occurred_at' => Carbon::parse($row['Date'] ?? now()),
             'amount' => $amount,
             'currency' => $currency,
             'amount_eur' => $this->currencyService->convert($amount, $currency, 'EUR'),
-            'counterparty_name' => $row['Name'] ?? null,
+            'counterparty_name' => $this->normalizeCounterpartyName($row['Name'] ?? null),
             'type' => $amount > 0 ? 'INCOME' : 'EXPENSE',
             'status' => 'DRAFT',
             'raw_payload' => $row,
             'fingerprint' => $this->generateFingerprint($row),
         ];
+    }
+
+    /**
+     * Strip bank-formatting artifacts from counterparty names.
+     *
+     * Some banks include a leading period in the creditor/debtor name field
+     * (e.g. ".ROŽKALNI. CAMPHILL NODIBINĀJUMS"). This strips leading dots and
+     * whitespace while preserving internal dots (abbreviations like "A.S.").
+     */
+    protected function normalizeCounterpartyName(?string $name): ?string
+    {
+        if ($name === null) {
+            return null;
+        }
+        // Remove leading dots and spaces only (not trailing — trailing dot may be abbreviation)
+        $name = preg_replace('/^[\s.]+/', '', $name);
+        $name = trim($name);
+        return $name !== '' ? $name : null;
     }
 
     protected function parseAmount($value): float

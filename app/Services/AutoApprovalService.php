@@ -299,10 +299,13 @@ class AutoApprovalService
             return true;
         }
 
-        // Resolve field value — support relation fields
+        // Resolve field value — support relation fields.
+        // counterparty_name is normalized (leading dots stripped) so that bank-formatted
+        // values like ".ROŽKALNI. CAMPHILL" match user-written criteria "ROŽKALNI. CAMPHILL".
         $fieldValue = match ($field) {
-            'account_name' => (string) ($transaction->account?->name ?? ''),
-            default        => (string) ($transaction->{$field} ?? ''),
+            'account_name'      => (string) ($transaction->account?->name ?? ''),
+            'counterparty_name' => ltrim((string) ($transaction->counterparty_name ?? ''), ". \t"),
+            default             => (string) ($transaction->{$field} ?? ''),
         };
 
         // mb_strtolower correctly lowercases Latvian characters (Ā→ā, Ē→ē, Š→š …)
