@@ -225,7 +225,9 @@ class RuleResource extends Resource
                     })
                     ->badge(),
 
-                // Conflict indicator — warns if another active rule shares identical criteria
+                // Conflict indicator — warns when another active rule has an identical
+                // AND-criteria set (same count + every criterion matches exactly).
+                // A single shared criterion is NOT sufficient — all must match.
                 Tables\Columns\TextColumn::make('conflict_warning')
                     ->label('⚠')
                     ->state(function (Rule $record): ?string {
@@ -233,30 +235,60 @@ class RuleResource extends Resource
                             return null;
                         }
 
-                        $mine = array_merge(
-                            is_array($record->criteria['and_criteria'] ?? null) ? $record->criteria['and_criteria'] : [],
-                            is_array($record->criteria['or_criteria']  ?? null) ? $record->criteria['or_criteria']  : []
-                        );
-                        if (empty($mine)) {
+                        $myAnd = is_array($record->criteria['and_criteria'] ?? null)
+                            ? array_values($record->criteria['and_criteria'])
+                            : [];
+                        $myOr = is_array($record->criteria['or_criteria'] ?? null)
+                            ? array_values($record->criteria['or_criteria'])
+                            : [];
+
+                        if (empty($myAnd) && empty($myOr)) {
                             return null;
                         }
 
-                        $others = Rule::where('is_active', true)->where('id', '!=', $record->id)->get();
-                        foreach ($others as $other) {
-                            $theirCriteria = array_merge(
-                                is_array($other->criteria['and_criteria'] ?? null) ? $other->criteria['and_criteria'] : [],
-                                is_array($other->criteria['or_criteria']  ?? null) ? $other->criteria['or_criteria']  : []
-                            );
-                            foreach ($mine as $cA) {
-                                foreach ($theirCriteria as $cB) {
-                                    if (($cA['field']    ?? '') === ($cB['field']    ?? '')
-                                        && ($cA['operator'] ?? '') === ($cB['operator'] ?? '')
-                                        && mb_strtolower((string) ($cA['value'] ?? ''), 'UTF-8')
-                                           === mb_strtolower((string) ($cB['value'] ?? ''), 'UTF-8')
-                                    ) {
-                                        return "Dublēts: {$other->name}";
+                        /** Check if two single criterion arrays are identical (field+op+value). */
+                        $criterionSame = static function (array $a, array $b): bool {
+                            return ($a['field']    ?? '') === ($b['field']    ?? '')
+                                && ($a['operator'] ?? '') === ($b['operator'] ?? '')
+                                && mb_strtolower((string) ($a['value'] ?? ''), 'UTF-8')
+                                   === mb_strtolower((string) ($b['value'] ?? ''), 'UTF-8');
+                        };
+
+                        /**
+                         * Returns true only when every criterion in $setA has an exact
+                         * counterpart in $setB (both sets must be the same size).
+                         */
+                        $setsEqual = static function (array $setA, array $setB) use ($criterionSame): bool {
+                            if (count($setA) !== count($setB)) {
+                                return false;
+                            }
+                            foreach ($setA as $cA) {
+                                $found = false;
+                                foreach ($setB as $cB) {
+                                    if ($criterionSame($cA, $cB)) {
+                                        $found = true;
+                                        break;
                                     }
                                 }
+                                if (!$found) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        };
+
+                        $others = Rule::where('is_active', true)->where('id', '!=', $record->id)->get();
+                        foreach ($others as $other) {
+                            $theirAnd = is_array($other->criteria['and_criteria'] ?? null)
+                                ? array_values($other->criteria['and_criteria'])
+                                : [];
+                            $theirOr = is_array($other->criteria['or_criteria'] ?? null)
+                                ? array_values($other->criteria['or_criteria'])
+                                : [];
+
+                            // Duplicate = AND sets are identical AND OR sets are identical
+                            if ($setsEqual($myAnd, $theirAnd) && $setsEqual($myOr, $theirOr)) {
+                                return "Dublēts: {$other->name}";
                             }
                         }
 
@@ -264,7 +296,7 @@ class RuleResource extends Resource
                     })
                     ->badge()
                     ->color('warning')
-                    ->tooltip('Šī aktīvā kārtula satur tādus pašus filtra nosacījumus kā cita aktīva kārtula — iespējams konflikts.'),
+                    ->tooltip('Šī aktīvā kārtula satur identiskus filtra nosacījumus kā cita aktīva kārtula — tās piemērosies tieši tiem pašiem darījumiem.'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Izveidots')
