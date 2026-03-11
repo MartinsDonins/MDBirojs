@@ -83,15 +83,36 @@ class AutoApprovalService
     /**
      * Find similar previous transaction.
      */
+    /**
+     * Normalize a counterparty name for comparison purposes.
+     *
+     * Strips two known Swedbank CAMT.053 artefacts:
+     *  - Leading period/space: ".ROŽKALNI. CAMPHILL …"
+     *  - Trailing bank-internal numeric reference: "… (2016050200283830-1)"
+     *    (10+ digit sequence, optional -N suffix; short refs like "(123)" kept)
+     */
+    private function normalizeCounterparty(string $name): string
+    {
+        $name = preg_replace('/^[\s.]+/', '', $name);
+        $name = preg_replace('/\s*\(\d{10,}[\d-]*\)\s*$/', '', $name);
+        return trim($name);
+    }
+
     protected function findSimilarTransaction(Transaction $transaction): ?Transaction
     {
-        if (!$transaction->counterparty_name) {
+        $normalized = $this->normalizeCounterparty((string) ($transaction->counterparty_name ?? ''));
+
+        if ($normalized === '') {
             return null;
         }
 
-        // Look for completed transactions with same counterparty
+        // Use LIKE so that bank-appended references or leading dots in stored
+        // counterparty_name values do not prevent matching recurring transactions
+        // from the same company (e.g. "… (2016050200283830-1)" vs "… (2020061500045678-2)").
+        $likePattern = '%' . $normalized . '%';
+
         $similar = Transaction::where('status', 'COMPLETED')
-            ->where('counterparty_name', $transaction->counterparty_name)
+            ->where('counterparty_name', 'LIKE', $likePattern)
             ->where('type', $transaction->type)
             ->where('id', '!=', $transaction->id)
             ->orderBy('occurred_at', 'desc')
@@ -300,17 +321,12 @@ class AutoApprovalService
         }
 
         // Resolve field value — support relation fields.
-        // counterparty_name is normalized at comparison time so that bank-formatted
-        // values stored in DB (leading dot, trailing bank reference in parens)
-        // match user-written criteria without those artefacts.
-        $rawCounterparty = (string) ($transaction->counterparty_name ?? '');
-        $rawCounterparty = preg_replace('/^[\s.]+/', '', $rawCounterparty);               // leading dot
-        $rawCounterparty = preg_replace('/\s*\(\d{10,}[\d-]*\)\s*$/', '', $rawCounterparty); // trailing ref
-        $rawCounterparty = trim($rawCounterparty);
-
+        // counterparty_name is normalised via normalizeCounterparty() so that bank
+        // artefacts (leading dot, trailing numeric bank reference) stored in the DB
+        // do not prevent matches against clean user-written criteria values.
         $fieldValue = match ($field) {
             'account_name'      => (string) ($transaction->account?->name ?? ''),
-            'counterparty_name' => $rawCounterparty,
+            'counterparty_name' => $this->normalizeCounterparty((string) ($transaction->counterparty_name ?? '')),
             default             => (string) ($transaction->{$field} ?? ''),
         };
 
