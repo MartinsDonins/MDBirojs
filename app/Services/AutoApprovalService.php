@@ -300,11 +300,17 @@ class AutoApprovalService
         }
 
         // Resolve field value — support relation fields.
-        // counterparty_name is normalized (leading dots stripped) so that bank-formatted
-        // values like ".ROŽKALNI. CAMPHILL" match user-written criteria "ROŽKALNI. CAMPHILL".
+        // counterparty_name is normalized at comparison time so that bank-formatted
+        // values stored in DB (leading dot, trailing bank reference in parens)
+        // match user-written criteria without those artefacts.
+        $rawCounterparty = (string) ($transaction->counterparty_name ?? '');
+        $rawCounterparty = preg_replace('/^[\s.]+/', '', $rawCounterparty);               // leading dot
+        $rawCounterparty = preg_replace('/\s*\(\d{10,}[\d-]*\)\s*$/', '', $rawCounterparty); // trailing ref
+        $rawCounterparty = trim($rawCounterparty);
+
         $fieldValue = match ($field) {
             'account_name'      => (string) ($transaction->account?->name ?? ''),
-            'counterparty_name' => ltrim((string) ($transaction->counterparty_name ?? ''), ". \t"),
+            'counterparty_name' => $rawCounterparty,
             default             => (string) ($transaction->{$field} ?? ''),
         };
 

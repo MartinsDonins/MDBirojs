@@ -80,17 +80,24 @@ class TransactionNormalizationService
     /**
      * Strip bank-formatting artifacts from counterparty names.
      *
-     * Some banks include a leading period in the creditor/debtor name field
-     * (e.g. ".ROŽKALNI. CAMPHILL NODIBINĀJUMS"). This strips leading dots and
-     * whitespace while preserving internal dots (abbreviations like "A.S.").
+     * Handles two known Swedbank CAMT.053 artefacts:
+     *  1. Leading period/space: ".ROŽKALNI. CAMPHILL NODIBINĀJUMS …"
+     *  2. Trailing bank-internal numeric reference in parentheses:
+     *     "… NODIBINĀJUMS (2016050200283830-1)"
+     *     The reference is 10+ digits optionally followed by -N.
+     *     Short numeric suffixes like "(123)" are left intact.
+     *
+     * Internal dots used as abbreviations (e.g. "A.S.") are preserved.
      */
     protected function normalizeCounterpartyName(?string $name): ?string
     {
         if ($name === null) {
             return null;
         }
-        // Remove leading dots and spaces only (not trailing — trailing dot may be abbreviation)
+        // 1. Remove leading dots and spaces
         $name = preg_replace('/^[\s.]+/', '', $name);
+        // 2. Remove trailing bank-reference "(10+ digits[-N])"
+        $name = preg_replace('/\s*\(\d{10,}[\d-]*\)\s*$/', '', $name);
         $name = trim($name);
         return $name !== '' ? $name : null;
     }
