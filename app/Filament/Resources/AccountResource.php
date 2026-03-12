@@ -36,6 +36,7 @@ class AccountResource extends Resource
                     ->options([
                         'BANK' => 'Bankas konts',
                         'PAYPAL' => 'PayPal',
+                        'PAYSERA' => 'Paysera',
                         'CASH' => 'Skaidra nauda',
                     ])
                     ->required(),
@@ -79,11 +80,13 @@ class AccountResource extends Resource
                     ->colors([
                         'primary' => 'BANK',
                         'info' => 'PAYPAL',
+                        'warning' => 'PAYSERA',
                         'success' => 'CASH',
                     ])
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'BANK' => 'Bankas konts',
                         'PAYPAL' => 'PayPal',
+                        'PAYSERA' => 'Paysera',
                         'CASH' => 'Skaidra nauda',
                         default => $state,
                     }),

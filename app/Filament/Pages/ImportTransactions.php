@@ -49,16 +49,22 @@ class ImportTransactions extends Page
                                 'SWED' => 'Swedbank (ISO 20022 XML)',
                                 'SEB' => 'SEB (ISO 20022 XML)',
                                 'PAYPAL' => 'PayPal',
+                                'PAYSERA' => 'Paysera (XLSX)',
                             ])
                             ->required()
                             ->helperText('Izvēlieties banku vai maksājumu pakalpojumu sniedzēju'),
-                        
+
                         Forms\Components\FileUpload::make('file')
                             ->label('Izraksta fails')
                             ->required()
-                            ->acceptedFileTypes(['text/xml', 'application/xml'])
+                            ->acceptedFileTypes([
+                                'text/xml',
+                                'application/xml',
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'application/vnd.ms-excel',
+                            ])
                             ->maxSize(10240) // 10MB
-                            ->helperText('Augšupielādējiet ISO 20022 XML failu no savas bankas')
+                            ->helperText('Swedbank/SEB: ISO 20022 XML fails. Paysera: XLSX fails.')
                             ->disk('local')
                             ->directory('imports')
                             ->visibility('private'),
@@ -78,11 +84,10 @@ class ImportTransactions extends Page
             
             // Import transactions
             $importService = app(TransactionImportService::class);
-            $stats = $importService->importFromXml(
-                $filePath,
-                $data['source'],
-                $data['account_id']
-            );
+            $stats = match ($data['source']) {
+                'PAYSERA' => $importService->importFromXlsx($filePath, $data['source'], $data['account_id']),
+                default   => $importService->importFromXml($filePath, $data['source'], $data['account_id']),
+            };
             
             // Show success notification
             $message = "Imports pabeigts: {$stats['imported']} importēti, {$stats['skipped']} izlaisti";

@@ -23,9 +23,11 @@ class TransactionNormalizationService
         // For now, we'll use a switch or simple mapping
         
         return match ($source) {
-            'SWED' => $this->normalizeSwedbank($rawData),
-            'PAYPAL' => $this->normalizePaypal($rawData),
-            default => throw new \Exception("Unknown source: $source"),
+            'SWED'    => $this->normalizeSwedbank($rawData),
+            'SEB'     => $this->normalizeSwedbank($rawData),
+            'PAYSERA' => $this->normalizeSwedbank($rawData), // same key structure as Swedbank
+            'PAYPAL'  => $this->normalizePaypal($rawData),
+            default   => throw new \Exception("Unknown source: $source"),
         };
     }
 
