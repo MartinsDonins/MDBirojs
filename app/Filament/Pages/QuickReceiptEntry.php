@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -26,7 +27,7 @@ class QuickReceiptEntry extends Page implements HasForms
 
     public function mount(): void
     {
-        $today = now()->format('Y-m-d');
+        $today = now()->format('d.m.Y');
         $this->form->fill([
             'rows' => [
                 ['date' => $today],
@@ -66,13 +67,12 @@ class QuickReceiptEntry extends Page implements HasForms
                 Forms\Components\Repeater::make('rows')
                     ->label('Darījumu rindas')
                     ->schema([
-                        Forms\Components\DatePicker::make('date')
+                        Forms\Components\TextInput::make('date')
                             ->label('Datums')
                             ->required()
-                            ->default(now())
-                            ->maxDate(now())
-                            ->native(false)
-                            ->displayFormat('d.m.Y')
+                            ->mask('99.99.9999')
+                            ->placeholder('12.02.2014')
+                            ->rules(['regex:/^\d{2}\.\d{2}\.\d{4}$/'])
                             ->columnSpan(1),
 
                         Forms\Components\TextInput::make('description')
@@ -132,7 +132,7 @@ class QuickReceiptEntry extends Page implements HasForms
             Transaction::create([
                 'account_id'    => $data['account_id'],
                 'category_id'   => $data['category_id'] ?? null,
-                'occurred_at'   => $row['date'],
+                'occurred_at'   => Carbon::createFromFormat('d.m.Y', $row['date']),
                 'amount'        => $amount,
                 'currency'      => 'EUR',
                 'amount_eur'    => $amount,
@@ -147,7 +147,7 @@ class QuickReceiptEntry extends Page implements HasForms
         }
 
         // Keep account/category, reset rows to 3 empty ones (pre-fill today's date)
-        $today = now()->format('Y-m-d');
+        $today = now()->format('d.m.Y');
         $this->form->fill([
             'account_id'  => $data['account_id'],
             'category_id' => $data['category_id'] ?? null,
