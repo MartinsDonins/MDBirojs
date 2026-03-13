@@ -72,6 +72,7 @@ class QuickReceiptEntry extends Page implements HasForms
                             ->default(now())
                             ->maxDate(now())
                             ->native(false)
+                            ->displayFormat('d.m.Y')
                             ->columnSpan(1),
 
                         Forms\Components\TextInput::make('description')
