@@ -26,9 +26,13 @@ class QuickReceiptEntry extends Page implements HasForms
 
     public function mount(): void
     {
+        $today = now()->format('Y-m-d');
         $this->form->fill([
-            'date'  => now()->format('Y-m-d'),
-            'rows'  => [[], [], []],
+            'rows' => [
+                ['date' => $today],
+                ['date' => $today],
+                ['date' => $today],
+            ],
         ]);
     }
 
@@ -39,16 +43,9 @@ class QuickReceiptEntry extends Page implements HasForms
 
         return $form
             ->schema([
-                Forms\Components\Section::make('Čeka pamatdati')
-                    ->description('Šie lauki attiecas uz visiem darījumiem zemāk')
+                Forms\Components\Section::make('Kopīgie lauki')
+                    ->description('Konts un kategorija attiecas uz visām rindām zemāk')
                     ->schema([
-                        Forms\Components\DatePicker::make('date')
-                            ->label('Čeka datums')
-                            ->required()
-                            ->default(now())
-                            ->maxDate(now())
-                            ->native(false),
-
                         Forms\Components\Select::make('account_id')
                             ->label('Kases konts')
                             ->options($cashAccounts)
@@ -64,11 +61,19 @@ class QuickReceiptEntry extends Page implements HasForms
                             ->nullable()
                             ->placeholder('Nav (neobligāts)'),
                     ])
-                    ->columns(3),
+                    ->columns(2),
 
                 Forms\Components\Repeater::make('rows')
                     ->label('Darījumu rindas')
                     ->schema([
+                        Forms\Components\DatePicker::make('date')
+                            ->label('Datums')
+                            ->required()
+                            ->default(now())
+                            ->maxDate(now())
+                            ->native(false)
+                            ->columnSpan(1),
+
                         Forms\Components\TextInput::make('description')
                             ->label('Apraksts')
                             ->required()
@@ -84,14 +89,14 @@ class QuickReceiptEntry extends Page implements HasForms
                             ->prefix('€')
                             ->columnSpan(1),
                     ])
-                    ->columns(4)
+                    ->columns(5)
                     ->addActionLabel('+ Pievienot rindu')
                     ->defaultItems(3)
                     ->minItems(1)
                     ->reorderable(false)
                     ->itemLabel(fn (array $state): ?string =>
                         (!empty($state['description']) && !empty($state['amount']))
-                            ? ('€ ' . number_format((float) $state['amount'], 2, ',', ' ') . ' — ' . $state['description'])
+                            ? ($state['date'] ?? '?') . ' · € ' . number_format((float) $state['amount'], 2, ',', ' ') . ' — ' . $state['description']
                             : null
                     ),
             ])
@@ -102,10 +107,10 @@ class QuickReceiptEntry extends Page implements HasForms
     {
         $data = $this->form->getState();
 
-        // Filter out empty rows (description or amount missing)
+        // Filter out empty rows (date, description or amount missing)
         $rows = array_values(array_filter(
             $data['rows'] ?? [],
-            fn ($row) => !empty($row['description']) && isset($row['amount']) && (float) $row['amount'] > 0
+            fn ($row) => !empty($row['date']) && !empty($row['description']) && isset($row['amount']) && (float) $row['amount'] > 0
         ));
 
         if (empty($rows)) {
@@ -126,7 +131,7 @@ class QuickReceiptEntry extends Page implements HasForms
             Transaction::create([
                 'account_id'    => $data['account_id'],
                 'category_id'   => $data['category_id'] ?? null,
-                'occurred_at'   => $data['date'],
+                'occurred_at'   => $row['date'],
                 'amount'        => $amount,
                 'currency'      => 'EUR',
                 'amount_eur'    => $amount,
@@ -140,12 +145,16 @@ class QuickReceiptEntry extends Page implements HasForms
             $total += abs($amount);
         }
 
-        // Keep date/account/category, reset rows to 3 empty ones
+        // Keep account/category, reset rows to 3 empty ones (pre-fill today's date)
+        $today = now()->format('Y-m-d');
         $this->form->fill([
-            'date'        => $data['date'],
             'account_id'  => $data['account_id'],
             'category_id' => $data['category_id'] ?? null,
-            'rows'        => [[], [], []],
+            'rows'        => [
+                ['date' => $today],
+                ['date' => $today],
+                ['date' => $today],
+            ],
         ]);
 
         Notification::make()
