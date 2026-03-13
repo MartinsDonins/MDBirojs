@@ -69,7 +69,6 @@ class ListCashOrders extends ListRecords
 
                             CashOrder::create([
                                 'transaction_id' => $tx->id,
-                                'account_id'     => $tx->account_id,
                                 'type'           => $cashType,
                                 'number'         => CashOrder::generateNumber($cashType, $year),
                                 'date'           => $tx->occurred_at ?? now(),

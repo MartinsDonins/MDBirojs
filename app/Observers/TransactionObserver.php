@@ -40,7 +40,6 @@ class TransactionObserver
 
         CashOrder::create([
             'transaction_id' => $transaction->id,
-            'account_id'     => $transaction->account_id,
             'type'           => $cashType,
             'number'         => CashOrder::generateNumber($cashType, $year),
             'date'           => $transaction->occurred_at ?? now(),
