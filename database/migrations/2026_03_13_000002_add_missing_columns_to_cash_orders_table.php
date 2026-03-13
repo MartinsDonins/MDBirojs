@@ -9,6 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('cash_orders', function (Blueprint $table) {
+            if (!Schema::hasColumn('cash_orders', 'amount')) {
+                $table->decimal('amount', 15, 2)->default(0)->after('number');
+            }
+
             if (!Schema::hasColumn('cash_orders', 'date')) {
                 $table->date('date')->nullable()->after('amount');
             }
@@ -30,7 +34,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('cash_orders', function (Blueprint $table) {
-            foreach (['date', 'basis', 'person', 'notes'] as $col) {
+            foreach (['amount', 'date', 'basis', 'person', 'notes'] as $col) {
                 if (Schema::hasColumn('cash_orders', $col)) {
                     $table->dropColumn($col);
                 }
