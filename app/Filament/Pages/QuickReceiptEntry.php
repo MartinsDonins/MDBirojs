@@ -29,6 +29,102 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
     public ?array $data = [];
 
+    /**
+     * Called from Alpine.js @paste handler in the Blade template.
+     * Receives raw clipboard text, parses each line into a repeater row,
+     * and appends them to the existing rows.
+     */
+    public function processBufferDirect(string $text): void
+    {
+        $lines = array_values(array_filter(
+            preg_split('/\r?\n/', trim($text)),
+            fn ($l) => trim($l) !== ''
+        ));
+
+        if (empty($lines)) {
+            return;
+        }
+
+        $today   = now()->format('d.m.Y');
+        $newRows = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+
+            // Split by tab (Excel / spreadsheet)
+            $cols = explode("\t", $line);
+
+            if (count($cols) >= 3) {
+                // Full row: date \t description \t amount
+                if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $cols[0], $m)) {
+                    $date   = sprintf('%02d.%02d.%s', (int) $m[1], (int) $m[2], $m[3]);
+                    $rest   = array_slice($cols, 1);
+                    $amount = $this->parseAmount(array_pop($rest));
+                    $desc   = implode(' ', $rest);
+                } else {
+                    $date   = $today;
+                    $amount = $this->parseAmount(array_pop($cols));
+                    $desc   = implode(' ', $cols);
+                }
+            } elseif (count($cols) === 2) {
+                // Two columns: could be (date, desc) or (desc, amount)
+                $date = $today;
+                if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $cols[0], $m)) {
+                    $date   = sprintf('%02d.%02d.%s', (int) $m[1], (int) $m[2], $m[3]);
+                    $amount = $this->parseAmount($cols[1]);
+                    $desc   = ($amount === null) ? $cols[1] : '';
+                } else {
+                    $amount = $this->parseAmount($cols[1]);
+                    $desc   = $cols[0];
+                }
+            } else {
+                // Single value — treat as description only
+                $date   = $today;
+                $desc   = $line;
+                $amount = null;
+            }
+
+            if (empty($desc)) {
+                continue;
+            }
+
+            $newRows[] = [
+                'date'        => $date,
+                'description' => $desc,
+                'amount'      => $amount !== null ? number_format($amount, 2, '.', '') : '',
+            ];
+        }
+
+        if (empty($newRows)) {
+            Notification::make()
+                ->title('Neizdevās atpazīt rindas')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        // Keep existing non-empty rows and append new ones
+        $current  = $this->data;
+        $existing = array_values(array_filter(
+            $current['rows'] ?? [],
+            fn ($r) => !empty($r['description']) || !empty($r['amount'])
+        ));
+
+        $this->form->fill([
+            'account_id'  => $current['account_id'] ?? null,
+            'category_id' => $current['category_id'] ?? null,
+            'rows'        => array_merge($existing, $newRows),
+        ]);
+
+        Notification::make()
+            ->title('Ielīmētas ' . count($newRows) . ' rindas')
+            ->success()
+            ->send();
+    }
+
     public function mount(): void
     {
         $today = now()->format('d.m.Y');
