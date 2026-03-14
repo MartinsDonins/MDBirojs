@@ -102,6 +102,179 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════════════════
+         ZONE 4: Excel import
+    ═══════════════════════════════════════════════════════════════════ --}}
+    <div
+        x-data="{ hasFile: false }"
+        class="mb-3 rounded-xl border-2 transition-colors duration-150"
+        :class="hasFile
+            ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30'
+            : 'border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900'"
+    >
+        <div class="px-4 pt-3 pb-1 flex items-center gap-2">
+            <x-heroicon-o-table-cells class="w-4 h-4 text-violet-500" />
+            <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Excel imports</span>
+            <span class="ml-auto text-xs text-gray-400">Darījumi + KII/KIO orderi automātiski</span>
+        </div>
+        <div class="px-4 pb-2 pt-1 flex flex-wrap items-center gap-3">
+            <input
+                type="file"
+                wire:model="excelUpload"
+                accept=".xlsx,.xls"
+                class="block text-sm text-gray-700 dark:text-gray-300
+                    file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0
+                    file:text-sm file:font-medium
+                    file:bg-violet-100 file:text-violet-700
+                    hover:file:bg-violet-200
+                    dark:file:bg-violet-900/40 dark:file:text-violet-300"
+                x-on:change="hasFile = $event.target.files.length > 0"
+            >
+            <div wire:loading wire:target="excelUpload" class="flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400">
+                <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Apstrādā...
+            </div>
+        </div>
+        <p class="px-4 pb-2 text-xs text-gray-400">
+            Kolonnas: <code class="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">Datums · Konts · Tips · Partneris · Apraksts · Summa · Valūta</code>
+            &nbsp;·&nbsp;
+            <a href="{{ route('excel.template.cash') }}" target="_blank"
+               class="text-violet-500 hover:text-violet-700 underline underline-offset-2">
+                Lejupielādēt paraugu (.xlsx)
+            </a>
+        </p>
+    </div>
+
+    {{-- ═══════════════════════════════════════════════════════════════════
+         EXCEL IMPORT PREVIEW
+    ═══════════════════════════════════════════════════════════════════ --}}
+    @if (!empty($previewRows))
+    <div class="mb-6 rounded-xl border border-violet-200 dark:border-violet-800 bg-white dark:bg-gray-900 overflow-hidden shadow-sm">
+
+        {{-- Header --}}
+        <div class="px-4 py-3 flex flex-wrap items-center gap-3 bg-violet-50 dark:bg-violet-950/40 border-b border-violet-200 dark:border-violet-800">
+            <x-heroicon-o-eye class="w-4 h-4 text-violet-500 shrink-0" />
+            <span class="text-sm font-semibold text-violet-800 dark:text-violet-200">
+                Priekšskatījums — {{ count($previewRows) }} rindas
+            </span>
+            @php
+                $importCount = count(array_filter($previewRows, fn($r) => empty($r['errors']) && !$r['skip']));
+                $errorCount  = count(array_filter($previewRows, fn($r) => !empty($r['errors'])));
+            @endphp
+            @if($importCount > 0)
+                <span class="text-xs font-medium text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded-full">
+                    {{ $importCount }} tiks importētas
+                </span>
+            @endif
+            @if($errorCount > 0)
+                <span class="text-xs font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40 px-2 py-0.5 rounded-full">
+                    {{ $errorCount }} ar kļūdām (izlaistas)
+                </span>
+            @endif
+        </div>
+
+        {{-- Table --}}
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-800 text-left text-gray-500 dark:text-gray-400 uppercase tracking-wide text-[10px]">
+                        <th class="px-2 py-2 w-8 text-center">#</th>
+                        <th class="px-2 py-2 whitespace-nowrap">Datums</th>
+                        <th class="px-2 py-2 whitespace-nowrap">Konts</th>
+                        <th class="px-2 py-2 whitespace-nowrap">Tips</th>
+                        <th class="px-2 py-2 whitespace-nowrap">Partneris</th>
+                        <th class="px-2 py-2">Apraksts</th>
+                        <th class="px-2 py-2 text-right whitespace-nowrap">Summa</th>
+                        <th class="px-2 py-2 whitespace-nowrap">Val.</th>
+                        <th class="px-2 py-2">Statuss</th>
+                        <th class="px-2 py-2 text-center whitespace-nowrap">Izlaist</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach ($previewRows as $i => $row)
+                        <tr class="transition-opacity {{ $row['skip'] ? 'opacity-35' : (empty($row['errors']) ? 'hover:bg-gray-50 dark:hover:bg-gray-800/50' : 'bg-red-50 dark:bg-red-950/20') }}">
+                            <td class="px-2 py-1.5 text-center text-gray-400">{{ $row['row_num'] }}</td>
+                            <td class="px-2 py-1.5 font-mono whitespace-nowrap">{{ $row['date'] }}</td>
+                            <td class="px-2 py-1.5 whitespace-nowrap">{{ $row['account'] }}</td>
+                            <td class="px-2 py-1.5 whitespace-nowrap">
+                                @if($row['type'] === 'INCOME')
+                                    <span class="inline-flex items-center gap-0.5 text-green-700 dark:text-green-400 font-semibold">
+                                        ↓ Saņemts
+                                    </span>
+                                @elseif($row['type'] === 'EXPENSE')
+                                    <span class="inline-flex items-center gap-0.5 text-red-600 dark:text-red-400 font-semibold">
+                                        ↑ Izsniegts
+                                    </span>
+                                @else
+                                    <span class="text-gray-400 italic">{{ $row['type_raw'] }}</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1.5 text-gray-600 dark:text-gray-400 max-w-[120px] truncate" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
+                            <td class="px-2 py-1.5 max-w-xs truncate" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
+                            <td class="px-2 py-1.5 text-right font-mono font-medium tabular-nums whitespace-nowrap">
+                                @if($row['amount'] !== null)
+                                    {{ number_format($row['amount'], 2, ',', ' ') }}
+                                @endif
+                            </td>
+                            <td class="px-2 py-1.5 text-gray-500 whitespace-nowrap">{{ $row['currency'] }}</td>
+                            <td class="px-2 py-1.5">
+                                @if(empty($row['errors']))
+                                    <span class="text-green-600 dark:text-green-400 font-bold">✓</span>
+                                @else
+                                    <span class="text-red-500 text-[10px]" title="{{ implode(' · ', $row['errors']) }}">
+                                        ⚠ {{ implode(' · ', $row['errors']) }}
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-1.5 text-center">
+                                <input
+                                    type="checkbox"
+                                    wire:click="togglePreviewSkip({{ $i }})"
+                                    @checked($row['skip'])
+                                    class="rounded border-gray-300 dark:border-gray-600 text-violet-600 focus:ring-violet-500 cursor-pointer"
+                                >
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Confirm / Cancel --}}
+        <div class="px-4 py-3 border-t border-violet-200 dark:border-violet-800 flex flex-wrap items-center gap-3 bg-violet-50/50 dark:bg-violet-950/20">
+            <button
+                type="button"
+                wire:click="confirmExcelImport"
+                wire:loading.attr="disabled"
+                wire:target="confirmExcelImport"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors"
+            >
+                <x-heroicon-s-check class="w-4 h-4" />
+                <span wire:loading.remove wire:target="confirmExcelImport">
+                    Apstiprināt importu ({{ $importCount }} rindas)
+                </span>
+                <span wire:loading wire:target="confirmExcelImport">
+                    Saglabā...
+                </span>
+            </button>
+            <button
+                type="button"
+                wire:click="cancelExcelImport"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+                Atcelt
+            </button>
+            <p class="ml-auto text-xs text-gray-400">
+                Atzīmē "Izlaist" rindas, ko nevēlies importēt. Darījumi ar kļūdām tiek izlaisti automātiski.
+            </p>
+        </div>
+
+    </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════════════════════
          MAIN FORM
     ═══════════════════════════════════════════════════════════════════ --}}
     <x-filament-panels::form wire:submit="save">

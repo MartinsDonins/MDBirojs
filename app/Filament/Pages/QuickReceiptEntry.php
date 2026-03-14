@@ -2,12 +2,18 @@
 
 namespace App\Filament\Pages;
 
+use App\Exports\CashImportTemplate;
 use App\Models\Account;
+use App\Models\CashOrder;
 use App\Models\Category;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Filament\Actions\Action as HeaderAction;
+use Livewire\WithFileUploads;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms;
@@ -21,6 +27,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 {
     use InteractsWithForms;
     use InteractsWithActions;
+    use WithFileUploads;
 
     protected static ?string $navigationIcon  = 'heroicon-o-document-plus';
     protected static ?string $navigationLabel = 'Ātrā čeku ievade';
@@ -29,6 +36,12 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
     protected static ?int    $navigationSort  = 6;
 
     public ?array $data = [];
+
+    /** Livewire temp file upload for Excel import */
+    public $excelUpload = null;
+
+    /** Parsed preview rows from the Excel file */
+    public array $previewRows = [];
 
     /**
      * Called from Alpine.js @paste handler in the Blade template.
@@ -473,6 +486,232 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
         $num = (float) $cleaned;
 
         return $num > 0 ? $num : null;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Excel Import
+    // ──────────────────────────────────────────────────────────────
+
+    /** Triggered automatically by Livewire after the file is uploaded */
+    public function updatedExcelUpload(): void
+    {
+        if ($this->excelUpload) {
+            $this->parseExcelFile();
+        }
+    }
+
+    private function parseExcelFile(): void
+    {
+        try {
+            $path = $this->excelUpload->getRealPath();
+            $spreadsheet = IOFactory::load($path);
+            $sheet = $spreadsheet->getActiveSheet();
+            // $formatData=false so dates come as raw serial numbers (we handle them)
+            $allRows = $sheet->toArray(null, true, false, false);
+
+            if (empty($allRows)) {
+                Notification::make()->title('Fails ir tukšs')->warning()->send();
+                return;
+            }
+
+            array_shift($allRows); // remove header row
+
+            $accounts = Account::whereIn('type', ['CASH', 'PAYPAL', 'PAYSERA'])
+                ->get()
+                ->mapWithKeys(fn ($a) => [mb_strtolower(trim($a->name)) => $a]);
+
+            $this->previewRows = [];
+
+            foreach ($allRows as $rowIdx => $row) {
+                while (count($row) < 7) {
+                    $row[] = null;
+                }
+                [$dateRaw, $accountName, $typeRaw, $partnerRaw, $descRaw, $amountRaw, $currencyRaw] = $row;
+
+                // Skip completely blank rows
+                $allEmpty = array_filter(array_map(fn ($v) => trim((string) $v), $row)) === [];
+                if ($allEmpty) {
+                    continue;
+                }
+
+                $errors = [];
+
+                // --- Date ---
+                $date = null;
+                if ($dateRaw !== null && $dateRaw !== '') {
+                    if (is_numeric($dateRaw) && $dateRaw > 0) {
+                        try {
+                            $dateObj = ExcelDate::excelToDateTimeObject((float) $dateRaw);
+                            $date = $dateObj->format('d.m.Y');
+                        } catch (\Exception) {
+                            $errors[] = 'Nepareizs datuma formāts';
+                        }
+                    } else {
+                        $date = $this->parseDateString(trim((string) $dateRaw));
+                        if (!$date) {
+                            $errors[] = "Nepareizs datums: {$dateRaw}";
+                        }
+                    }
+                } else {
+                    $errors[] = 'Datums ir obligāts';
+                }
+
+                // --- Account ---
+                $accountNameStr = trim((string) ($accountName ?? ''));
+                $accountKey     = mb_strtolower($accountNameStr);
+                $account        = $accounts->get($accountKey);
+                if (!$account && $accountKey !== '') {
+                    // Partial/case-insensitive match
+                    $account = $accounts->first(
+                        fn ($a, $k) => str_contains($k, $accountKey) || str_contains($accountKey, $k)
+                    );
+                }
+                if (!$account) {
+                    $errors[] = "Konts '{$accountNameStr}' nav atrasts sistēmā";
+                }
+
+                // --- Type ---
+                $typeNorm = mb_strtolower(trim((string) ($typeRaw ?? '')));
+                $typeMap  = [
+                    'saņemts'  => 'INCOME',  'sanems'    => 'INCOME',
+                    'kii'      => 'INCOME',  'income'    => 'INCOME',
+                    'izsniegts' => 'EXPENSE', 'kio'      => 'EXPENSE',
+                    'expense'  => 'EXPENSE',
+                ];
+                $type = $typeMap[$typeNorm] ?? null;
+                if (!$type) {
+                    $errors[] = "Tips '{$typeRaw}' nav atpazīts — izmanto: Saņemts / Izsniegts";
+                }
+
+                // --- Amount ---
+                $amount = $this->parseAmount((string) ($amountRaw ?? ''));
+                if ($amount === null) {
+                    $errors[] = 'Nepareiza summa';
+                }
+
+                // --- Description ---
+                $desc = trim((string) ($descRaw ?? ''));
+                if ($desc === '') {
+                    $errors[] = 'Apraksts ir obligāts';
+                }
+
+                $this->previewRows[] = [
+                    'row_num'     => $rowIdx + 2,
+                    'date'        => $date ?? trim((string) ($dateRaw ?? '')),
+                    'account_id'  => $account?->id,
+                    'account'     => $accountNameStr,
+                    'type'        => $type,
+                    'type_raw'    => trim((string) ($typeRaw ?? '')),
+                    'partner'     => trim((string) ($partnerRaw ?? '')),
+                    'description' => $desc,
+                    'amount'      => $amount,
+                    'currency'    => strtoupper(trim((string) ($currencyRaw ?? 'EUR'))) ?: 'EUR',
+                    'errors'      => $errors,
+                    'skip'        => !empty($errors),
+                ];
+            }
+
+            // Drop rows that are blank in all meaningful fields
+            $this->previewRows = array_values(array_filter(
+                $this->previewRows,
+                fn ($r) => !empty($r['description']) || !empty($r['account']) || $r['amount'] !== null
+            ));
+
+            if (empty($this->previewRows)) {
+                Notification::make()->title('Nav datu rindu')->warning()->send();
+                return;
+            }
+
+            $valid = count(array_filter($this->previewRows, fn ($r) => empty($r['errors'])));
+            $total = count($this->previewRows);
+            $invalid = $total - $valid;
+
+            Notification::make()
+                ->title("Nolasītas {$total} rindas")
+                ->body("{$valid} derīgas" . ($invalid > 0 ? ", {$invalid} ar kļūdām (atzīmētas Izlaist)" : '') . ". Pārskatiet zemāk.")
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Notification::make()->title('Kļūda lasot failu')->body($e->getMessage())->danger()->send();
+            $this->previewRows = [];
+        }
+    }
+
+    public function togglePreviewSkip(int $index): void
+    {
+        if (isset($this->previewRows[$index])) {
+            $this->previewRows[$index]['skip'] = !$this->previewRows[$index]['skip'];
+        }
+    }
+
+    public function cancelExcelImport(): void
+    {
+        $this->previewRows = [];
+        $this->excelUpload = null;
+    }
+
+    public function confirmExcelImport(): void
+    {
+        $validRows = array_values(array_filter(
+            $this->previewRows,
+            fn ($r) => !$r['skip'] && empty($r['errors'])
+        ));
+
+        if (empty($validRows)) {
+            Notification::make()->title('Nav derīgu rindu importam')->warning()->send();
+            return;
+        }
+
+        $created     = 0;
+        $totalAmount = 0.0;
+
+        DB::transaction(function () use ($validRows, &$created, &$totalAmount): void {
+            foreach ($validRows as $row) {
+                $isIncome    = $row['type'] === 'INCOME';
+                $amountSigned = $isIncome ? $row['amount'] : -$row['amount'];
+                $date        = Carbon::createFromFormat('d.m.Y', $row['date']);
+                $year        = $date->year;
+
+                $tx = Transaction::create([
+                    'account_id'        => $row['account_id'],
+                    'occurred_at'       => $date,
+                    'amount'            => $amountSigned,
+                    'currency'          => $row['currency'],
+                    'amount_eur'        => $amountSigned,
+                    'exchange_rate'     => 1,
+                    'description'       => $row['description'],
+                    'counterparty_name' => $row['partner'],
+                    'type'              => $row['type'],
+                    'status'            => 'COMPLETED',
+                ]);
+
+                $cashType = $row['type'];
+                CashOrder::create([
+                    'transaction_id' => $tx->id,
+                    'account_id'     => $row['account_id'],
+                    'type'           => $cashType,
+                    'number'         => CashOrder::generateNumber($cashType, $year),
+                    'date'           => $date,
+                    'amount'         => $row['amount'],
+                    'currency'       => $row['currency'],
+                    'basis'          => $row['description'],
+                    'person'         => $row['partner'],
+                ]);
+
+                $created++;
+                $totalAmount += $row['amount'];
+            }
+        });
+
+        $this->previewRows = [];
+        $this->excelUpload = null;
+
+        Notification::make()
+            ->title("Importēti {$created} darījumi + kases orderi")
+            ->body('Kopā: € ' . number_format($totalAmount, 2, ',', ' '))
+            ->success()
+            ->send();
     }
 
     public function save(): void
