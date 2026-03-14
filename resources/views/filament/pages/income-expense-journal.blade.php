@@ -11,7 +11,11 @@
                 </p>
             </div>
 
-            @php $yearsTotalCols = 2 + count($accounts) * 3 + 4; @endphp
+            @php
+                $incomeColCount  = count($journalIncomeColumns);
+                $expenseColCount = count($journalExpenseColumns);
+                $yearsTotalCols  = 2 + count($accounts) * 3 + 1 + ($incomeColCount + 1) + ($expenseColCount + 1) + 1;
+            @endphp
             <div x-data="{ expanded: null }" class="fi-ta-ctn rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-x-auto">
                 <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                     <thead>
@@ -23,8 +27,8 @@
                             <th colspan="3" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 text-center text-sm font-medium text-gray-950 dark:text-white" title="{{ $acc->name }}">{{ mb_substr($acc->name, 0, 14) }}</th>
                             @endforeach
                             <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom whitespace-nowrap" style="min-width:100px">Bilance</th>
-                            <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom whitespace-nowrap" style="min-width:100px">Ieņēmumi</th>
-                            <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom whitespace-nowrap" style="min-width:100px">Izdevumi</th>
+                            <th colspan="{{ $incomeColCount + 1 }}" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Ieņēmumi (EUR)</th>
+                            <th colspan="{{ $expenseColCount + 1 }}" class="px-1 py-2 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-center text-sm font-medium text-gray-950 dark:text-white">Izdevumi (EUR)</th>
                             <th rowspan="2" class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-end text-sm font-medium text-gray-950 dark:text-white align-bottom whitespace-nowrap" style="min-width:100px">Rezultāts</th>
                         </tr>
                         <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px]">
@@ -33,6 +37,16 @@
                                 <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-red-600 dark:text-red-400 bg-gray-100 dark:bg-gray-800 whitespace-nowrap" style="min-width:85px" title="Izdevumi">Izd.</th>
                                 <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 whitespace-nowrap" style="min-width:90px" title="Atlikums">Atlikums</th>
                             @endforeach
+                            {{-- Income analysis sub-headers --}}
+                            @foreach($journalIncomeColumns as $col)
+                                <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 whitespace-nowrap bg-gray-100 dark:bg-gray-800" style="min-width:75px" title="{{ $col['name'] }}">{{ $col['abbr'] }}</th>
+                            @endforeach
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-green-100 dark:bg-green-900/20 text-gray-900 dark:text-gray-100 whitespace-nowrap" style="min-width:80px">Kopā</th>
+                            {{-- Expense analysis sub-headers --}}
+                            @foreach($journalExpenseColumns as $col)
+                                <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 whitespace-nowrap bg-gray-100 dark:bg-gray-800" style="min-width:75px" title="{{ $col['name'] }}">{{ $col['abbr'] }}</th>
+                            @endforeach
+                            <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-red-100 dark:bg-red-900/20 text-gray-900 dark:text-gray-100 whitespace-nowrap" style="min-width:80px">Kopā</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-white/5">
@@ -89,11 +103,21 @@
                                 <td class="px-3 py-3 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 {{ $yearData['end_balance'] >= 0 ? 'text-gray-950 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
                                     {{ number_format($yearData['end_balance'], 2, ',', ' ') }} €
                                 </td>
-                                <td class="px-3 py-3 text-sm text-end whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-green-50/50 dark:bg-green-900/10 text-success-600 dark:text-success-400">
-                                    {{ number_format($yearData['income'], 2, ',', ' ') }} €
+                                @foreach($journalIncomeColumns as $i => $col)
+                                <td class="px-2 py-3 text-xs text-end border border-gray-300 dark:border-gray-700 text-success-700 dark:text-success-400 whitespace-nowrap">
+                                    @if(($yearData['income_cols'][$i] ?? 0) > 0){{ number_format($yearData['income_cols'][$i], 2, ',', ' ') }}@endif
                                 </td>
-                                <td class="px-3 py-3 text-sm text-end whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-red-50/50 dark:bg-red-900/10 text-danger-600 dark:text-danger-400">
-                                    {{ number_format($yearData['expense'], 2, ',', ' ') }} €
+                                @endforeach
+                                <td class="px-2 py-3 text-xs text-end font-bold border border-gray-300 dark:border-gray-700 bg-green-50/60 dark:bg-green-900/10 text-success-700 dark:text-success-400 whitespace-nowrap">
+                                    @if($yearData['income_kopaa'] > 0){{ number_format($yearData['income_kopaa'], 2, ',', ' ') }}@endif
+                                </td>
+                                @foreach($journalExpenseColumns as $i => $col)
+                                <td class="px-2 py-3 text-xs text-end border border-gray-300 dark:border-gray-700 text-danger-700 dark:text-danger-400 whitespace-nowrap">
+                                    @if(($yearData['expense_cols'][$i] ?? 0) > 0){{ number_format($yearData['expense_cols'][$i], 2, ',', ' ') }}@endif
+                                </td>
+                                @endforeach
+                                <td class="px-2 py-3 text-xs text-end font-bold border border-gray-300 dark:border-gray-700 bg-red-50/60 dark:bg-red-900/10 text-danger-700 dark:text-danger-400 whitespace-nowrap">
+                                    @if($yearData['expense_kopaa'] > 0){{ number_format($yearData['expense_kopaa'], 2, ',', ' ') }}@endif
                                 </td>
                                 <td class="px-3 py-3 text-sm text-end font-medium whitespace-nowrap border border-gray-300 dark:border-gray-700 {{ $yearData['result'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
                                     {{ number_format($yearData['result'], 2, ',', ' ') }} €
@@ -232,13 +256,23 @@
                                 <td class="border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700"></td>
                                 <td class="border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700"></td>
                             @endforeach
-                            {{-- Grand totals: balance, income, expense, result --}}
+                            {{-- Grand totals: balance, income breakdown, expense breakdown, result --}}
                             <td class="border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700"></td>
-                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-green-200 dark:bg-green-900/30 text-green-900 dark:text-green-300">
-                                {{ number_format(collect($yearlySummary)->sum('income'), 2, ',', ' ') }} €
+                            @foreach($journalIncomeColumns as $i => $col)
+                            <td class="px-2 py-2 text-xs text-end font-semibold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700 text-green-900 dark:text-green-300">
+                                {{ number_format(collect($yearlySummary)->sum(fn ($y) => $y['income_cols'][$i] ?? 0), 2, ',', ' ') }}
                             </td>
-                            <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-red-200 dark:bg-red-900/30 text-red-900 dark:text-red-300">
-                                {{ number_format(collect($yearlySummary)->sum('expense'), 2, ',', ' ') }} €
+                            @endforeach
+                            <td class="px-2 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-green-200 dark:bg-green-900/30 text-green-900 dark:text-green-300">
+                                {{ number_format(collect($yearlySummary)->sum('income_kopaa'), 2, ',', ' ') }}
+                            </td>
+                            @foreach($journalExpenseColumns as $i => $col)
+                            <td class="px-2 py-2 text-xs text-end font-semibold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700 text-red-900 dark:text-red-300">
+                                {{ number_format(collect($yearlySummary)->sum(fn ($y) => $y['expense_cols'][$i] ?? 0), 2, ',', ' ') }}
+                            </td>
+                            @endforeach
+                            <td class="px-2 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-red-200 dark:bg-red-900/30 text-red-900 dark:text-red-300">
+                                {{ number_format(collect($yearlySummary)->sum('expense_kopaa'), 2, ',', ' ') }}
                             </td>
                             @php $grandResult = collect($yearlySummary)->sum('income') - collect($yearlySummary)->sum('expense'); @endphp
                             <td class="px-3 py-2 text-sm text-end font-bold whitespace-nowrap border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-700 {{ $grandResult >= 0 ? 'text-green-900 dark:text-green-300' : 'text-red-900 dark:text-red-300' }}">
