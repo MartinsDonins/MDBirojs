@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use Filament\Actions\Action as HeaderAction;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -106,18 +107,16 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
             return;
         }
 
-        // Keep existing non-empty rows and append new ones
-        $current  = $this->data;
-        $existing = array_values(array_filter(
-            $current['rows'] ?? [],
+        // Remove blank placeholder rows (date-only rows from mount), keep non-empty ones
+        $this->data['rows'] = array_filter(
+            $this->data['rows'] ?? [],
             fn ($r) => !empty($r['description']) || !empty($r['amount'])
-        ));
+        );
 
-        $this->form->fill([
-            'account_id'  => $current['account_id'] ?? null,
-            'category_id' => $current['category_id'] ?? null,
-            'rows'        => array_merge($existing, $newRows),
-        ]);
+        // Append new rows directly — no form->fill() so existing field values are preserved
+        foreach ($newRows as $row) {
+            $this->data['rows'][(string) Str::orderedUuid()] = $row;
+        }
 
         Notification::make()
             ->title('Ielīmētas ' . count($newRows) . ' rindas')
@@ -273,7 +272,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
     /**
      * Fill the DATE column of existing rows (top-to-bottom) from pasted text.
-     * One date per line. Creates new partial rows if more dates than rows.
+     * Directly patches $this->data so other fields (description, amount) are untouched.
      */
     public function processDateBuffer(string $text): void
     {
@@ -286,30 +285,19 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
             return;
         }
 
-        $current = $this->data;
-        $rows    = array_values($current['rows'] ?? []);
-        $filled  = 0;
+        // Preserve UUID keys — only overwrite the 'date' field per row
+        $keys   = array_keys($this->data['rows'] ?? []);
+        $filled = 0;
 
         foreach ($values as $i => $val) {
             $date = $this->parseDateString(trim($val));
-            if ($date === null) {
+            if ($date === null || !isset($keys[$i])) {
                 continue;
             }
 
-            if (isset($rows[$i])) {
-                $rows[$i]['date'] = $date;
-            } else {
-                $rows[] = ['date' => $date, 'description' => '', 'amount' => ''];
-            }
-
+            $this->data['rows'][$keys[$i]]['date'] = $date;
             $filled++;
         }
-
-        $this->form->fill([
-            'account_id'  => $current['account_id'] ?? null,
-            'category_id' => $current['category_id'] ?? null,
-            'rows'        => $rows,
-        ]);
 
         Notification::make()
             ->title("Aizpildīti {$filled} datumi")
@@ -319,7 +307,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
     /**
      * Fill the AMOUNT column of existing rows (top-to-bottom) from pasted text.
-     * One amount per line. Creates new partial rows if more amounts than rows.
+     * Directly patches $this->data so other fields (date, description) are untouched.
      */
     public function processAmountBuffer(string $text): void
     {
@@ -332,32 +320,19 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
             return;
         }
 
-        $current = $this->data;
-        $rows    = array_values($current['rows'] ?? []);
-        $filled  = 0;
+        // Preserve UUID keys — only overwrite the 'amount' field per row
+        $keys   = array_keys($this->data['rows'] ?? []);
+        $filled = 0;
 
         foreach ($values as $i => $val) {
             $amount = $this->parseAmount(trim($val));
-            if ($amount === null) {
+            if ($amount === null || !isset($keys[$i])) {
                 continue;
             }
 
-            $formatted = number_format($amount, 2, '.', '');
-
-            if (isset($rows[$i])) {
-                $rows[$i]['amount'] = $formatted;
-            } else {
-                $rows[] = ['date' => now()->format('d.m.Y'), 'description' => '', 'amount' => $formatted];
-            }
-
+            $this->data['rows'][$keys[$i]]['amount'] = number_format($amount, 2, '.', '');
             $filled++;
         }
-
-        $this->form->fill([
-            'account_id'  => $current['account_id'] ?? null,
-            'category_id' => $current['category_id'] ?? null,
-            'rows'        => $rows,
-        ]);
 
         Notification::make()
             ->title("Aizpildītas {$filled} summas")
