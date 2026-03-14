@@ -2,18 +2,16 @@
 
 namespace App\Filament\Pages;
 
-use App\Exports\CashImportTemplate;
 use App\Models\Account;
 use App\Models\CashOrder;
 use App\Models\Category;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Filament\Actions\Action as HeaderAction;
-use Livewire\WithFileUploads;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms;
@@ -27,7 +25,6 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 {
     use InteractsWithForms;
     use InteractsWithActions;
-    use WithFileUploads;
 
     protected static ?string $navigationIcon  = 'heroicon-o-document-plus';
     protected static ?string $navigationLabel = 'Ātrā čeku ievade';
@@ -37,10 +34,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
     public ?array $data = [];
 
-    /** Livewire temp file upload for Excel import */
-    public $excelUpload = null;
-
-    /** Parsed preview rows from the Excel file */
+    /** Parsed preview rows from the Excel file (shown before confirming import) */
     public array $previewRows = [];
 
     /**
@@ -181,7 +175,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
         return $form
             ->schema([
                 Forms\Components\Section::make('Kopīgie lauki')
-                    ->description('Konts un kategorija attiecas uz visām rindām zemāk')
+                    ->description('Konts un noklusējuma kategorija — rindās var norādīt citu kategoriju')
                     ->schema([
                         Forms\Components\Select::make('account_id')
                             ->label('Konts')
@@ -220,7 +214,15 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                             ->label('Apraksts')
                             ->required()
                             ->placeholder('Piem.: Biroja preces, benzīns, ...')
-                            ->columnSpan(3),
+                            ->columnSpan(2),
+
+                        Forms\Components\Select::make('category_id')
+                            ->label('Kategorija')
+                            ->options($categories)
+                            ->searchable()
+                            ->nullable()
+                            ->placeholder('—')
+                            ->columnSpan(2),
 
                         Forms\Components\TextInput::make('amount')
                             ->label('Summa (€)')
@@ -231,7 +233,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                             ->prefix('€')
                             ->columnSpan(1),
                     ])
-                    ->columns(7)
+                    ->columns(8)
                     ->addActionLabel('+ Pievienot rindu')
                     ->defaultItems(3)
                     ->minItems(1)
@@ -251,6 +253,45 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
     protected function getHeaderActions(): array
     {
         return [
+            HeaderAction::make('excel_import')
+                ->label('Importēt no Excel')
+                ->icon('heroicon-o-table-cells')
+                ->color('violet')
+                ->modalHeading('Importēt darījumus no Excel')
+                ->modalWidth('lg')
+                ->form([
+                    Forms\Components\FileUpload::make('excel_file')
+                        ->label('Excel fails (.xlsx / .xls)')
+                        ->disk('local')
+                        ->directory('excel-imports-tmp')
+                        ->visibility('private')
+                        ->acceptedFileTypes([
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'application/vnd.ms-excel',
+                        ])
+                        ->maxSize(10240)
+                        ->required(),
+
+                    Forms\Components\Placeholder::make('template_hint')
+                        ->label('')
+                        ->content(new HtmlString(
+                            '<a href="/admin/excel-template/cash" target="_blank"'
+                            . ' class="inline-flex items-center gap-1 text-violet-600 dark:text-violet-400 text-sm hover:underline">'
+                            . '📥 Lejupielādēt paraugu (.xlsx)</a><br>'
+                            . '<span class="text-xs text-gray-500 dark:text-gray-400 mt-1 block">'
+                            . 'Kolonnas: <b>Datums · Konts · Tips · Partneris · Apraksts · Summa · Valūta</b><br>'
+                            . 'Tips: <b>Saņemts</b> = KII (ieņēmums) &nbsp;·&nbsp; <b>Izsniegts</b> = KIO (izdevums)</span>'
+                        )),
+                ])
+                ->action(function (array $data): void {
+                    if (empty($data['excel_file'])) {
+                        return;
+                    }
+                    $path = Storage::disk('local')->path($data['excel_file']);
+                    $this->parseExcelFileFromPath($path);
+                    Storage::disk('local')->delete($data['excel_file']);
+                }),
+
             HeaderAction::make('paste_rows')
                 ->label('Ielīmēt no Excel')
                 ->icon('heroicon-o-clipboard-document-list')
@@ -492,19 +533,11 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
     // Excel Import
     // ──────────────────────────────────────────────────────────────
 
-    /** Triggered automatically by Livewire after the file is uploaded */
-    public function updatedExcelUpload(): void
-    {
-        if ($this->excelUpload) {
-            $this->parseExcelFile();
-        }
-    }
-
-    private function parseExcelFile(): void
+    /** Called from the excel_import header action after file upload */
+    private function parseExcelFileFromPath(string $path): void
     {
         try {
-            $path = $this->excelUpload->getRealPath();
-            $spreadsheet = IOFactory::load($path);
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
             $sheet = $spreadsheet->getActiveSheet();
             // $formatData=false so dates come as raw serial numbers (we handle them)
             $allRows = $sheet->toArray(null, true, false, false);
@@ -541,7 +574,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                 if ($dateRaw !== null && $dateRaw !== '') {
                     if (is_numeric($dateRaw) && $dateRaw > 0) {
                         try {
-                            $dateObj = ExcelDate::excelToDateTimeObject((float) $dateRaw);
+                            $dateObj = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $dateRaw);
                             $date = $dateObj->format('d.m.Y');
                         } catch (\Exception) {
                             $errors[] = 'Nepareizs datuma formāts';
@@ -648,7 +681,6 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
     public function cancelExcelImport(): void
     {
         $this->previewRows = [];
-        $this->excelUpload = null;
     }
 
     public function confirmExcelImport(): void
@@ -705,7 +737,6 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
         });
 
         $this->previewRows = [];
-        $this->excelUpload = null;
 
         Notification::make()
             ->title("Importēti {$created} darījumi + kases orderi")
@@ -738,19 +769,21 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
         foreach ($rows as $row) {
             $amount = -(float) $row['amount']; // negative = expense
+            // Per-row category overrides global; fall back to global if not set
+            $categoryId = !empty($row['category_id']) ? $row['category_id'] : ($data['category_id'] ?? null);
 
             Transaction::create([
-                'account_id'       => $data['account_id'],
-                'category_id'      => $data['category_id'] ?? null,
-                'occurred_at'      => Carbon::createFromFormat('d.m.Y', $row['date']),
-                'amount'           => $amount,
-                'currency'         => 'EUR',
-                'amount_eur'       => $amount,
-                'exchange_rate'    => 1,
-                'description'      => trim($row['description']),
+                'account_id'        => $data['account_id'],
+                'category_id'       => $categoryId,
+                'occurred_at'       => Carbon::createFromFormat('d.m.Y', $row['date']),
+                'amount'            => $amount,
+                'currency'          => 'EUR',
+                'amount_eur'        => $amount,
+                'exchange_rate'     => 1,
+                'description'       => trim($row['description']),
                 'counterparty_name' => trim($row['partner'] ?? ''),
-                'type'             => 'EXPENSE',
-                'status'           => 'COMPLETED',
+                'type'              => 'EXPENSE',
+                'status'            => 'COMPLETED',
             ]);
 
             $created++;

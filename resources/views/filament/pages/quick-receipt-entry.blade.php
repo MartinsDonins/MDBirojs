@@ -104,46 +104,28 @@
     {{-- ═══════════════════════════════════════════════════════════════════
          ZONE 4: Excel import
     ═══════════════════════════════════════════════════════════════════ --}}
-    <div
-        x-data="{ hasFile: false }"
-        class="mb-3 rounded-xl border-2 transition-colors duration-150"
-        :class="hasFile
-            ? 'border-violet-400 bg-violet-50 dark:bg-violet-950/30'
-            : 'border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900'"
-    >
+    <div class="mb-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
         <div class="px-4 pt-3 pb-1 flex items-center gap-2">
             <x-heroicon-o-table-cells class="w-4 h-4 text-violet-500" />
             <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">Excel imports</span>
             <span class="ml-auto text-xs text-gray-400">Darījumi + KII/KIO orderi automātiski</span>
         </div>
         <div class="px-4 pb-2 pt-1 flex flex-wrap items-center gap-3">
-            <input
-                type="file"
-                wire:model="excelUpload"
-                accept=".xlsx,.xls"
-                class="block text-sm text-gray-700 dark:text-gray-300
-                    file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0
-                    file:text-sm file:font-medium
-                    file:bg-violet-100 file:text-violet-700
-                    hover:file:bg-violet-200
-                    dark:file:bg-violet-900/40 dark:file:text-violet-300"
-                x-on:change="hasFile = $event.target.files.length > 0"
+            <button
+                type="button"
+                wire:click="mountAction('excel_import')"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 px-3 py-1.5 text-sm font-medium text-white transition-colors"
             >
-            <div wire:loading wire:target="excelUpload" class="flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400">
-                <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Apstrādā...
-            </div>
+                <x-heroicon-o-arrow-up-tray class="w-4 h-4" />
+                Izvēlēties .xlsx failu...
+            </button>
+            <a href="/admin/excel-template/cash" target="_blank"
+               class="inline-flex items-center gap-1 text-xs text-violet-500 hover:text-violet-700 underline underline-offset-2">
+                📥 Lejupielādēt paraugu
+            </a>
         </div>
         <p class="px-4 pb-2 text-xs text-gray-400">
             Kolonnas: <code class="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">Datums · Konts · Tips · Partneris · Apraksts · Summa · Valūta</code>
-            &nbsp;·&nbsp;
-            <a href="{{ route('excel.template.cash') }}" target="_blank"
-               class="text-violet-500 hover:text-violet-700 underline underline-offset-2">
-                Lejupielādēt paraugu (.xlsx)
-            </a>
         </p>
     </div>
 
