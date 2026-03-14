@@ -973,7 +973,7 @@
                     @foreach($rows as $row)
                     @if(!$showOnlyInvalid || !$row['is_mapped'])
                         <tr wire:key="row-{{ $row['entry_number'] }}"
-                            class="transaction-row group cursor-pointer {{ in_array($row['transaction_type'], ['EXPENSE', 'FEE']) ? 'bg-red-50/50 dark:bg-red-900/10' : '' }} hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            class="transaction-row group cursor-pointer transition-colors duration-100 {{ in_array($row['transaction_type'], ['EXPENSE', 'FEE']) ? 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100/60 dark:hover:bg-red-900/25' : 'hover:bg-sky-50/70 dark:hover:bg-sky-900/20' }}"
                             data-txid="{{ $row['transaction_id'] }}"
                             @click="$store.journal.expandedRows.includes({{ $row['entry_number'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : $store.journal.expandedRows.push({{ $row['entry_number'] }})">
 
