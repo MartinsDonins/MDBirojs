@@ -10,36 +10,105 @@ use Illuminate\Support\Facades\DB;
 
 class ProfitLossReport extends Page
 {
-    protected static ?string $navigationIcon  = 'heroicon-o-chart-bar';
-    protected static ?string $navigationLabel = 'P&L Aprēķins';
-    protected static ?string $title           = 'Peļņas / Zaudējumu Aprēķins';
+    protected static ?string $navigationIcon  = 'heroicon-o-calculator';
+    protected static ?string $navigationLabel = 'Nodokļu aprēķins';
+    protected static ?string $title           = 'Nodokļu aprēķins';
     protected static string $view             = 'filament.pages.profit-loss-report';
     protected ?string $maxContentWidth        = 'full';
     protected static ?int $navigationSort     = 7;
 
-    /** Yearly summary rows (descending by year for table) */
-    public array $yearlyData   = [];
-    /** Monthly breakdown: [year => [1..12 => [name, income, expense, profit]]] */
-    public array $monthlyData  = [];
+    /** Yearly summary rows (descending by year for table display) */
+    public array $yearlyData    = [];
+    /** Monthly breakdown: [year => [1..12 => [name, income, expense, profit, cumulative, vsaa]]] */
+    public array $monthlyData   = [];
     /** Years currently expanded in the table */
     public array $expandedYears = [];
-    /** Starting balance entered by the user (European format string, e.g. "1 234,56") */
+
+    /** Starting balance (European format string, e.g. "1 234,56") */
     public string $startingBalance = '0';
-    /**
-     * Tax rates per year, keyed by year integer.
-     * Loaded from DB; updated via updatedTaxRates() lifecycle hook.
-     * e.g. [2024 => '23.00', 2025 => '20.00']
-     */
-    public array $taxRates = [];
+
+    // ── Per-year tax/VSAA parameters (keyed by year integer, stored as strings for wire:model) ──
+
+    /** IIN rates: [year => '23.00'] */
+    public array $taxRates         = [];
+    /** Minimālā alga €/mēn.: [year => '700.00'] */
+    public array $minWages         = [];
+    /** VSAA pilnā likme %: [year => '31.07'] */
+    public array $vsaaFullRates    = [];
+    /** VSAA samazinātā likme %: [year => '10.00'] */
+    public array $vsaaReducedRates = [];
+
     /** Abbreviation of the first income JournalColumn */
     public string $incomeAbbr  = '';
     /** Abbreviation of the first expense JournalColumn */
     public string $expenseAbbr = '';
 
+    // ──────────────────────────────────────────────────────────────
+    // Lifecycle
+    // ──────────────────────────────────────────────────────────────
+
     public function mount(): void
     {
         $this->loadData();
     }
+
+    // ──────────────────────────────────────────────────────────────
+    // Livewire updated hooks — save to DB, recompute
+    // ──────────────────────────────────────────────────────────────
+
+    public function updatedStartingBalance(): void
+    {
+        $this->computeCumulativeBalances();
+    }
+
+    public function updatedTaxRates(string $value, string $key): void
+    {
+        $year = (int) $key;
+        $rate = max(0.0, (float) str_replace(',', '.', $value));
+        ProfitLossSetting::updateOrCreate(['year' => $year], ['tax_rate' => $rate]);
+        $this->taxRates[$year] = number_format($rate, 2, '.', '');
+        $this->computeCumulativeBalances();
+    }
+
+    public function updatedMinWages(string $value, string $key): void
+    {
+        $year  = (int) $key;
+        $wage  = max(0.0, (float) str_replace(',', '.', $value));
+        ProfitLossSetting::updateOrCreate(['year' => $year], ['min_wage' => $wage]);
+        $this->minWages[$year] = number_format($wage, 2, '.', '');
+        $this->computeCumulativeBalances();
+    }
+
+    public function updatedVsaaFullRates(string $value, string $key): void
+    {
+        $year = (int) $key;
+        $rate = max(0.0, (float) str_replace(',', '.', $value));
+        ProfitLossSetting::updateOrCreate(['year' => $year], ['vsaa_full_rate' => $rate]);
+        $this->vsaaFullRates[$year] = number_format($rate, 2, '.', '');
+        $this->computeCumulativeBalances();
+    }
+
+    public function updatedVsaaReducedRates(string $value, string $key): void
+    {
+        $year = (int) $key;
+        $rate = max(0.0, (float) str_replace(',', '.', $value));
+        ProfitLossSetting::updateOrCreate(['year' => $year], ['vsaa_reduced_rate' => $rate]);
+        $this->vsaaReducedRates[$year] = number_format($rate, 2, '.', '');
+        $this->computeCumulativeBalances();
+    }
+
+    public function toggleYear(int $year): void
+    {
+        if (in_array($year, $this->expandedYears)) {
+            $this->expandedYears = array_values(array_diff($this->expandedYears, [$year]));
+        } else {
+            $this->expandedYears[] = $year;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Data loading (runs once on mount)
+    // ──────────────────────────────────────────────────────────────
 
     private function loadData(): void
     {
@@ -113,62 +182,40 @@ class ProfitLossReport extends Page
             $this->monthlyData[$year] = $months;
         }
 
-        // Table: newest year first; charts use ascending order (reversed in JS)
+        // Table: newest year first
         $this->yearlyData = array_reverse($yearlyAsc);
 
-        // Load saved tax rates from DB (default 23% for missing years)
-        $savedRates = ProfitLossSetting::whereIn('year', array_column($yearlyAsc, 'year'))
-            ->pluck('tax_rate', 'year')
-            ->toArray();
+        // Load saved settings from DB for all present years
+        $years       = array_column($yearlyAsc, 'year');
+        $savedByYear = ProfitLossSetting::whereIn('year', $years)
+            ->get()
+            ->keyBy('year');
 
-        foreach ($yearlyAsc as $row) {
-            $this->taxRates[$row['year']] = isset($savedRates[$row['year']])
-                ? (string) $savedRates[$row['year']]
-                : '23.00';
+        foreach ($years as $year) {
+            $s = $savedByYear->get($year);
+            $this->taxRates[$year]         = $s ? (string) $s->tax_rate         : '23.00';
+            $this->minWages[$year]         = $s ? (string) $s->min_wage         : '700.00';
+            $this->vsaaFullRates[$year]    = $s ? (string) $s->vsaa_full_rate   : '31.07';
+            $this->vsaaReducedRates[$year] = $s ? (string) $s->vsaa_reduced_rate : '10.00';
         }
 
         $this->computeCumulativeBalances();
     }
 
-    /**
-     * Re-compute cumulative running balances when startingBalance changes.
-     * Called by Livewire's lifecycle hook on wire:model update.
-     */
-    public function updatedStartingBalance(): void
-    {
-        $this->computeCumulativeBalances();
-    }
+    // ──────────────────────────────────────────────────────────────
+    // Core computation (re-runs on any parameter change)
+    // ──────────────────────────────────────────────────────────────
 
     /**
-     * Persist the tax rate for a specific year and recompute.
-     * Called by Livewire's lifecycle hook when any $taxRates[year] changes via wire:model.blur.
-     * $key = the year (e.g. '2024'), $value = the new rate string.
-     */
-    public function updatedTaxRates(string $value, string $key): void
-    {
-        $year = (int) $key;
-        $rate = max(0.0, (float) str_replace(',', '.', $value));
-
-        ProfitLossSetting::updateOrCreate(
-            ['year'     => $year],
-            ['tax_rate' => $rate]
-        );
-
-        // Normalise the stored string to 2 decimals
-        $this->taxRates[$year] = number_format($rate, 2, '.', '');
-
-        $this->computeCumulativeBalances();
-    }
-
-    /**
-     * Walk years oldest→newest, accumulate profit + starting balance.
-     * Stores 'cumulative' on each yearlyData row and on each monthlyData month row.
+     * Walk years oldest→newest:
+     *  - accumulate cumulative balance (starting balance + yearly profits)
+     *  - compute IIN tax per year
+     *  - compute VSAA per month (formula with min_wage threshold), then sum per year
      */
     private function computeCumulativeBalances(): void
     {
         $start = $this->parseStartingBalance();
 
-        // yearlyData is descending; iterate ascending
         $ascending = array_reverse($this->yearlyData);
         $running   = $start;
         $result    = [];
@@ -176,50 +223,80 @@ class ProfitLossReport extends Page
         foreach ($ascending as $yr) {
             $yearOpening = $running;
             $running    += $yr['profit'];
+
             $yr['cumulative']   = $running;
             $yr['year_opening'] = $yearOpening;
 
-            // IIN: only on positive annual profit; zero if loss
-            $taxRate              = (float) ($this->taxRates[$yr['year']] ?? 23.0);
-            $yr['tax_rate']       = $taxRate;
-            $yr['tax_amount']     = $yr['profit'] > 0
+            // IIN (only when profit > 0)
+            $taxRate          = (float) ($this->taxRates[$yr['year']] ?? 23.0);
+            $yr['tax_rate']   = $taxRate;
+            $yr['tax_amount'] = $yr['profit'] > 0
                 ? round($yr['profit'] * $taxRate / 100, 2)
                 : 0.0;
 
-            $result[] = $yr;
+            // VSAA parameters for this year
+            $minWage      = (float) ($this->minWages[$yr['year']]         ?? 700.0);
+            $vsaaFull     = (float) ($this->vsaaFullRates[$yr['year']]    ?? 31.07);
+            $vsaaReduced  = (float) ($this->vsaaReducedRates[$yr['year']] ?? 10.0);
 
-            // Monthly cumulative: opening balance of the year + running monthly sum
+            $yr['min_wage']          = $minWage;
+            $yr['vsaa_full_rate']    = $vsaaFull;
+            $yr['vsaa_reduced_rate'] = $vsaaReduced;
+
+            // Monthly cumulative + monthly VSAA
+            $yearVsaa = 0.0;
             if (isset($this->monthlyData[$yr['year']])) {
                 $mRunning = $yearOpening;
                 foreach ($this->monthlyData[$yr['year']] as $m => $mData) {
-                    $mRunning += $mData['profit'];
+                    $mProfit  = $mData['profit'];
+                    $mRunning += $mProfit;
                     $this->monthlyData[$yr['year']][$m]['cumulative'] = $mRunning;
+
+                    // VSAA formula (based on monthly profit):
+                    //   profit ≤ 0           → VSAA = 0
+                    //   profit < min_wage    → VSAA = profit × reduced%
+                    //   profit ≥ min_wage    → VSAA = min_wage × full% + (profit − min_wage) × reduced%
+                    if ($mProfit <= 0) {
+                        $mVsaa = 0.0;
+                    } elseif ($mProfit < $minWage) {
+                        $mVsaa = round($mProfit * $vsaaReduced / 100, 2);
+                    } else {
+                        $mVsaa = round(
+                            $minWage * $vsaaFull / 100 + ($mProfit - $minWage) * $vsaaReduced / 100,
+                            2
+                        );
+                    }
+                    $this->monthlyData[$yr['year']][$m]['vsaa'] = $mVsaa;
+                    $yearVsaa += $mVsaa;
                 }
             }
+            $yr['vsaa_amount'] = round($yearVsaa, 2);
+
+            $result[] = $yr;
         }
 
         $this->yearlyData = array_reverse($result);
     }
 
-    /**
-     * Parse user-entered balance string: handles European (1.234,56) and standard (1234.56) formats.
-     */
+    // ──────────────────────────────────────────────────────────────
+    // Helpers
+    // ──────────────────────────────────────────────────────────────
+
+    /** Parse user-entered balance: handles "1.234,56" and "1234.56" */
     private function parseStartingBalance(): float
     {
         $val = trim($this->startingBalance);
-        $val = str_replace([' ', "\xc2\xa0"], '', $val); // remove space + NBSP
-
+        $val = str_replace([' ', "\xc2\xa0"], '', $val);
         if (str_contains($val, ',')) {
-            $val = str_replace('.', '', $val);  // remove thousands dots
-            $val = str_replace(',', '.', $val); // comma → period
+            $val = str_replace('.', '', $val);
+            $val = str_replace(',', '.', $val);
         }
-
         return (float) $val;
     }
 
     /**
-     * Sum breakdown rows matching the given transaction type(s) and vid_columns.
-     * If $vidColumns is empty → include all rows for the given types (no vid filter).
+     * Sum breakdown rows matching given type(s) and vid_columns.
+     * Empty $vidColumns → include all (no vid filter).
      */
     private function sumFor($rows, string|array $types, array $vidColumns): float
     {
@@ -235,14 +312,5 @@ class ProfitLossReport extends Page
                 return in_array((int) $r->vid_col, $vidColumns);
             })
             ->sum('total');
-    }
-
-    public function toggleYear(int $year): void
-    {
-        if (in_array($year, $this->expandedYears)) {
-            $this->expandedYears = array_values(array_diff($this->expandedYears, [$year]));
-        } else {
-            $this->expandedYears[] = $year;
-        }
     }
 }

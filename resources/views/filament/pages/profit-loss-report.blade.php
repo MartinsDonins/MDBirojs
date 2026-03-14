@@ -171,32 +171,67 @@
 
     {{-- ════════════════════════════════════════════════════════════
          DATA TABLE
+         Columns: toggle | gads | ieņ. | izd. | peļņa | atlikums |
+                  IIN% | IIN€ | min.alga | VSAA pilnā% | VSAA samas.% | VSAA€
     ════════════════════════════════════════════════════════════ --}}
-    <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-        <table class="w-full text-sm">
+    <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-x-auto shadow-sm">
+        <table class="w-full text-sm whitespace-nowrap">
             <thead>
+                {{-- Group headers --}}
+                <tr class="bg-gray-100 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                    <th colspan="2" class="px-3 py-1.5"></th>
+                    <th colspan="4" class="px-4 py-1.5 text-center border-x border-gray-200 dark:border-gray-700 font-medium">
+                        Peļņas / Zaudējumu aprēķins
+                    </th>
+                    <th colspan="2" class="px-3 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 font-medium text-blue-600 dark:text-blue-400">
+                        IIN
+                    </th>
+                    <th colspan="4" class="px-3 py-1.5 text-center font-medium text-teal-600 dark:text-teal-400">
+                        VSAA
+                    </th>
+                </tr>
+                {{-- Column headers --}}
                 <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <th class="px-3 py-3 w-8"></th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Gads</th>
-                    <th class="px-4 py-3 text-right font-semibold text-green-700 dark:text-green-400">
+                    <th class="px-3 py-2.5 w-8"></th>
+                    <th class="px-4 py-2.5 text-left font-semibold text-gray-700 dark:text-gray-300">Gads</th>
+
+                    <th class="px-4 py-2.5 text-right font-semibold text-green-700 dark:text-green-400 border-l border-gray-200 dark:border-gray-700">
                         Ieņēmumi
-                        <div class="text-xs font-normal text-gray-400 dark:text-gray-500">({{ $incomeAbbr }})</div>
+                        <div class="text-xs font-normal text-gray-400">({{ $incomeAbbr }})</div>
                     </th>
-                    <th class="px-4 py-3 text-right font-semibold text-red-700 dark:text-red-400">
+                    <th class="px-4 py-2.5 text-right font-semibold text-red-700 dark:text-red-400">
                         Izdevumi
-                        <div class="text-xs font-normal text-gray-400 dark:text-gray-500">({{ $expenseAbbr }})</div>
+                        <div class="text-xs font-normal text-gray-400">({{ $expenseAbbr }})</div>
                     </th>
-                    <th class="px-4 py-3 text-right font-semibold text-blue-700 dark:text-blue-400">
-                        Peļņa / Zaudējumi
+                    <th class="px-4 py-2.5 text-right font-semibold text-blue-700 dark:text-blue-400">
+                        Peļņa / Zauda.
                     </th>
-                    <th class="px-4 py-3 text-right font-semibold text-violet-700 dark:text-violet-400">
+                    <th class="px-4 py-2.5 text-right font-semibold text-violet-700 dark:text-violet-400 border-r border-gray-200 dark:border-gray-700">
                         Kopā atlikums
                     </th>
-                    <th class="px-3 py-3 text-right font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap">
-                        IIN likme
+
+                    <th class="px-3 py-2.5 text-right font-semibold text-amber-700 dark:text-amber-400">
+                        Likme
+                        <div class="text-xs font-normal text-gray-400">%</div>
                     </th>
-                    <th class="px-4 py-3 text-right font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap">
-                        IIN summa
+                    <th class="px-4 py-2.5 text-right font-semibold text-amber-700 dark:text-amber-400 border-r border-gray-200 dark:border-gray-700">
+                        Summa €
+                    </th>
+
+                    <th class="px-3 py-2.5 text-right font-semibold text-teal-700 dark:text-teal-400">
+                        Min. alga
+                        <div class="text-xs font-normal text-gray-400">€/mēn.</div>
+                    </th>
+                    <th class="px-3 py-2.5 text-right font-semibold text-teal-700 dark:text-teal-400">
+                        Pilnā
+                        <div class="text-xs font-normal text-gray-400">%</div>
+                    </th>
+                    <th class="px-3 py-2.5 text-right font-semibold text-teal-700 dark:text-teal-400">
+                        Samas.
+                        <div class="text-xs font-normal text-gray-400">%</div>
+                    </th>
+                    <th class="px-4 py-2.5 text-right font-semibold text-teal-700 dark:text-teal-400">
+                        Summa €
                     </th>
                 </tr>
             </thead>
@@ -204,11 +239,11 @@
                 @forelse ($yearlyData as $yr)
                     @php $expanded = in_array($yr['year'], $expandedYears); @endphp
 
-                    {{-- Year row --}}
+                    {{-- ── Year row ── --}}
                     <tr
                         wire:click="toggleYear({{ $yr['year'] }})"
                         class="border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none
-                               hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-100"
+                               hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors duration-100"
                     >
                         <td class="px-3 py-3 text-center text-gray-400">
                             <x-heroicon-s-chevron-down
@@ -218,7 +253,9 @@
                         <td class="px-4 py-3 font-bold text-gray-900 dark:text-gray-100">
                             {{ $yr['year'] }}
                         </td>
-                        <td class="px-4 py-3 text-right font-mono text-green-700 dark:text-green-400">
+
+                        {{-- Peļņa/Zaudējumu bloks --}}
+                        <td class="px-4 py-3 text-right font-mono text-green-700 dark:text-green-400 border-l border-gray-100 dark:border-gray-800">
                             {{ number_format($yr['income'], 2, ',', ' ') }} €
                         </td>
                         <td class="px-4 py-3 text-right font-mono text-red-700 dark:text-red-400">
@@ -228,11 +265,12 @@
                                    {{ $yr['profit'] >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-red-700 dark:text-red-400' }}">
                             {{ ($yr['profit'] >= 0 ? '+' : '') . number_format($yr['profit'], 2, ',', ' ') }} €
                         </td>
-                        <td class="px-4 py-3 text-right font-mono font-semibold
+                        <td class="px-4 py-3 text-right font-mono font-semibold border-r border-gray-100 dark:border-gray-800
                                    {{ ($yr['cumulative'] ?? 0) >= 0 ? 'text-violet-700 dark:text-violet-400' : 'text-red-700 dark:text-red-400' }}">
                             {{ number_format($yr['cumulative'] ?? 0, 2, ',', ' ') }} €
                         </td>
-                        {{-- IIN likme — editable input; @click.stop prevents toggleYear from firing --}}
+
+                        {{-- IIN bloks --}}
                         <td @click.stop class="px-3 py-2 text-right">
                             <div class="flex items-center justify-end gap-0.5">
                                 <input
@@ -246,23 +284,79 @@
                                            transition"
                                     placeholder="23"
                                 />
-                                <span class="text-gray-400 dark:text-gray-500 text-xs">%</span>
+                                <span class="text-gray-400 text-xs">%</span>
                             </div>
                         </td>
-                        {{-- IIN summa — computed, read-only --}}
-                        <td class="px-4 py-3 text-right font-mono
+                        <td class="px-4 py-3 text-right font-mono border-r border-gray-100 dark:border-gray-800
                                    {{ ($yr['profit'] ?? 0) > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500' }}">
                             @if (($yr['profit'] ?? 0) > 0)
                                 {{ number_format($yr['tax_amount'] ?? 0, 2, ',', ' ') }} €
                             @else
-                                <span class="text-xs italic">zaudējumi</span>
+                                <span class="text-xs italic">—</span>
+                            @endif
+                        </td>
+
+                        {{-- VSAA parametri + summa --}}
+                        <td @click.stop class="px-3 py-2 text-right">
+                            <div class="flex items-center justify-end gap-0.5">
+                                <input
+                                    type="text"
+                                    wire:model.blur="minWages.{{ $yr['year'] }}"
+                                    class="w-16 rounded border border-gray-200 dark:border-gray-600
+                                           bg-transparent text-right font-mono text-sm
+                                           text-teal-700 dark:text-teal-400
+                                           px-1.5 py-0.5
+                                           focus:outline-none focus:ring-1 focus:ring-teal-400 focus:border-teal-400
+                                           transition"
+                                    placeholder="700"
+                                />
+                                <span class="text-gray-400 text-xs">€</span>
+                            </div>
+                        </td>
+                        <td @click.stop class="px-3 py-2 text-right">
+                            <div class="flex items-center justify-end gap-0.5">
+                                <input
+                                    type="text"
+                                    wire:model.blur="vsaaFullRates.{{ $yr['year'] }}"
+                                    class="w-14 rounded border border-gray-200 dark:border-gray-600
+                                           bg-transparent text-right font-mono text-sm
+                                           text-teal-700 dark:text-teal-400
+                                           px-1.5 py-0.5
+                                           focus:outline-none focus:ring-1 focus:ring-teal-400 focus:border-teal-400
+                                           transition"
+                                    placeholder="31.07"
+                                />
+                                <span class="text-gray-400 text-xs">%</span>
+                            </div>
+                        </td>
+                        <td @click.stop class="px-3 py-2 text-right">
+                            <div class="flex items-center justify-end gap-0.5">
+                                <input
+                                    type="text"
+                                    wire:model.blur="vsaaReducedRates.{{ $yr['year'] }}"
+                                    class="w-14 rounded border border-gray-200 dark:border-gray-600
+                                           bg-transparent text-right font-mono text-sm
+                                           text-teal-700 dark:text-teal-400
+                                           px-1.5 py-0.5
+                                           focus:outline-none focus:ring-1 focus:ring-teal-400 focus:border-teal-400
+                                           transition"
+                                    placeholder="10"
+                                />
+                                <span class="text-gray-400 text-xs">%</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono
+                                   {{ ($yr['vsaa_amount'] ?? 0) > 0 ? 'text-teal-700 dark:text-teal-400' : 'text-gray-400 dark:text-gray-500' }}">
+                            @if (($yr['vsaa_amount'] ?? 0) > 0)
+                                {{ number_format($yr['vsaa_amount'], 2, ',', ' ') }} €
+                            @else
+                                <span class="text-xs italic">—</span>
                             @endif
                         </td>
                     </tr>
 
-                    {{-- Monthly detail rows (toggle) --}}
+                    {{-- ── Monthly detail rows ── --}}
                     @if ($expanded && isset($monthlyData[$yr['year']]))
-                        @php $prevMonthCumulative = $yr['year_opening'] ?? 0; @endphp
                         @foreach ($monthlyData[$yr['year']] as $mNum => $m)
                             @if ($m['income'] > 0 || $m['expense'] > 0)
                                 <tr class="border-b border-gray-50 dark:border-gray-800/30 bg-gray-50/40 dark:bg-gray-800/20">
@@ -270,7 +364,7 @@
                                     <td class="px-4 py-1.5 text-gray-500 dark:text-gray-400">
                                         <span class="pl-4 text-xs">{{ $m['name'] }}</span>
                                     </td>
-                                    <td class="px-4 py-1.5 text-right font-mono text-xs
+                                    <td class="px-4 py-1.5 text-right font-mono text-xs border-l border-gray-100 dark:border-gray-800
                                                {{ $m['income'] > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400' }}">
                                         {{ $m['income'] > 0 ? number_format($m['income'], 2, ',', ' ') . ' €' : '—' }}
                                     </td>
@@ -282,12 +376,26 @@
                                                {{ $m['profit'] > 0 ? 'text-blue-600 dark:text-blue-400' : ($m['profit'] < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400') }}">
                                         {{ ($m['profit'] >= 0 ? '+' : '') . number_format($m['profit'], 2, ',', ' ') }} €
                                     </td>
-                                    <td class="px-4 py-1.5 text-right font-mono text-xs
+                                    <td class="px-4 py-1.5 text-right font-mono text-xs border-r border-gray-100 dark:border-gray-800
                                                {{ ($m['cumulative'] ?? 0) >= 0 ? 'text-violet-600 dark:text-violet-400/80' : 'text-red-600 dark:text-red-400' }}">
                                         {{ number_format($m['cumulative'] ?? 0, 2, ',', ' ') }} €
                                     </td>
+                                    {{-- IIN — not calculated monthly --}}
                                     <td class="px-3 py-1.5"></td>
-                                    <td class="px-4 py-1.5"></td>
+                                    <td class="px-4 py-1.5 border-r border-gray-100 dark:border-gray-800"></td>
+                                    {{-- VSAA params (show only value, no input) --}}
+                                    <td class="px-3 py-1.5"></td>
+                                    <td class="px-3 py-1.5"></td>
+                                    <td class="px-3 py-1.5"></td>
+                                    {{-- VSAA monthly amount --}}
+                                    <td class="px-4 py-1.5 text-right font-mono text-xs
+                                               {{ ($m['vsaa'] ?? 0) > 0 ? 'text-teal-600 dark:text-teal-400' : 'text-gray-400 dark:text-gray-500' }}">
+                                        @if (($m['vsaa'] ?? 0) > 0)
+                                            {{ number_format($m['vsaa'], 2, ',', ' ') }} €
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
                                 </tr>
                             @endif
                         @endforeach
@@ -295,7 +403,7 @@
 
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
+                        <td colspan="12" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
                             Nav datu. Pārliecinies, ka ir darījumi ar statusu <em>COMPLETED</em> un konfigurētas žurnāla kolonnas.
                         </td>
                     </tr>
@@ -307,14 +415,16 @@
                     $totalIncome  = array_sum(array_column($yearlyData, 'income'));
                     $totalExpense = array_sum(array_column($yearlyData, 'expense'));
                     $totalProfit  = $totalIncome - $totalExpense;
-                    $finalBalance = $yearlyData[0]['cumulative'] ?? 0;  // yearlyData[0] = newest year
+                    $finalBalance = $yearlyData[0]['cumulative'] ?? 0;
                     $totalTax     = array_sum(array_column($yearlyData, 'tax_amount'));
+                    $totalVsaa    = array_sum(array_column($yearlyData, 'vsaa_amount'));
                 @endphp
                 <tfoot>
                     <tr class="bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-300 dark:border-gray-600">
                         <td class="px-3 py-3"></td>
                         <td class="px-4 py-3 font-bold text-gray-700 dark:text-gray-300 text-sm">Kopā</td>
-                        <td class="px-4 py-3 text-right font-mono font-bold text-green-700 dark:text-green-400">
+
+                        <td class="px-4 py-3 text-right font-mono font-bold text-green-700 dark:text-green-400 border-l border-gray-200 dark:border-gray-600">
                             {{ number_format($totalIncome, 2, ',', ' ') }} €
                         </td>
                         <td class="px-4 py-3 text-right font-mono font-bold text-red-700 dark:text-red-400">
@@ -324,13 +434,21 @@
                                    {{ $totalProfit >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-red-700 dark:text-red-400' }}">
                             {{ ($totalProfit >= 0 ? '+' : '') . number_format($totalProfit, 2, ',', ' ') }} €
                         </td>
-                        <td class="px-4 py-3 text-right font-mono font-bold
+                        <td class="px-4 py-3 text-right font-mono font-bold border-r border-gray-200 dark:border-gray-600
                                    {{ $finalBalance >= 0 ? 'text-violet-700 dark:text-violet-400' : 'text-red-700 dark:text-red-400' }}">
                             {{ number_format($finalBalance, 2, ',', ' ') }} €
                         </td>
+
                         <td class="px-3 py-3"></td>
-                        <td class="px-4 py-3 text-right font-mono font-bold text-amber-700 dark:text-amber-400">
+                        <td class="px-4 py-3 text-right font-mono font-bold text-amber-700 dark:text-amber-400 border-r border-gray-200 dark:border-gray-600">
                             {{ number_format($totalTax, 2, ',', ' ') }} €
+                        </td>
+
+                        <td class="px-3 py-3"></td>
+                        <td class="px-3 py-3"></td>
+                        <td class="px-3 py-3"></td>
+                        <td class="px-4 py-3 text-right font-mono font-bold text-teal-700 dark:text-teal-400">
+                            {{ number_format($totalVsaa, 2, ',', ' ') }} €
                         </td>
                     </tr>
                 </tfoot>
