@@ -32,18 +32,18 @@ class ListCashOrders extends ListRecords
                     . 'un tiem tiks automātiski izveidoti KII / KIO orderi.'
                 )
                 ->action(function (): void {
-                    // Cash account IDs
-                    $cashAccountIds = Account::where('type', 'CASH')->pluck('id');
+                    // Cash + PayPal + Paysera account IDs
+                    $cashAccountIds = Account::whereIn('type', ['CASH', 'PAYPAL', 'PAYSERA'])->pluck('id');
 
                     if ($cashAccountIds->isEmpty()) {
                         Notification::make()
-                            ->title('Nav kases kontu')
+                            ->title('Nav kases / PayPal / Paysera kontu')
                             ->warning()
                             ->send();
                         return;
                     }
 
-                    // COMPLETED transactions for CASH accounts without a cash order
+                    // COMPLETED transactions for CASH/PAYPAL/PAYSERA accounts without a cash order
                     $transactions = Transaction::whereIn('account_id', $cashAccountIds)
                         ->where('status', 'COMPLETED')
                         ->whereDoesntHave('cashOrder')

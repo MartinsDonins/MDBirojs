@@ -33,9 +33,9 @@ class CashOrderResource extends Resource
                 Forms\Components\Section::make('Pamatinformācija')
                     ->schema([
                         Forms\Components\Select::make('account_id')
-                            ->label('Kases Konts')
-                            ->relationship('account', 'name', fn (Builder $query) => 
-                                $query->where('type', 'CASH')
+                            ->label('Konts')
+                            ->relationship('account', 'name', fn (Builder $query) =>
+                                $query->whereIn('type', ['CASH', 'PAYPAL', 'PAYSERA'])
                             )
                             ->required()
                             ->searchable()
@@ -44,8 +44,8 @@ class CashOrderResource extends Resource
                         Forms\Components\Select::make('type')
                             ->label('Tips')
                             ->options([
-                                'INCOME' => 'Ienākums (KII)',
-                                'EXPENSE' => 'Izdevums (KIO)',
+                                'INCOME' => 'Saņemts (KII)',
+                                'EXPENSE' => 'Izsniegts (KIO)',
                             ])
                             ->required()
                             ->reactive()
@@ -170,8 +170,8 @@ class CashOrderResource extends Resource
                 Tables\Filters\SelectFilter::make('type')
                     ->label('Tips')
                     ->options([
-                        'INCOME' => 'Ienākums (KII)',
-                        'EXPENSE' => 'Izdevums (KIO)',
+                        'INCOME' => 'Saņemts (KII)',
+                        'EXPENSE' => 'Izsniegts (KIO)',
                     ]),
 
                 Tables\Filters\SelectFilter::make('account_id')

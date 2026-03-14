@@ -58,13 +58,19 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
             // Split by tab (Excel / spreadsheet)
             $cols = explode("\t", $line);
 
+            $partner = '';
+
             if (count($cols) >= 3) {
-                // Full row: date \t description \t amount
+                // Full row: [date \t] [partner \t] description \t amount
                 if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $cols[0], $m)) {
                     $date   = sprintf('%02d.%02d.%s', (int) $m[1], (int) $m[2], $m[3]);
                     $rest   = array_slice($cols, 1);
                     $amount = $this->parseAmount(array_pop($rest));
-                    $desc   = implode(' ', $rest);
+                    // If 2+ middle columns: first = partner, rest = description
+                    if (count($rest) >= 2) {
+                        $partner = trim(array_shift($rest));
+                    }
+                    $desc = implode(' ', $rest);
                 } else {
                     $date   = $today;
                     $amount = $this->parseAmount(array_pop($cols));
@@ -94,6 +100,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
             $newRows[] = [
                 'date'        => $date,
+                'partner'     => $partner ?? '',
                 'description' => $desc,
                 'amount'      => $amount !== null ? number_format($amount, 2, '.', '') : '',
             ];
@@ -116,8 +123,11 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
         foreach ($newRows as $i => $row) {
             if (isset($noDescKeys[$i])) {
                 $key = $noDescKeys[$i];
-                // Fill description into the existing row, keep whatever is already there
+                // Fill description (and partner) into the existing row; keep already-filled fields
                 $this->data['rows'][$key]['description'] = $row['description'];
+                if (!empty($row['partner'])) {
+                    $this->data['rows'][$key]['partner'] = $row['partner'];
+                }
                 if (empty($this->data['rows'][$key]['date'])) {
                     $this->data['rows'][$key]['date'] = $row['date'];
                 }
@@ -152,7 +162,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
     public function form(Form $form): Form
     {
-        $cashAccounts = Account::where('type', 'CASH')->orderBy('name')->pluck('name', 'id');
+        $cashAccounts = Account::whereIn('type', ['CASH', 'PAYPAL', 'PAYSERA'])->orderBy('name')->pluck('name', 'id');
         $categories   = Category::orderBy('name')->pluck('name', 'id');
 
         return $form
@@ -161,12 +171,12 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                     ->description('Konts un kategorija attiecas uz visām rindām zemāk')
                     ->schema([
                         Forms\Components\Select::make('account_id')
-                            ->label('Kases konts')
+                            ->label('Konts')
                             ->options($cashAccounts)
                             ->required()
                             ->searchable()
-                            ->placeholder('Izvēlēties kasi...')
-                            ->helperText($cashAccounts->isEmpty() ? '⚠ Nav neviena CASH tipa konta' : null),
+                            ->placeholder('Izvēlēties kontu...')
+                            ->helperText($cashAccounts->isEmpty() ? '⚠ Nav neviena CASH/PayPal/Paysera konta' : null),
 
                         Forms\Components\Select::make('category_id')
                             ->label('Kategorija (visiem)')
@@ -188,6 +198,11 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                             ->rules(['regex:/^\d{2}\.\d{2}\.\d{4}$/'])
                             ->columnSpan(1),
 
+                        Forms\Components\TextInput::make('partner')
+                            ->label('Partneris')
+                            ->placeholder('Piem.: Cloud Linux, OVH, ...')
+                            ->columnSpan(2),
+
                         Forms\Components\TextInput::make('description')
                             ->label('Apraksts')
                             ->required()
@@ -203,14 +218,17 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                             ->prefix('€')
                             ->columnSpan(1),
                     ])
-                    ->columns(5)
+                    ->columns(7)
                     ->addActionLabel('+ Pievienot rindu')
                     ->defaultItems(3)
                     ->minItems(1)
                     ->reorderable(false)
                     ->itemLabel(fn (array $state): ?string =>
                         (!empty($state['description']) && !empty($state['amount']))
-                            ? ($state['date'] ?? '?') . ' · € ' . number_format((float) $state['amount'], 2, ',', ' ') . ' — ' . $state['description']
+                            ? ($state['date'] ?? '?')
+                                . (!empty($state['partner']) ? ' · ' . $state['partner'] : '')
+                                . ' · € ' . number_format((float) $state['amount'], 2, ',', ' ')
+                                . ' — ' . $state['description']
                             : null
                     ),
             ])
@@ -401,10 +419,15 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                 continue;
             }
 
-            // Last column treated as amount, everything before as description
-            $amountRaw   = array_pop($rest);
+            // Last column = amount; if 2+ middle columns remain: first = partner, rest = description
+            $amountRaw = array_pop($rest);
+            $amount    = $this->parseAmount($amountRaw);
+
+            $partner = '';
+            if (count($rest) >= 2) {
+                $partner = trim(array_shift($rest));
+            }
             $description = implode(' ', $rest);
-            $amount      = $this->parseAmount($amountRaw);
 
             if ($amount === null || $amount <= 0 || trim($description) === '') {
                 continue;
@@ -412,6 +435,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
             $rows[] = [
                 'date'        => $date,
+                'partner'     => $partner,
                 'description' => trim($description),
                 'amount'      => number_format($amount, 2, '.', ''),
             ];
@@ -477,16 +501,17 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
             $amount = -(float) $row['amount']; // negative = expense
 
             Transaction::create([
-                'account_id'    => $data['account_id'],
-                'category_id'   => $data['category_id'] ?? null,
-                'occurred_at'   => Carbon::createFromFormat('d.m.Y', $row['date']),
-                'amount'        => $amount,
-                'currency'      => 'EUR',
-                'amount_eur'    => $amount,
-                'exchange_rate' => 1,
-                'description'   => trim($row['description']),
-                'type'          => 'EXPENSE',
-                'status'        => 'COMPLETED',
+                'account_id'       => $data['account_id'],
+                'category_id'      => $data['category_id'] ?? null,
+                'occurred_at'      => Carbon::createFromFormat('d.m.Y', $row['date']),
+                'amount'           => $amount,
+                'currency'         => 'EUR',
+                'amount_eur'       => $amount,
+                'exchange_rate'    => 1,
+                'description'      => trim($row['description']),
+                'counterparty_name' => trim($row['partner'] ?? ''),
+                'type'             => 'EXPENSE',
+                'status'           => 'COMPLETED',
             ]);
 
             $created++;

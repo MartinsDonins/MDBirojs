@@ -31,8 +31,10 @@
             @keydown.enter.prevent
         ></textarea>
         <p class="px-4 pb-2 text-xs text-gray-400">
-            Viens apraksts katrā rindā &nbsp;·&nbsp; vai pilna rinda ar Tab:
+            Viens apraksts katrā rindā &nbsp;·&nbsp; vai pilna rinda ar Tab (3 vai 4 kolonnas):<br>
             <code class="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">12.03.2026 [Tab] Apraksts [Tab] 45,50</code>
+            &nbsp;vai&nbsp;
+            <code class="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">12.03.2026 [Tab] Partneris [Tab] Apraksts [Tab] 45,50</code>
         </p>
     </div>
 
