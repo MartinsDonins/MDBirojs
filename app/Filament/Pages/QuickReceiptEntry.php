@@ -107,15 +107,27 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
             return;
         }
 
-        // Remove blank placeholder rows (date-only rows from mount), keep non-empty ones
-        $this->data['rows'] = array_filter(
-            $this->data['rows'] ?? [],
-            fn ($r) => !empty($r['description']) || !empty($r['amount'])
-        );
+        // Rows without a description yet (e.g. amount-only rows) — fill these first
+        $noDescKeys = array_values(array_filter(
+            array_keys($this->data['rows'] ?? []),
+            fn ($k) => empty($this->data['rows'][$k]['description'])
+        ));
 
-        // Append new rows directly — no form->fill() so existing field values are preserved
-        foreach ($newRows as $row) {
-            $this->data['rows'][(string) Str::orderedUuid()] = $row;
+        foreach ($newRows as $i => $row) {
+            if (isset($noDescKeys[$i])) {
+                $key = $noDescKeys[$i];
+                // Fill description into the existing row, keep whatever is already there
+                $this->data['rows'][$key]['description'] = $row['description'];
+                if (empty($this->data['rows'][$key]['date'])) {
+                    $this->data['rows'][$key]['date'] = $row['date'];
+                }
+                if (empty($this->data['rows'][$key]['amount']) && $row['amount'] !== '') {
+                    $this->data['rows'][$key]['amount'] = $row['amount'];
+                }
+            } else {
+                // No existing row to fill — create a new one
+                $this->data['rows'][(string) Str::orderedUuid()] = $row;
+            }
         }
 
         Notification::make()
