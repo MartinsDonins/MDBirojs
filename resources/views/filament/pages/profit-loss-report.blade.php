@@ -192,6 +192,12 @@
                     <th class="px-4 py-3 text-right font-semibold text-violet-700 dark:text-violet-400">
                         Kopā atlikums
                     </th>
+                    <th class="px-3 py-3 text-right font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                        IIN likme
+                    </th>
+                    <th class="px-4 py-3 text-right font-semibold text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                        IIN summa
+                    </th>
                 </tr>
             </thead>
             <tbody>
@@ -226,6 +232,32 @@
                                    {{ ($yr['cumulative'] ?? 0) >= 0 ? 'text-violet-700 dark:text-violet-400' : 'text-red-700 dark:text-red-400' }}">
                             {{ number_format($yr['cumulative'] ?? 0, 2, ',', ' ') }} €
                         </td>
+                        {{-- IIN likme — editable input; @click.stop prevents toggleYear from firing --}}
+                        <td @click.stop class="px-3 py-2 text-right">
+                            <div class="flex items-center justify-end gap-0.5">
+                                <input
+                                    type="text"
+                                    wire:model.blur="taxRates.{{ $yr['year'] }}"
+                                    class="w-14 rounded border border-gray-200 dark:border-gray-600
+                                           bg-transparent text-right font-mono text-sm
+                                           text-amber-700 dark:text-amber-400
+                                           px-1.5 py-0.5
+                                           focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400
+                                           transition"
+                                    placeholder="23"
+                                />
+                                <span class="text-gray-400 dark:text-gray-500 text-xs">%</span>
+                            </div>
+                        </td>
+                        {{-- IIN summa — computed, read-only --}}
+                        <td class="px-4 py-3 text-right font-mono
+                                   {{ ($yr['profit'] ?? 0) > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500' }}">
+                            @if (($yr['profit'] ?? 0) > 0)
+                                {{ number_format($yr['tax_amount'] ?? 0, 2, ',', ' ') }} €
+                            @else
+                                <span class="text-xs italic">zaudējumi</span>
+                            @endif
+                        </td>
                     </tr>
 
                     {{-- Monthly detail rows (toggle) --}}
@@ -254,6 +286,8 @@
                                                {{ ($m['cumulative'] ?? 0) >= 0 ? 'text-violet-600 dark:text-violet-400/80' : 'text-red-600 dark:text-red-400' }}">
                                         {{ number_format($m['cumulative'] ?? 0, 2, ',', ' ') }} €
                                     </td>
+                                    <td class="px-3 py-1.5"></td>
+                                    <td class="px-4 py-1.5"></td>
                                 </tr>
                             @endif
                         @endforeach
@@ -261,7 +295,7 @@
 
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
+                        <td colspan="8" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
                             Nav datu. Pārliecinies, ka ir darījumi ar statusu <em>COMPLETED</em> un konfigurētas žurnāla kolonnas.
                         </td>
                     </tr>
@@ -274,6 +308,7 @@
                     $totalExpense = array_sum(array_column($yearlyData, 'expense'));
                     $totalProfit  = $totalIncome - $totalExpense;
                     $finalBalance = $yearlyData[0]['cumulative'] ?? 0;  // yearlyData[0] = newest year
+                    $totalTax     = array_sum(array_column($yearlyData, 'tax_amount'));
                 @endphp
                 <tfoot>
                     <tr class="bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-300 dark:border-gray-600">
@@ -292,6 +327,10 @@
                         <td class="px-4 py-3 text-right font-mono font-bold
                                    {{ $finalBalance >= 0 ? 'text-violet-700 dark:text-violet-400' : 'text-red-700 dark:text-red-400' }}">
                             {{ number_format($finalBalance, 2, ',', ' ') }} €
+                        </td>
+                        <td class="px-3 py-3"></td>
+                        <td class="px-4 py-3 text-right font-mono font-bold text-amber-700 dark:text-amber-400">
+                            {{ number_format($totalTax, 2, ',', ' ') }} €
                         </td>
                     </tr>
                 </tfoot>

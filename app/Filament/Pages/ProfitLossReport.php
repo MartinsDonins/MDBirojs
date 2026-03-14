@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\JournalColumn;
+use App\Models\ProfitLossSetting;
 use App\Models\Transaction;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,12 @@ class ProfitLossReport extends Page
     public array $expandedYears = [];
     /** Starting balance entered by the user (European format string, e.g. "1 234,56") */
     public string $startingBalance = '0';
+    /**
+     * Tax rates per year, keyed by year integer.
+     * Loaded from DB; updated via updatedTaxRates() lifecycle hook.
+     * e.g. [2024 => '23.00', 2025 => '20.00']
+     */
+    public array $taxRates = [];
     /** Abbreviation of the first income JournalColumn */
     public string $incomeAbbr  = '';
     /** Abbreviation of the first expense JournalColumn */
@@ -109,6 +116,17 @@ class ProfitLossReport extends Page
         // Table: newest year first; charts use ascending order (reversed in JS)
         $this->yearlyData = array_reverse($yearlyAsc);
 
+        // Load saved tax rates from DB (default 23% for missing years)
+        $savedRates = ProfitLossSetting::whereIn('year', array_column($yearlyAsc, 'year'))
+            ->pluck('tax_rate', 'year')
+            ->toArray();
+
+        foreach ($yearlyAsc as $row) {
+            $this->taxRates[$row['year']] = isset($savedRates[$row['year']])
+                ? (string) $savedRates[$row['year']]
+                : '23.00';
+        }
+
         $this->computeCumulativeBalances();
     }
 
@@ -118,6 +136,27 @@ class ProfitLossReport extends Page
      */
     public function updatedStartingBalance(): void
     {
+        $this->computeCumulativeBalances();
+    }
+
+    /**
+     * Persist the tax rate for a specific year and recompute.
+     * Called by Livewire's lifecycle hook when any $taxRates[year] changes via wire:model.blur.
+     * $key = the year (e.g. '2024'), $value = the new rate string.
+     */
+    public function updatedTaxRates(string $value, string $key): void
+    {
+        $year = (int) $key;
+        $rate = max(0.0, (float) str_replace(',', '.', $value));
+
+        ProfitLossSetting::updateOrCreate(
+            ['year'     => $year],
+            ['tax_rate' => $rate]
+        );
+
+        // Normalise the stored string to 2 decimals
+        $this->taxRates[$year] = number_format($rate, 2, '.', '');
+
         $this->computeCumulativeBalances();
     }
 
@@ -139,6 +178,14 @@ class ProfitLossReport extends Page
             $running    += $yr['profit'];
             $yr['cumulative']   = $running;
             $yr['year_opening'] = $yearOpening;
+
+            // IIN: only on positive annual profit; zero if loss
+            $taxRate              = (float) ($this->taxRates[$yr['year']] ?? 23.0);
+            $yr['tax_rate']       = $taxRate;
+            $yr['tax_amount']     = $yr['profit'] > 0
+                ? round($yr['profit'] * $taxRate / 100, 2)
+                : 0.0;
+
             $result[] = $yr;
 
             // Monthly cumulative: opening balance of the year + running monthly sum
