@@ -129,7 +129,9 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
     {
         $today = now()->format('d.m.Y');
         $this->form->fill([
-            'rows' => [
+            'account_id'  => session('qre_account_id'),
+            'category_id' => session('qre_category_id'),
+            'rows'        => [
                 ['date' => $today],
                 ['date' => $today],
                 ['date' => $today],
@@ -269,6 +271,114 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
         ];
     }
 
+    /**
+     * Fill the DATE column of existing rows (top-to-bottom) from pasted text.
+     * One date per line. Creates new partial rows if more dates than rows.
+     */
+    public function processDateBuffer(string $text): void
+    {
+        $values = array_values(array_filter(
+            preg_split('/\r?\n/', trim($text)),
+            fn ($l) => trim($l) !== ''
+        ));
+
+        if (empty($values)) {
+            return;
+        }
+
+        $current = $this->data;
+        $rows    = array_values($current['rows'] ?? []);
+        $filled  = 0;
+
+        foreach ($values as $i => $val) {
+            $date = $this->parseDateString(trim($val));
+            if ($date === null) {
+                continue;
+            }
+
+            if (isset($rows[$i])) {
+                $rows[$i]['date'] = $date;
+            } else {
+                $rows[] = ['date' => $date, 'description' => '', 'amount' => ''];
+            }
+
+            $filled++;
+        }
+
+        $this->form->fill([
+            'account_id'  => $current['account_id'] ?? null,
+            'category_id' => $current['category_id'] ?? null,
+            'rows'        => $rows,
+        ]);
+
+        Notification::make()
+            ->title("Aizpildīti {$filled} datumi")
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Fill the AMOUNT column of existing rows (top-to-bottom) from pasted text.
+     * One amount per line. Creates new partial rows if more amounts than rows.
+     */
+    public function processAmountBuffer(string $text): void
+    {
+        $values = array_values(array_filter(
+            preg_split('/\r?\n/', trim($text)),
+            fn ($l) => trim($l) !== ''
+        ));
+
+        if (empty($values)) {
+            return;
+        }
+
+        $current = $this->data;
+        $rows    = array_values($current['rows'] ?? []);
+        $filled  = 0;
+
+        foreach ($values as $i => $val) {
+            $amount = $this->parseAmount(trim($val));
+            if ($amount === null) {
+                continue;
+            }
+
+            $formatted = number_format($amount, 2, '.', '');
+
+            if (isset($rows[$i])) {
+                $rows[$i]['amount'] = $formatted;
+            } else {
+                $rows[] = ['date' => now()->format('d.m.Y'), 'description' => '', 'amount' => $formatted];
+            }
+
+            $filled++;
+        }
+
+        $this->form->fill([
+            'account_id'  => $current['account_id'] ?? null,
+            'category_id' => $current['category_id'] ?? null,
+            'rows'        => $rows,
+        ]);
+
+        Notification::make()
+            ->title("Aizpildītas {$filled} summas")
+            ->success()
+            ->send();
+    }
+
+    protected function parseDateString(string $value): ?string
+    {
+        // dd.mm.yyyy or d.m.yyyy (Latvian format)
+        if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $value, $m)) {
+            return sprintf('%02d.%02d.%s', (int) $m[1], (int) $m[2], $m[3]);
+        }
+        // yyyy-mm-dd (ISO)
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return sprintf('%02d.%02d.%s', (int) $m[3], (int) $m[2], $m[1]);
+        }
+
+        return null;
+    }
+
     protected function parsePastedText(string $text): array
     {
         $rows  = [];
@@ -395,6 +505,12 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
             $created++;
             $total += abs($amount);
         }
+
+        // Persist account/category in session so next visit pre-fills them
+        session([
+            'qre_account_id'  => $data['account_id'],
+            'qre_category_id' => $data['category_id'] ?? null,
+        ]);
 
         // Keep account/category, reset rows to 3 empty ones (pre-fill today's date)
         $today = now()->format('d.m.Y');
