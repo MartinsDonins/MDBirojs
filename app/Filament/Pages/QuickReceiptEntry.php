@@ -772,24 +772,27 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                 $date            = Carbon::createFromFormat('d.m.Y', $row['date']);
                 $year            = $date->year;
 
-                // Disable the Transaction Observer so it doesn't auto-create a CashOrder —
-                // we create the CashOrder explicitly below with full field control.
-                $tx = null;
-                Transaction::withoutObservers(function () use ($row, $date, $amountSigned, $amountEurSigned, &$tx): void {
-                    $tx = Transaction::create([
-                        'account_id'        => $row['account_id'],
-                        'category_id'       => $row['category_id'] ?? null,
-                        'occurred_at'       => $date,
-                        'amount'            => $amountSigned,
-                        'currency'          => $row['currency'],
-                        'amount_eur'        => $amountEurSigned,
-                        'exchange_rate'     => $row['exchange_rate'] ?? 1,
-                        'description'       => $row['description'],
-                        'counterparty_name' => $row['partner'],
-                        'type'              => $row['type'],
-                        'status'            => 'COMPLETED',
-                    ]);
-                });
+                // Temporarily disable Eloquent events so the Transaction Observer does NOT
+                // auto-create a CashOrder — we create it explicitly below with full field control
+                // (account_id, proper number, currency, etc.).
+                $dispatcher = Transaction::getEventDispatcher();
+                Transaction::unsetEventDispatcher();
+
+                $tx = Transaction::create([
+                    'account_id'        => $row['account_id'],
+                    'category_id'       => $row['category_id'] ?? null,
+                    'occurred_at'       => $date,
+                    'amount'            => $amountSigned,
+                    'currency'          => $row['currency'],
+                    'amount_eur'        => $amountEurSigned,
+                    'exchange_rate'     => $row['exchange_rate'] ?? 1,
+                    'description'       => $row['description'],
+                    'counterparty_name' => $row['partner'],
+                    'type'              => $row['type'],
+                    'status'            => 'COMPLETED',
+                ]);
+
+                Transaction::setEventDispatcher($dispatcher);
 
                 $cashType = $row['type'];
                 CashOrder::create([
