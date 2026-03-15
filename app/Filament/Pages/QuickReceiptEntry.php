@@ -38,6 +38,9 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
     /** Parsed preview rows from the Excel file (shown before confirming import) */
     public array $previewRows = [];
 
+    /** Category options for the preview table category selects [id => name] */
+    public array $categoryOptions = [];
+
     /**
      * Called from Alpine.js @paste handler in the Blade template.
      * Receives raw clipboard text, parses each line into a repeater row,
@@ -156,6 +159,8 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
     public function mount(): void
     {
+        $this->categoryOptions = Category::orderBy('name')->pluck('name', 'id')->toArray();
+
         $today = now()->format('d.m.Y');
         $this->form->fill([
             'use_shared_fields' => session('qre_shared_fields', true),
@@ -691,6 +696,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                     'amount_eur'    => $amountEur,
                     'currency'      => $currency,
                     'exchange_rate' => $exchangeRate,
+                    'category_id'   => null,
                     'errors'        => $errors,
                     'warnings'      => $warnings,
                     'skip'          => !empty($errors),
@@ -731,6 +737,13 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
         }
     }
 
+    public function updatePreviewCategory(int $index, mixed $categoryId): void
+    {
+        if (isset($this->previewRows[$index])) {
+            $this->previewRows[$index]['category_id'] = $categoryId ?: null;
+        }
+    }
+
     public function cancelExcelImport(): void
     {
         $this->previewRows = [];
@@ -753,24 +766,30 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
         DB::transaction(function () use ($validRows, &$created, &$totalAmount): void {
             foreach ($validRows as $row) {
-                $isIncome       = $row['type'] === 'INCOME';
-                $amountSigned   = $isIncome ? $row['amount']     : -$row['amount'];
+                $isIncome        = $row['type'] === 'INCOME';
+                $amountSigned    = $isIncome ? $row['amount']     : -$row['amount'];
                 $amountEurSigned = $isIncome ? $row['amount_eur'] : -$row['amount_eur'];
-                $date           = Carbon::createFromFormat('d.m.Y', $row['date']);
-                $year           = $date->year;
+                $date            = Carbon::createFromFormat('d.m.Y', $row['date']);
+                $year            = $date->year;
 
-                $tx = Transaction::create([
-                    'account_id'        => $row['account_id'],
-                    'occurred_at'       => $date,
-                    'amount'            => $amountSigned,
-                    'currency'          => $row['currency'],
-                    'amount_eur'        => $amountEurSigned,
-                    'exchange_rate'     => $row['exchange_rate'] ?? 1,
-                    'description'       => $row['description'],
-                    'counterparty_name' => $row['partner'],
-                    'type'              => $row['type'],
-                    'status'            => 'COMPLETED',
-                ]);
+                // Disable the Transaction Observer so it doesn't auto-create a CashOrder —
+                // we create the CashOrder explicitly below with full field control.
+                $tx = null;
+                Transaction::withoutObservers(function () use ($row, $date, $amountSigned, $amountEurSigned, &$tx): void {
+                    $tx = Transaction::create([
+                        'account_id'        => $row['account_id'],
+                        'category_id'       => $row['category_id'] ?? null,
+                        'occurred_at'       => $date,
+                        'amount'            => $amountSigned,
+                        'currency'          => $row['currency'],
+                        'amount_eur'        => $amountEurSigned,
+                        'exchange_rate'     => $row['exchange_rate'] ?? 1,
+                        'description'       => $row['description'],
+                        'counterparty_name' => $row['partner'],
+                        'type'              => $row['type'],
+                        'status'            => 'COMPLETED',
+                    ]);
+                });
 
                 $cashType = $row['type'];
                 CashOrder::create([

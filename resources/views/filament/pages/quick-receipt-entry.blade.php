@@ -171,6 +171,7 @@
                         <th class="px-2 py-2 text-right whitespace-nowrap">Summa</th>
                         <th class="px-2 py-2 text-right whitespace-nowrap">EUR</th>
                         <th class="px-2 py-2 whitespace-nowrap">Val.</th>
+                        <th class="px-2 py-2 whitespace-nowrap">Kategorija</th>
                         <th class="px-2 py-2">Statuss</th>
                         <th class="px-2 py-2 text-center whitespace-nowrap">Izlaist</th>
                     </tr>
@@ -225,6 +226,22 @@
                                 @endif
                             </td>
                             <td class="px-2 py-1.5 {{ $isForeign ? 'text-amber-700 dark:text-amber-400 font-semibold' : 'text-gray-500' }} whitespace-nowrap">{{ $row['currency'] }}</td>
+                            {{-- Category select --}}
+                            <td class="px-2 py-1.5">
+                                @if(!$row['skip'])
+                                <select
+                                    @change="$wire.updatePreviewCategory({{ $i }}, $event.target.value || null)"
+                                    class="w-full min-w-[110px] rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[11px] text-gray-700 dark:text-gray-300 px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-violet-400"
+                                >
+                                    <option value="">—</option>
+                                    @foreach($categoryOptions as $catId => $catName)
+                                        <option value="{{ $catId }}" @selected(($row['category_id'] ?? null) == $catId)>
+                                            {{ $catName }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @endif
+                            </td>
                             <td class="px-2 py-1.5">
                                 @if($hasErrors)
                                     <span class="text-red-500 text-[10px]" title="{{ implode(' · ', $row['errors']) }}">
