@@ -54,6 +54,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public bool $showOnlyInvalid = false;
     /** Years manually marked as verified (year => verified_at string) */
     public array $verifiedYears = [];
+    /** Months manually marked as verified ("YYYY-M" => verified_at string) */
+    public array $verifiedMonths = [];
     /** Non-EUR currencies present in the currently displayed month (populated by calculateMonthData) */
     public array $foreignCurrencies = [];
     /** Per-account opening balances for the selected year (populated by calculateMonthlySummary) */
@@ -118,6 +120,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $this->accounts = \App\Models\Account::all();
 
         $this->loadVerifiedYears();
+        $this->loadVerifiedMonths();
         $this->calculateYearlySummary();
     }
 
@@ -125,6 +128,17 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     {
         $this->verifiedYears = \App\Models\JournalYearVerification::pluck('verified_at', 'year')
             ->map(fn ($dt) => $dt instanceof \Carbon\Carbon ? $dt->format('d.m.Y H:i') : (string) $dt)
+            ->toArray();
+    }
+
+    private function loadVerifiedMonths(): void
+    {
+        $this->verifiedMonths = \App\Models\JournalMonthVerification::all()
+            ->mapWithKeys(fn ($v) => [
+                $v->year . '-' . $v->month => $v->verified_at instanceof \Carbon\Carbon
+                    ? $v->verified_at->format('d.m.Y H:i')
+                    : (string) $v->verified_at,
+            ])
             ->toArray();
     }
 
@@ -144,6 +158,25 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         $this->loadVerifiedYears();
         $this->calculateYearlySummary();
+    }
+
+    public function toggleMonthVerified(int $year, int $month): void
+    {
+        $existing = \App\Models\JournalMonthVerification::where('year', $year)->where('month', $month)->first();
+
+        if ($existing) {
+            $existing->delete();
+        } else {
+            \App\Models\JournalMonthVerification::create([
+                'year'        => $year,
+                'month'       => $month,
+                'verified_at' => now(),
+                'verified_by' => auth()->id(),
+            ]);
+        }
+
+        $this->loadVerifiedMonths();
+        $this->calculateMonthlySummary();
     }
 
     public function table(Table $table): Table
@@ -708,6 +741,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'tx_completed'  => $completedTx,
                 'all_completed' => $allCompleted,
                 'columns_ok'    => $columnsOk,
+                // Manual verification
+                'verified'      => isset($this->verifiedMonths[$this->selectedYear . '-' . $month]),
+                'verified_at'   => $this->verifiedMonths[$this->selectedYear . '-' . $month] ?? null,
                 // Per-category detail (sorted: INCOME first, then EXPENSE; alphabetically within each)
                 'categories'   => $monthCats
                     ->sortBy(fn ($c) => ($c->type === 'INCOME' ? '0' : '1') . ($c->category_name ?? ''))

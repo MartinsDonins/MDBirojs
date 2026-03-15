@@ -72,23 +72,12 @@
                                             @click.stop="expanded = (expanded === {{ $yearData['year'] }}) ? null : {{ $yearData['year'] }}">
                                             <span x-text="expanded === {{ $yearData['year'] }} ? '▲ Aizvērt' : '▼ Analīze'"></span>
                                         </button>
-                                        {{-- Manual verification toggle --}}
+                                        {{-- Verified indicator (read-only in all-years view; toggle is in year detail) --}}
                                         @if($yearData['verified'])
-                                            <button
-                                                wire:click="toggleYearVerified({{ $yearData['year'] }})"
-                                                wire:loading.attr="disabled"
-                                                class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition-colors"
-                                                title="Pārbaudīts {{ $yearData['verified_at'] }}. Noklikšķināt lai noņemtu atzīmi.">
+                                            <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700"
+                                                title="Pārbaudīts {{ $yearData['verified_at'] }}">
                                                 ✅ Pārbaudīts
-                                            </button>
-                                        @else
-                                            <button
-                                                wire:click="toggleYearVerified({{ $yearData['year'] }})"
-                                                wire:loading.attr="disabled"
-                                                class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-300 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400 transition-colors"
-                                                title="Atzīmēt gadu kā pārbaudītu">
-                                                ○ Pārbaudīt
-                                            </button>
+                                            </span>
                                         @endif
                                     </div>
                                 </td>
@@ -325,7 +314,25 @@
                         Nākošais
                     </x-filament::button>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 items-center">
+                    {{-- Year verification toggle --}}
+                    @if(isset($verifiedYears[$selectedYear]))
+                        <button
+                            wire:click="toggleYearVerified({{ $selectedYear }})"
+                            wire:loading.attr="disabled"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition-colors"
+                            title="Gads pārbaudīts {{ $verifiedYears[$selectedYear] }}. Klikšķināt, lai noņemtu atzīmi.">
+                            ✅ {{ $selectedYear }}. gads pārbaudīts
+                        </button>
+                    @else
+                        <button
+                            wire:click="toggleYearVerified({{ $selectedYear }})"
+                            wire:loading.attr="disabled"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400 transition-colors"
+                            title="Atzīmēt {{ $selectedYear }}. gadu kā pārbaudītu">
+                            ○ Atzīmēt kā pārbaudītu
+                        </button>
+                    @endif
                     <x-filament::button wire:click="mountAction('createTransaction')" icon="heroicon-o-plus">
                         Pievienot darījumu
                     </x-filament::button>
@@ -554,20 +561,40 @@
 
                     @foreach($monthlySummary as $mSummary)
                         {{-- Month summary row (clickable to expand categories) --}}
-                        <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border-b border-gray-200 dark:border-white/5"
+                        <tr class="{{ $mSummary['verified'] ? 'bg-emerald-50/50 dark:bg-emerald-900/10 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/20' : 'hover:bg-blue-50 dark:hover:bg-blue-900/20' }} cursor-pointer border-b border-gray-200 dark:border-white/5"
                             @click="$store.yearView.expandedMonths.includes({{ $mSummary['month_number'] }})
                                 ? $store.yearView.expandedMonths = $store.yearView.expandedMonths.filter(m => m !== {{ $mSummary['month_number'] }})
                                 : $store.yearView.expandedMonths.push({{ $mSummary['month_number'] }})">
                             {{-- Action button — first column --}}
                             <td class="px-1 py-1 text-center border border-gray-300 dark:border-gray-700" @click.stop>
-                                <x-filament::button size="xs" color="gray" icon="heroicon-o-eye"
-                                    wire:click="viewMonthDetails({{ $mSummary['month_number'] }})">
-                                    Skatīt
-                                </x-filament::button>
+                                <div class="flex flex-col items-center gap-1">
+                                    <x-filament::button size="xs" color="gray" icon="heroicon-o-eye"
+                                        wire:click="viewMonthDetails({{ $mSummary['month_number'] }})">
+                                        Skatīt
+                                    </x-filament::button>
+                                    @if($mSummary['verified'])
+                                        <button
+                                            wire:click="toggleMonthVerified({{ $selectedYear }}, {{ $mSummary['month_number'] }})"
+                                            wire:loading.attr="disabled"
+                                            class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 transition-colors"
+                                            title="Pārbaudīts {{ $mSummary['verified_at'] }}. Klikšķināt, lai noņemtu.">
+                                            ✅ Pārbaudīts
+                                        </button>
+                                    @else
+                                        <button
+                                            wire:click="toggleMonthVerified({{ $selectedYear }}, {{ $mSummary['month_number'] }})"
+                                            wire:loading.attr="disabled"
+                                            class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 border border-gray-300 dark:border-gray-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-300 transition-colors"
+                                            title="Atzīmēt mēnesi kā pārbaudītu">
+                                            ○ Pārbaudīt
+                                        </button>
+                                    @endif
+                                </div>
                             </td>
                             {{-- Month name + status badges --}}
-                            <td class="px-3 py-2 text-sm font-medium text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700 whitespace-nowrap">
-                                <span x-text="$store.yearView && $store.yearView.expandedMonths.includes({{ $mSummary['month_number'] }}) ? '▾' : '▸'" class="text-gray-400 text-[10px] mr-1"></span>{{ $mSummary['month'] }}
+                            <td class="px-3 py-2 text-sm font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap {{ $mSummary['verified'] ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-950 dark:text-white' }}">
+                                <span x-text="$store.yearView && $store.yearView.expandedMonths.includes({{ $mSummary['month_number'] }}) ? '▾' : '▸'" class="text-gray-400 text-[10px] mr-1"></span>
+                                @if($mSummary['verified'])<span class="text-emerald-500 mr-0.5" title="Pārbaudīts {{ $mSummary['verified_at'] }}">✔</span>@endif{{ $mSummary['month'] }}
                                 @if($mSummary['tx_total'] > 0)
                                     @if($mSummary['all_completed'])
                                         <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" title="Visi {{ $mSummary['tx_total'] }} darījumi apstiprināti">✓</span>
