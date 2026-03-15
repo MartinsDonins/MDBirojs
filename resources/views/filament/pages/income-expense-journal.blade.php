@@ -56,7 +56,7 @@
                                 $yExpenseUncat = max(0, $yearData['expense'] - $yearData['expense_kopaa']);
                             @endphp
                             {{-- Main year row --}}
-                            <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer"
+                            <tr class="{{ $yearData['verified'] ? 'bg-emerald-50/60 dark:bg-emerald-900/10 hover:bg-emerald-100/60 dark:hover:bg-emerald-900/20' : 'hover:bg-blue-50 dark:hover:bg-blue-900/20' }} cursor-pointer"
                                 @click="expanded = (expanded === {{ $yearData['year'] }}) ? null : {{ $yearData['year'] }}">
                                 {{-- Action button — first column --}}
                                 <td class="px-2 py-2 text-center border border-gray-300 dark:border-gray-700" @click.stop>
@@ -72,10 +72,31 @@
                                             @click.stop="expanded = (expanded === {{ $yearData['year'] }}) ? null : {{ $yearData['year'] }}">
                                             <span x-text="expanded === {{ $yearData['year'] }} ? '▲ Aizvērt' : '▼ Analīze'"></span>
                                         </button>
+                                        {{-- Manual verification toggle --}}
+                                        @if($yearData['verified'])
+                                            <button
+                                                wire:click="toggleYearVerified({{ $yearData['year'] }})"
+                                                wire:loading.attr="disabled"
+                                                class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition-colors"
+                                                title="Pārbaudīts {{ $yearData['verified_at'] }}. Noklikšķināt lai noņemtu atzīmi.">
+                                                ✅ Pārbaudīts
+                                            </button>
+                                        @else
+                                            <button
+                                                wire:click="toggleYearVerified({{ $yearData['year'] }})"
+                                                wire:loading.attr="disabled"
+                                                class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-300 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400 transition-colors"
+                                                title="Atzīmēt gadu kā pārbaudītu">
+                                                ○ Pārbaudīt
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                                 {{-- Year + status badges --}}
-                                <td class="px-3 py-3 text-sm font-bold text-gray-950 dark:text-white border border-gray-300 dark:border-gray-700 whitespace-nowrap">
+                                <td class="px-3 py-3 text-sm font-bold border border-gray-300 dark:border-gray-700 whitespace-nowrap {{ $yearData['verified'] ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-950 dark:text-white' }}">
+                                    @if($yearData['verified'])
+                                        <span class="text-emerald-500 dark:text-emerald-400 mr-0.5" title="Pārbaudīts {{ $yearData['verified_at'] }}">✔</span>
+                                    @endif
                                     {{ $yearData['year'] }}
                                     @if($yearData['tx_total'] > 0)
                                         @if($yearData['all_completed'])

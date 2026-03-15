@@ -52,6 +52,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public array $monthlySummary = [];
     public $accounts;
     public bool $showOnlyInvalid = false;
+    /** Years manually marked as verified (year => verified_at string) */
+    public array $verifiedYears = [];
     /** Non-EUR currencies present in the currently displayed month (populated by calculateMonthData) */
     public array $foreignCurrencies = [];
     /** Per-account opening balances for the selected year (populated by calculateMonthlySummary) */
@@ -110,11 +112,37 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public function mount(): void
     {
         // Start with overview of all years
-        $this->selectedYear = null; 
+        $this->selectedYear = null;
         $this->selectedMonth = null;
-        
+
         $this->accounts = \App\Models\Account::all();
-        
+
+        $this->loadVerifiedYears();
+        $this->calculateYearlySummary();
+    }
+
+    private function loadVerifiedYears(): void
+    {
+        $this->verifiedYears = \App\Models\JournalYearVerification::pluck('verified_at', 'year')
+            ->map(fn ($dt) => $dt instanceof \Carbon\Carbon ? $dt->format('d.m.Y H:i') : (string) $dt)
+            ->toArray();
+    }
+
+    public function toggleYearVerified(int $year): void
+    {
+        $existing = \App\Models\JournalYearVerification::where('year', $year)->first();
+
+        if ($existing) {
+            $existing->delete();
+        } else {
+            \App\Models\JournalYearVerification::create([
+                'year'        => $year,
+                'verified_at' => now(),
+                'verified_by' => auth()->id(),
+            ]);
+        }
+
+        $this->loadVerifiedYears();
         $this->calculateYearlySummary();
     }
 
@@ -471,6 +499,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'tx_completed'  => $yearCompletedTx,
                 'all_completed' => $yearAllCompleted,
                 'columns_ok'    => $yearColumnsOk,
+                // Manual verification
+                'verified'      => isset($this->verifiedYears[$yearKey]),
+                'verified_at'   => $this->verifiedYears[$yearKey] ?? null,
             ]);
         }
     }
