@@ -580,10 +580,10 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
             $this->previewRows = [];
 
             foreach ($allRows as $rowIdx => $row) {
-                while (count($row) < 7) {
+                while (count($row) < 8) {
                     $row[] = null;
                 }
-                [$dateRaw, $accountName, $typeRaw, $partnerRaw, $descRaw, $amountRaw, $currencyRaw] = $row;
+                [$dateRaw, $accountName, $typeRaw, $partnerRaw, $descRaw, $amountRaw, $currencyRaw, $rateRaw] = $row;
 
                 // Skip completely blank rows
                 $allEmpty = array_filter(array_map(fn ($v) => trim((string) $v), $row)) === [];
@@ -592,6 +592,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                 }
 
                 $errors = [];
+                $warnings = [];
 
                 // --- Date ---
                 $date = null;
@@ -646,6 +647,31 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                     $errors[] = 'Nepareiza summa';
                 }
 
+                // --- Exchange rate + EUR equivalent ---
+                $currency = strtoupper(trim((string) ($currencyRaw ?? 'EUR'))) ?: 'EUR';
+                $exchangeRate = null;
+                $amountEur    = $amount;  // default: same as amount (EUR)
+
+                if ($rateRaw !== null && trim((string) $rateRaw) !== '') {
+                    $rateVal = (float) str_replace(',', '.', trim((string) $rateRaw));
+                    if ($rateVal > 0) {
+                        $exchangeRate = $rateVal;
+                    }
+                }
+
+                if ($currency !== 'EUR') {
+                    if ($exchangeRate !== null) {
+                        $amountEur = $amount !== null ? round($amount / $exchangeRate, 2) : null;
+                    } else {
+                        // Non-EUR but no rate provided — warn, use 1:1 temporarily
+                        $warnings[] = "Valūta {$currency}: norādi kursu (kolonnu H), citādi EUR = {$currency} summa";
+                        $amountEur  = $amount;
+                        $exchangeRate = 1.0;
+                    }
+                } else {
+                    $exchangeRate = 1.0;
+                }
+
                 // --- Description ---
                 $desc = trim((string) ($descRaw ?? ''));
                 if ($desc === '') {
@@ -653,18 +679,21 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                 }
 
                 $this->previewRows[] = [
-                    'row_num'     => $rowIdx + 2,
-                    'date'        => $date ?? trim((string) ($dateRaw ?? '')),
-                    'account_id'  => $account?->id,
-                    'account'     => $accountNameStr,
-                    'type'        => $type,
-                    'type_raw'    => trim((string) ($typeRaw ?? '')),
-                    'partner'     => trim((string) ($partnerRaw ?? '')),
-                    'description' => $desc,
-                    'amount'      => $amount,
-                    'currency'    => strtoupper(trim((string) ($currencyRaw ?? 'EUR'))) ?: 'EUR',
-                    'errors'      => $errors,
-                    'skip'        => !empty($errors),
+                    'row_num'       => $rowIdx + 2,
+                    'date'          => $date ?? trim((string) ($dateRaw ?? '')),
+                    'account_id'    => $account?->id,
+                    'account'       => $accountNameStr,
+                    'type'          => $type,
+                    'type_raw'      => trim((string) ($typeRaw ?? '')),
+                    'partner'       => trim((string) ($partnerRaw ?? '')),
+                    'description'   => $desc,
+                    'amount'        => $amount,
+                    'amount_eur'    => $amountEur,
+                    'currency'      => $currency,
+                    'exchange_rate' => $exchangeRate,
+                    'errors'        => $errors,
+                    'warnings'      => $warnings,
+                    'skip'          => !empty($errors),
                 ];
             }
 
@@ -724,18 +753,19 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
         DB::transaction(function () use ($validRows, &$created, &$totalAmount): void {
             foreach ($validRows as $row) {
-                $isIncome    = $row['type'] === 'INCOME';
-                $amountSigned = $isIncome ? $row['amount'] : -$row['amount'];
-                $date        = Carbon::createFromFormat('d.m.Y', $row['date']);
-                $year        = $date->year;
+                $isIncome       = $row['type'] === 'INCOME';
+                $amountSigned   = $isIncome ? $row['amount']     : -$row['amount'];
+                $amountEurSigned = $isIncome ? $row['amount_eur'] : -$row['amount_eur'];
+                $date           = Carbon::createFromFormat('d.m.Y', $row['date']);
+                $year           = $date->year;
 
                 $tx = Transaction::create([
                     'account_id'        => $row['account_id'],
                     'occurred_at'       => $date,
                     'amount'            => $amountSigned,
                     'currency'          => $row['currency'],
-                    'amount_eur'        => $amountSigned,
-                    'exchange_rate'     => 1,
+                    'amount_eur'        => $amountEurSigned,
+                    'exchange_rate'     => $row['exchange_rate'] ?? 1,
                     'description'       => $row['description'],
                     'counterparty_name' => $row['partner'],
                     'type'              => $row['type'],

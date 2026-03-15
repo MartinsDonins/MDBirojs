@@ -169,6 +169,7 @@
                         <th class="px-2 py-2 whitespace-nowrap">Partneris</th>
                         <th class="px-2 py-2">Apraksts</th>
                         <th class="px-2 py-2 text-right whitespace-nowrap">Summa</th>
+                        <th class="px-2 py-2 text-right whitespace-nowrap">EUR</th>
                         <th class="px-2 py-2 whitespace-nowrap">Val.</th>
                         <th class="px-2 py-2">Statuss</th>
                         <th class="px-2 py-2 text-center whitespace-nowrap">Izlaist</th>
@@ -176,7 +177,19 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     @foreach ($previewRows as $i => $row)
-                        <tr class="transition-opacity {{ $row['skip'] ? 'opacity-35' : (empty($row['errors']) ? 'hover:bg-gray-50 dark:hover:bg-gray-800/50' : 'bg-red-50 dark:bg-red-950/20') }}">
+                        @php
+                            $hasWarnings = !empty($row['warnings'] ?? []);
+                            $hasErrors   = !empty($row['errors']);
+                            $rowClass    = $row['skip']
+                                ? 'opacity-35'
+                                : ($hasErrors
+                                    ? 'bg-red-50 dark:bg-red-950/20'
+                                    : ($hasWarnings
+                                        ? 'bg-amber-50 dark:bg-amber-950/20'
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'));
+                            $isForeign = ($row['currency'] ?? 'EUR') !== 'EUR';
+                        @endphp
+                        <tr class="transition-opacity {{ $rowClass }}">
                             <td class="px-2 py-1.5 text-center text-gray-400">{{ $row['row_num'] }}</td>
                             <td class="px-2 py-1.5 font-mono whitespace-nowrap">{{ $row['date'] }}</td>
                             <td class="px-2 py-1.5 whitespace-nowrap">{{ $row['account'] }}</td>
@@ -195,19 +208,34 @@
                             </td>
                             <td class="px-2 py-1.5 text-gray-600 dark:text-gray-400 max-w-[120px] truncate" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
                             <td class="px-2 py-1.5 max-w-xs truncate" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
-                            <td class="px-2 py-1.5 text-right font-mono font-medium tabular-nums whitespace-nowrap">
+                            <td class="px-2 py-1.5 text-right font-mono font-medium tabular-nums whitespace-nowrap {{ $isForeign ? 'text-amber-700 dark:text-amber-400' : '' }}">
                                 @if($row['amount'] !== null)
                                     {{ number_format($row['amount'], 2, ',', ' ') }}
                                 @endif
                             </td>
-                            <td class="px-2 py-1.5 text-gray-500 whitespace-nowrap">{{ $row['currency'] }}</td>
+                            <td class="px-2 py-1.5 text-right font-mono tabular-nums whitespace-nowrap {{ $isForeign ? 'font-semibold' : 'text-gray-400' }}">
+                                @if(($row['amount_eur'] ?? null) !== null)
+                                    @if($isForeign)
+                                        <span title="Kurss: {{ $row['exchange_rate'] ?? '—' }}">
+                                            {{ number_format($row['amount_eur'], 2, ',', ' ') }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-300 dark:text-gray-600">≡</span>
+                                    @endif
+                                @endif
+                            </td>
+                            <td class="px-2 py-1.5 {{ $isForeign ? 'text-amber-700 dark:text-amber-400 font-semibold' : 'text-gray-500' }} whitespace-nowrap">{{ $row['currency'] }}</td>
                             <td class="px-2 py-1.5">
-                                @if(empty($row['errors']))
-                                    <span class="text-green-600 dark:text-green-400 font-bold">✓</span>
-                                @else
+                                @if($hasErrors)
                                     <span class="text-red-500 text-[10px]" title="{{ implode(' · ', $row['errors']) }}">
-                                        ⚠ {{ implode(' · ', $row['errors']) }}
+                                        ✗ {{ implode(' · ', $row['errors']) }}
                                     </span>
+                                @elseif($hasWarnings)
+                                    <span class="text-amber-600 dark:text-amber-400 text-[10px]" title="{{ implode(' · ', $row['warnings']) }}">
+                                        ⚠ {{ implode(' · ', $row['warnings']) }}
+                                    </span>
+                                @else
+                                    <span class="text-green-600 dark:text-green-400 font-bold">✓</span>
                                 @endif
                             </td>
                             <td class="px-2 py-1.5 text-center">
