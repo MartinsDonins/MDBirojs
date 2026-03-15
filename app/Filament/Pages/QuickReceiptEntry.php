@@ -790,6 +790,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                     'counterparty_name' => $row['partner'],
                     'type'              => $row['type'],
                     'status'            => 'COMPLETED',
+                    'fingerprint'       => 'manual-' . \Illuminate\Support\Str::uuid(),
                 ]);
 
                 Transaction::setEventDispatcher($dispatcher);
