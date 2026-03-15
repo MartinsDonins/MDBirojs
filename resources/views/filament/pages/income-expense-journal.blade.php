@@ -848,10 +848,10 @@
         @php
             $incomeColCount    = count($journalIncomeColumns);
             $expenseColCount   = count($journalExpenseColumns);
-            // 8 fixed cols + 3*accounts + income cols + 1 kopā + expense cols + 1 kopā + 1 atb
+            // 9 fixed cols (incl. Kases orderis) + 3*accounts + income cols + 1 kopā + expense cols + 1 kopā + 1 atb
             $totalAnalysisCols = $incomeColCount + 1 + $expenseColCount + 1 + 1;
             $fcCount           = count($foreignCurrencies);
-            $detailColSpan     = 8 + $fcCount + count($accounts) * 3 + $incomeColCount + 1 + $expenseColCount + 1 + 1;
+            $detailColSpan     = 9 + $fcCount + count($accounts) * 3 + $incomeColCount + 1 + $expenseColCount + 1 + 1;
         @endphp
         <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
         <style>
@@ -925,6 +925,7 @@
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 80px;">Kategorija</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100">Sasaite</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 40px;">Statuss</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100 bg-violet-50 dark:bg-violet-900/20" style="min-width: 80px;" title="Kases ieņēmumu / izdevumu orderu numurs">Kases<br>orderis</th>
 
                         {{-- Ārzemju valūtu kolonnas (dinamiski, tikai ja mēnesī ir tādi darījumi) --}}
                         @foreach($foreignCurrencies as $curr)
@@ -976,8 +977,9 @@
                         <th class="border border-gray-300 dark:border-gray-700">6</th>
                         <th class="border border-gray-300 dark:border-gray-700">7</th>
                         <th class="border border-gray-300 dark:border-gray-700">8</th>
+                        <th class="border border-gray-300 dark:border-gray-700 bg-violet-50 dark:bg-violet-900/20">9</th>
 
-                        @php $colNum = 9; @endphp
+                        @php $colNum = 10; @endphp
                         @foreach($foreignCurrencies as $curr)
                             <th class="border border-gray-300 dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20">{{ $colNum++ }}</th>
                         @endforeach
@@ -1003,6 +1005,7 @@
                     <tr class="no-sort-row bg-yellow-50 dark:bg-yellow-900/10 font-bold text-gray-700 dark:text-gray-300">
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-xs">Sākuma atlikums:</td>
                         <td class="border border-gray-300 dark:border-gray-700"></td>
+                        <td class="border border-gray-300 dark:border-gray-700 bg-violet-50/30 dark:bg-violet-900/10"></td>
                         @foreach($foreignCurrencies as $curr)
                             <td class="border border-gray-300 dark:border-gray-700 bg-yellow-50/40 dark:bg-yellow-900/10"></td>
                         @endforeach
@@ -1097,6 +1100,17 @@
                                         <span class="text-gray-400 text-lg">○</span>
                                     @endif
                                 </div>
+                                @endif
+                            </td>
+
+                            {{-- Kases orderis --}}
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center text-[9px] bg-violet-50/30 dark:bg-violet-900/10 group-hover:bg-violet-50 dark:group-hover:bg-violet-900/20 whitespace-nowrap font-mono">
+                                @if($row['cash_order_number'])
+                                    <span class="{{ str_starts_with($row['cash_order_number'], 'KII') ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400' }}" title="{{ $row['cash_order_number'] }}">
+                                        {{ $row['cash_order_number'] }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-300 dark:text-gray-600">—</span>
                                 @endif
                             </td>
 

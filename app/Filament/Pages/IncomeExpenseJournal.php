@@ -223,7 +223,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         // 2. Get transactions for the selected period
         // sort_order: manual order within the same date; NULL falls back to id (import order)
-        $transactions = Transaction::with(['account', 'category', 'linkedTransaction.account'])
+        $transactions = Transaction::with(['account', 'category', 'linkedTransaction.account', 'cashOrder'])
             ->where('occurred_at', '>=', $periodStart)
             ->where('occurred_at', '<=', $periodEnd)
             ->orderBy('occurred_at')
@@ -285,6 +285,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
                 // Snapshot of balances AFTER this transaction
                 'account_balances' => $currentBalances,
+
+                // Cash order reference
+                'cash_order_number' => $transaction->cashOrder?->number,
             ];
             
             $data[] = $row;
