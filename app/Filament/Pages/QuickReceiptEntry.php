@@ -18,6 +18,7 @@ use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 
@@ -157,9 +158,10 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
     {
         $today = now()->format('d.m.Y');
         $this->form->fill([
-            'account_id'  => session('qre_account_id'),
-            'category_id' => session('qre_category_id'),
-            'rows'        => [
+            'use_shared_fields' => session('qre_shared_fields', true),
+            'account_id'        => session('qre_account_id'),
+            'category_id'       => session('qre_category_id'),
+            'rows'              => [
                 ['date' => $today],
                 ['date' => $today],
                 ['date' => $today],
@@ -174,13 +176,21 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
         return $form
             ->schema([
-                Forms\Components\Section::make('Kopīgie lauki')
-                    ->description('Konts un noklusējuma kategorija — rindās var norādīt citu kategoriju')
+                // ── Toggle ──────────────────────────────────────────────────
+                Forms\Components\Toggle::make('use_shared_fields')
+                    ->label('Kopīgie lauki')
+                    ->helperText('Ieslēgts: viens konts + kategorija visiem · Izslēgts: norāda katrai rindai atsevišķi')
+                    ->live()
+                    ->default(true)
+                    ->inline(false),
+
+                // ── Global fields (visible when toggle ON) ──────────────────
+                Forms\Components\Section::make()
                     ->schema([
                         Forms\Components\Select::make('account_id')
-                            ->label('Konts')
+                            ->label('Konts (visiem)')
                             ->options($cashAccounts)
-                            ->required()
+                            ->required(fn (Get $get) => (bool) $get('use_shared_fields'))
                             ->searchable()
                             ->placeholder('Izvēlēties kontu...')
                             ->helperText($cashAccounts->isEmpty() ? '⚠ Nav neviena CASH/PayPal/Paysera konta' : null),
@@ -192,8 +202,10 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                             ->nullable()
                             ->placeholder('Nav (neobligāts)'),
                     ])
-                    ->columns(2),
+                    ->columns(2)
+                    ->hidden(fn (Get $get) => !(bool) $get('use_shared_fields')),
 
+                // ── Repeater ─────────────────────────────────────────────────
                 Forms\Components\Repeater::make('rows')
                     ->label('Darījumu rindas')
                     ->schema([
@@ -214,15 +226,7 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                             ->label('Apraksts')
                             ->required()
                             ->placeholder('Piem.: Biroja preces, benzīns, ...')
-                            ->columnSpan(2),
-
-                        Forms\Components\Select::make('category_id')
-                            ->label('Kategorija')
-                            ->options($categories)
-                            ->searchable()
-                            ->nullable()
-                            ->placeholder('—')
-                            ->columnSpan(2),
+                            ->columnSpan(3),
 
                         Forms\Components\TextInput::make('amount')
                             ->label('Summa (€)')
@@ -232,8 +236,28 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
                             ->step(0.01)
                             ->prefix('€')
                             ->columnSpan(1),
+
+                        // Per-row account + category (only when shared fields OFF)
+                        Forms\Components\Group::make([
+                            Forms\Components\Select::make('account_id')
+                                ->label('Konts')
+                                ->options($cashAccounts)
+                                ->required()
+                                ->searchable()
+                                ->placeholder('Izvēlēties kontu...'),
+
+                            Forms\Components\Select::make('category_id')
+                                ->label('Kategorija')
+                                ->options($categories)
+                                ->searchable()
+                                ->nullable()
+                                ->placeholder('—'),
+                        ])
+                        ->columns(2)
+                        ->columnSpanFull()
+                        ->hidden(fn (Get $get) => (bool) $get('../../use_shared_fields')),
                     ])
-                    ->columns(8)
+                    ->columns(7)
                     ->addActionLabel('+ Pievienot rindu')
                     ->defaultItems(3)
                     ->minItems(1)
@@ -749,16 +773,29 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
     {
         $data = $this->form->getState();
 
-        // Filter out empty rows (date, description or amount missing)
+        $useShared = (bool) ($data['use_shared_fields'] ?? true);
+
+        // Filter out empty rows
         $rows = array_values(array_filter(
             $data['rows'] ?? [],
-            fn ($row) => !empty($row['date']) && !empty($row['description']) && isset($row['amount']) && (float) $row['amount'] > 0
+            function ($row) use ($useShared) {
+                if (empty($row['date']) || empty($row['description']) || !isset($row['amount']) || (float) $row['amount'] <= 0) {
+                    return false;
+                }
+                // When per-row mode: skip rows without account
+                if (!$useShared && empty($row['account_id'])) {
+                    return false;
+                }
+                return true;
+            }
         ));
 
         if (empty($rows)) {
             Notification::make()
                 ->title('Nav derīgu ierakstu')
-                ->body('Aizpildiet vismaz vienu rindu ar aprakstu un summu.')
+                ->body($useShared
+                    ? 'Aizpildiet vismaz vienu rindu ar aprakstu un summu.'
+                    : 'Aizpildiet vismaz vienu rindu ar kontu, aprakstu un summu.')
                 ->warning()
                 ->send();
             return;
@@ -769,11 +806,14 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
 
         foreach ($rows as $row) {
             $amount = -(float) $row['amount']; // negative = expense
-            // Per-row category overrides global; fall back to global if not set
-            $categoryId = !empty($row['category_id']) ? $row['category_id'] : ($data['category_id'] ?? null);
+
+            $accountId  = $useShared ? $data['account_id'] : $row['account_id'];
+            $categoryId = $useShared
+                ? ($data['category_id'] ?? null)
+                : (!empty($row['category_id']) ? $row['category_id'] : null);
 
             Transaction::create([
-                'account_id'        => $data['account_id'],
+                'account_id'        => $accountId,
                 'category_id'       => $categoryId,
                 'occurred_at'       => Carbon::createFromFormat('d.m.Y', $row['date']),
                 'amount'            => $amount,
@@ -790,18 +830,20 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
             $total += abs($amount);
         }
 
-        // Persist account/category in session so next visit pre-fills them
+        // Persist account/category/mode in session so next visit pre-fills them
         session([
-            'qre_account_id'  => $data['account_id'],
-            'qre_category_id' => $data['category_id'] ?? null,
+            'qre_account_id'    => $data['account_id'] ?? null,
+            'qre_category_id'   => $data['category_id'] ?? null,
+            'qre_shared_fields' => $data['use_shared_fields'] ?? true,
         ]);
 
-        // Keep account/category, reset rows to 3 empty ones (pre-fill today's date)
+        // Keep settings, reset rows to 3 empty ones (pre-fill today's date)
         $today = now()->format('d.m.Y');
         $this->form->fill([
-            'account_id'  => $data['account_id'],
-            'category_id' => $data['category_id'] ?? null,
-            'rows'        => [
+            'use_shared_fields' => $data['use_shared_fields'] ?? true,
+            'account_id'        => $data['account_id'] ?? null,
+            'category_id'       => $data['category_id'] ?? null,
+            'rows'              => [
                 ['date' => $today],
                 ['date' => $today],
                 ['date' => $today],
