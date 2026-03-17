@@ -72,13 +72,7 @@
                                             @click.stop="expanded = (expanded === {{ $yearData['year'] }}) ? null : {{ $yearData['year'] }}">
                                             <span x-text="expanded === {{ $yearData['year'] }} ? '▲ Aizvērt' : '▼ Analīze'"></span>
                                         </button>
-                                        {{-- Verified indicator (read-only in all-years view; toggle is in year detail) --}}
-                                        @if($yearData['verified'])
-                                            <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700"
-                                                title="Pārbaudīts {{ $yearData['verified_at'] }}">
-                                                ✅ Pārbaudīts
-                                            </span>
-                                        @endif
+                                        {{-- Verified: shown only in year cell — nothing here --}}
                                     </div>
                                 </td>
                                 {{-- Year + status badges --}}
@@ -567,7 +561,7 @@
                                 : $store.yearView.expandedMonths.push({{ $mSummary['month_number'] }})">
                             {{-- Action button — first column --}}
                             <td class="px-1 py-1 text-center border border-gray-300 dark:border-gray-700" @click.stop>
-                                <div class="flex flex-col items-center gap-1">
+                                <div class="flex items-center justify-center gap-1">
                                     <x-filament::button size="xs" color="gray" icon="heroicon-o-eye"
                                         wire:click="viewMonthDetails({{ $mSummary['month_number'] }})">
                                         Skatīt
@@ -576,17 +570,17 @@
                                         <button
                                             wire:click="toggleMonthVerified({{ $selectedYear }}, {{ $mSummary['month_number'] }})"
                                             wire:loading.attr="disabled"
-                                            class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 transition-colors"
+                                            class="w-6 h-6 flex items-center justify-center rounded-full text-[11px] bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 transition-colors"
                                             title="Pārbaudīts {{ $mSummary['verified_at'] }}. Klikšķināt, lai noņemtu.">
-                                            ✅ Pārbaudīts
+                                            ✔
                                         </button>
                                     @else
                                         <button
                                             wire:click="toggleMonthVerified({{ $selectedYear }}, {{ $mSummary['month_number'] }})"
                                             wire:loading.attr="disabled"
-                                            class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 border border-gray-300 dark:border-gray-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-300 transition-colors"
+                                            class="w-6 h-6 flex items-center justify-center rounded-full text-[11px] bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 border border-gray-300 dark:border-gray-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-300 transition-colors"
                                             title="Atzīmēt mēnesi kā pārbaudītu">
-                                            ○ Pārbaudīt
+                                            ○
                                         </button>
                                     @endif
                                 </div>
