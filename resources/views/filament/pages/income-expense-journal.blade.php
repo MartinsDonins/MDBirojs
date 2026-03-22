@@ -1124,7 +1124,7 @@
                                 @endif
                             </td>
 
-                            {{-- Kases orderis --}}
+                            {{-- Kases orderis + CoreDigify sync status --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center text-[9px] bg-violet-50/30 dark:bg-violet-900/10 group-hover:bg-violet-50 dark:group-hover:bg-violet-900/20 whitespace-nowrap font-mono">
                                 @if($row['cash_order_number'])
                                     <span class="{{ str_starts_with($row['cash_order_number'], 'KII') ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400' }}" title="{{ $row['cash_order_number'] }}">
@@ -1132,6 +1132,15 @@
                                     </span>
                                 @else
                                     <span class="text-gray-300 dark:text-gray-600">—</span>
+                                @endif
+                                @if($row['transaction_type'] === 'INCOME' && $row['status'] === 'COMPLETED' && in_array($row['category_vid_column'], [4, 5, 6]))
+                                    @if($row['coredigify_sent_at'])
+                                        <span class="text-sky-500 dark:text-sky-400 ml-0.5" title="Nosūtīts CoreDigify: {{ $row['coredigify_sent_at'] }}">↑</span>
+                                    @elseif($row['coredigify_sync_error'])
+                                        <span class="text-red-500 dark:text-red-400 ml-0.5" title="CoreDigify kļūda: {{ $row['coredigify_sync_error'] }}">!</span>
+                                    @else
+                                        <span class="text-gray-300 dark:text-gray-600 ml-0.5" title="Vēl nav nosūtīts uz CoreDigify">⟳</span>
+                                    @endif
                                 @endif
                             </td>
 

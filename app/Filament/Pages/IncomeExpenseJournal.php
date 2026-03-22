@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\Transaction;
 use App\Models\Rule;
 use App\Services\AutoApprovalService;
+use App\Services\CoreDigifyService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables;
@@ -321,6 +322,10 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
                 // Cash order reference
                 'cash_order_number' => $transaction->cashOrder?->number,
+
+                // CoreDigify sync status
+                'coredigify_sent_at'    => $transaction->coredigify_sent_at?->format('d.m.Y H:i'),
+                'coredigify_sync_error' => $transaction->coredigify_sync_error,
             ];
             
             $data[] = $row;
@@ -1597,6 +1602,18 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 ->action('runActiveRules');
         }
 
+        // CoreDigify sync — visible in year summary and month detail views
+        if ($this->selectedYear !== null && config('services.coredigify.enabled')) {
+            $actions[] = \Filament\Actions\Action::make('coredigify_sync')
+                ->label('Sinhronizēt ar CoreDigify')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('info')
+                ->requiresConfirmation()
+                ->modalHeading('Sinhronizēt maksājumus ar CoreDigify')
+                ->modalDescription(fn () => $this->getCoreDigifySyncDescription())
+                ->action('runCoreDigifySync');
+        }
+
         return $actions;
     }
 
@@ -1621,6 +1638,77 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->body("Pārskatīti: {$totalProcessed} darījumi, piemērotas kārtulas: {$totalApplied}")
             ->success()
             ->send();
+    }
+
+    /**
+     * Returns a description for the CoreDigify sync confirmation modal.
+     */
+    private function getCoreDigifySyncDescription(): string
+    {
+        $query = Transaction::with('category')
+            ->where('type', 'INCOME')
+            ->where('status', 'COMPLETED')
+            ->whereHas('category', fn ($q) => $q->whereIn('vid_column', [4, 5, 6]))
+            ->whereYear('occurred_at', $this->selectedYear);
+
+        if ($this->selectedMonth) {
+            $query->whereMonth('occurred_at', $this->selectedMonth);
+        }
+
+        $total   = $query->count();
+        $pending = (clone $query)->whereNull('coredigify_sent_at')->count();
+
+        $period = $this->selectedMonth
+            ? "{$this->selectedMonth}/{$this->selectedYear}"
+            : "{$this->selectedYear}. gadā";
+
+        return "Periods: {$period}. Ienākumi no saimnieciskās darbības: {$total} darījumi, no tiem vēl nesinhronizēti: {$pending}. Nosūtīt visus nesinhronizētos?";
+    }
+
+    /**
+     * Send all qualifying unsent transactions for the current year/month to CoreDigify.
+     */
+    public function runCoreDigifySync(): void
+    {
+        $query = Transaction::with(['account', 'category', 'cashOrder'])
+            ->where('type', 'INCOME')
+            ->where('status', 'COMPLETED')
+            ->whereHas('category', fn ($q) => $q->whereIn('vid_column', [4, 5, 6]))
+            ->whereNull('coredigify_sent_at')
+            ->whereYear('occurred_at', $this->selectedYear);
+
+        if ($this->selectedMonth) {
+            $query->whereMonth('occurred_at', $this->selectedMonth);
+        }
+
+        $transactions = $query->get();
+
+        if ($transactions->isEmpty()) {
+            Notification::make()
+                ->title('Nav ko sinhronizēt')
+                ->body('Visi atbilstošie darījumi jau ir nosūtīti uz CoreDigify.')
+                ->info()
+                ->send();
+            return;
+        }
+
+        $result = app(CoreDigifyService::class)->sendBatch($transactions);
+
+        $this->calculateMonthData();
+
+        if (empty($result['errors'])) {
+            Notification::make()
+                ->title('CoreDigify sinhronizācija veiksmīga')
+                ->body("Nosūtīti: {$result['sent']} darījumi.")
+                ->success()
+                ->send();
+        } else {
+            Notification::make()
+                ->title('CoreDigify sinhronizācija ar kļūdām')
+                ->body("Nosūtīti: {$result['sent']}, kļūdas: " . count($result['errors']) . ". Pārbaudiet žurnālu.")
+                ->warning()
+                ->send();
+        }
     }
 
     /**

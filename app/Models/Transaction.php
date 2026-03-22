@@ -33,6 +33,7 @@ class Transaction extends Model
         'exchange_rate' => 'decimal:6',
         'review_flags' => 'array',
         'raw_payload' => 'array',
+        'coredigify_sent_at' => 'datetime',
     ];
 
     public function account(): BelongsTo

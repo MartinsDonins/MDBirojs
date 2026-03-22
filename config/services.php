@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'coredigify' => [
+        'url'     => env('COREDIGIFY_API_URL', ''),
+        'key'     => env('COREDIGIFY_API_KEY', ''),
+        'enabled' => env('COREDIGIFY_ENABLED', false),
+    ],
+
 ];

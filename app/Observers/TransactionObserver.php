@@ -4,9 +4,34 @@ namespace App\Observers;
 
 use App\Models\CashOrder;
 use App\Models\Transaction;
+use App\Services\CoreDigifyService;
 
 class TransactionObserver
 {
+    /**
+     * When a transaction is updated to COMPLETED and qualifies as business income,
+     * automatically push it to CoreDigify for invoice payment matching.
+     */
+    public function updated(Transaction $transaction): void
+    {
+        if (!$transaction->wasChanged('status') || $transaction->status !== 'COMPLETED') {
+            return;
+        }
+
+        $service = app(CoreDigifyService::class);
+
+        if (!$service->isBusinessIncome($transaction)) {
+            return;
+        }
+
+        $result = $service->sendPayment($transaction);
+
+        $transaction->updateQuietly([
+            'coredigify_sent_at'    => $result['success'] ? now() : null,
+            'coredigify_sync_error' => $result['error'],
+        ]);
+    }
+
     /**
      * Auto-create a cash order whenever a CASH-account transaction reaches COMPLETED status.
      *
