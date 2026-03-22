@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AppSetting;
 use App\Models\Transaction;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -41,13 +42,14 @@ class CoreDigifyService
      */
     public function sendPayment(Transaction $transaction): array
     {
-        if (!config('services.coredigify.enabled')) {
+        $enabled = AppSetting::get('coredigify_enabled', config('services.coredigify.enabled', false));
+        if (!$enabled) {
             return ['success' => false, 'status' => null, 'body' => [], 'error' => 'CoreDigify integration disabled'];
         }
 
-        $url = config('services.coredigify.url');
+        $url = AppSetting::getRaw('coredigify_api_url') ?: config('services.coredigify.url', '');
         if (empty($url)) {
-            return ['success' => false, 'status' => null, 'body' => [], 'error' => 'COREDIGIFY_API_URL not configured'];
+            return ['success' => false, 'status' => null, 'body' => [], 'error' => 'CoreDigify API URL not configured'];
         }
 
         if (!$transaction->relationLoaded('account')) {
@@ -56,8 +58,10 @@ class CoreDigifyService
 
         $payload = $this->buildPayload($transaction);
 
+        $apiKey = AppSetting::getRaw('coredigify_api_key') ?: config('services.coredigify.key', '');
+
         try {
-            $response = Http::withToken(config('services.coredigify.key'))
+            $response = Http::withToken($apiKey)
                 ->timeout(15)
                 ->post($url, $payload);
 

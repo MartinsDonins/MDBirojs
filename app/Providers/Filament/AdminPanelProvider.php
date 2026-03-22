@@ -56,7 +56,10 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->renderHook('panels::footer', function () {
-                $version = 'v0.1.0 (' . date('Y-m-d') . ')';
+                $composerVersion = json_decode(
+                    file_get_contents(base_path('composer.json')), true
+                )['version'] ?? 'dev';
+                $version = 'v' . $composerVersion . ' (' . date('Y-m-d') . ')';
                 return view('filament.hooks.footer', ['version' => $version]);
             });
     }
