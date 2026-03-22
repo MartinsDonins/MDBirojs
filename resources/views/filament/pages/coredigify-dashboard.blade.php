@@ -46,9 +46,9 @@
         </div>
 
         <div class="ml-auto flex gap-2">
-            {{ ($this->syncPendingAction)() }}
+            {{ ($this->syncPendingAction)([]) }}
             @if($stats['error'] > 0)
-                {{ ($this->syncErrorsAction)() }}
+                {{ ($this->syncErrorsAction)([]) }}
             @endif
         </div>
     </div>

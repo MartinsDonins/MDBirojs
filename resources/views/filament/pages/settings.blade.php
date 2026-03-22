@@ -34,7 +34,7 @@
     @if($activeTab === 'users')
         <x-filament::section heading="Sistēmas lietotāji" icon="heroicon-o-users">
             <div class="flex justify-end mb-4">
-                {{ ($this->createUserAction)(['label' => 'Jauns lietotājs']) }}
+                {{ ($this->createUserAction)([]) }}
             </div>
 
             <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
