@@ -38,6 +38,9 @@ class SettingsPage extends Page implements HasForms, HasActions
     // ── CoreDigify settings form ───────────────────────────────────────────────
     public ?array $coredigifyData = [];
 
+    // ── API info (read-only, shown in blade) ───────────────────────────────────
+    public string $apiBaseUrl = '';
+
     // ── User management ────────────────────────────────────────────────────────
     public array $users = [];
 
@@ -50,6 +53,8 @@ class SettingsPage extends Page implements HasForms, HasActions
 
     public function mount(): void
     {
+        $this->apiBaseUrl = rtrim(config('app.url'), '/') . '/api';
+
         $this->profileForm->fill([
             'name'  => Auth::user()->name,
             'email' => Auth::user()->email,

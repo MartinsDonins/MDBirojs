@@ -86,6 +86,35 @@
                 <strong>Ienākošā API:</strong> CoreDigify var pieprasīt darījumus no MDBirojs, izmantojot zemāk redzamo atslēgu.
             </div>
 
+            {{-- MDBirojs API endpoint info block --}}
+            <div class="mb-6 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <x-filament::icon icon="heroicon-o-link" class="w-3.5 h-3.5" />
+                    MDBirojs API endpointi (ienākošie pieprasījumi no CoreDigify)
+                </div>
+                <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
+                    @foreach([
+                        ['label' => 'Meklēt darījumus', 'method' => 'POST', 'path' => '/coredigify/transactions/search'],
+                        ['label' => 'Darījums pēc ID',  'method' => 'GET',  'path' => '/coredigify/transactions/{id}'],
+                    ] as $ep)
+                        <div class="flex items-center gap-3 px-4 py-2.5" x-data>
+                            <span class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded font-mono
+                                {{ $ep['method'] === 'POST' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' }}">
+                                {{ $ep['method'] }}
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ $ep['label'] }}</span>
+                            <code class="flex-1 text-xs font-mono text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 truncate"
+                                id="url-{{ $loop->index }}">{{ $apiBaseUrl }}{{ $ep['path'] }}</code>
+                            <button type="button"
+                                x-on:click="navigator.clipboard.writeText('{{ $apiBaseUrl }}{{ $ep['path'] }}'); $el.textContent = '✓'; setTimeout(() => $el.textContent = 'Kopēt', 1500)"
+                                class="shrink-0 text-[11px] px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors">
+                                Kopēt
+                            </button>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
             <form wire:submit="saveCoredigify" class="space-y-4">
                 {{ $this->coredigifyForm }}
                 <div class="flex justify-end pt-2">
