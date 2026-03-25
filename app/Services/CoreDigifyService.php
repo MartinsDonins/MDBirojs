@@ -156,15 +156,29 @@ class CoreDigifyService
         $apiKey = AppSetting::getRaw('coredigify_api_key') ?: config('services.coredigify.key', '');
 
         try {
+            $payload = [
+                'source' => 'MDBirojs',
+                'test_connection' => true,
+                'occurred_at' => now()->toDateString(),
+            ];
+
+            Log::debug('CoreDigify test connection request', [
+                'url'     => $url,
+                'headers' => ['Authorization' => 'Bearer ' . substr($apiKey, 0, 8) . '...'],
+                'payload' => $payload,
+            ]);
+
             $response = Http::withToken($apiKey)
                 ->timeout(10)
-                ->post($url, [
-                    'source' => 'MDBirojs',
-                    'test_connection' => true,
-                    'occurred_at' => now()->toDateString(),
-                ]);
+                ->post($url, $payload);
 
             $success = $response->successful();
+
+            Log::debug('CoreDigify test connection response', [
+                'status'  => $response->status(),
+                'headers' => $response->headers(),
+                'body'    => $response->body(),
+            ]);
 
             return [
                 'success' => $success,
