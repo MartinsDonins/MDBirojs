@@ -178,9 +178,11 @@ class CoreDigifyDashboard extends Page implements HasActions
                         ->success()
                         ->send();
                 } else {
+                    $url = \App\Models\AppSetting::getRaw('coredigify_api_url');
+                    
                     Notification::make()
                         ->title('Savienojuma kļūda')
-                        ->body($result['error'])
+                        ->body("**URL:** {$url}\n\n**Error:** {$result['error']}")
                         ->danger()
                         ->persistent()
                         ->send();
