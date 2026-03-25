@@ -163,9 +163,35 @@ class CoreDigifyDashboard extends Page implements HasActions
             });
     }
 
+    public function testConnectionAction(): Action
+    {
+        return Action::make('testConnection')
+            ->label('Savienojuma tests')
+            ->icon('heroicon-o-signal')
+            ->color('gray')
+            ->action(function () {
+                $result = app(CoreDigifyService::class)->testConnection();
+
+                if ($result['success']) {
+                    Notification::make()
+                        ->title('Savienojums veiksmīgs')
+                        ->success()
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->title('Savienojuma kļūda')
+                        ->body($result['error'])
+                        ->danger()
+                        ->persistent()
+                        ->send();
+                }
+            });
+    }
+
     public function getActions(): array
     {
         return [
+            $this->testConnectionAction(),
             $this->syncPendingAction(),
             $this->syncErrorsAction(),
             $this->resendTransactionAction(),

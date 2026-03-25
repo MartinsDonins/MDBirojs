@@ -137,6 +137,52 @@ class CoreDigifyService
     }
 
     /**
+     * Test the connection to CoreDigify.
+     *
+     * @return array{success: bool, status: int|null, body: array, error: string|null}
+     */
+    public function testConnection(): array
+    {
+        $enabled = AppSetting::get('coredigify_enabled', false);
+        if (!$enabled) {
+            return ['success' => false, 'status' => null, 'body' => [], 'error' => 'CoreDigify integrācija ir atspējota iestatījumos.'];
+        }
+
+        $url = AppSetting::getRaw('coredigify_api_url') ?: config('services.coredigify.url', '');
+        if (empty($url)) {
+            return ['success' => false, 'status' => null, 'body' => [], 'error' => 'CoreDigify API URL nav nokonfigurēts.'];
+        }
+
+        $apiKey = AppSetting::getRaw('coredigify_api_key') ?: config('services.coredigify.key', '');
+
+        try {
+            $response = Http::withToken($apiKey)
+                ->timeout(10)
+                ->post($url, [
+                    'source' => 'MDBirojs',
+                    'test_connection' => true,
+                    'occurred_at' => now()->toDateString(),
+                ]);
+
+            $success = $response->successful();
+
+            return [
+                'success' => $success,
+                'status'  => $response->status(),
+                'body'    => $response->json() ?? [],
+                'error'   => $success ? null : ('HTTP ' . $response->status() . ': ' . $response->body()),
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'status'  => null,
+                'body'    => [],
+                'error'   => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Build the JSON payload for a transaction.
      */
     private function buildPayload(Transaction $transaction): array
