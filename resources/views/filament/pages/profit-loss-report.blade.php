@@ -245,6 +245,7 @@
 
                     {{-- ── Year row ── --}}
                     <tr
+                        wire:key="pl-year-{{ $yr['year'] }}"
                         wire:click="toggleYear({{ $yr['year'] }})"
                         class="border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none
                                hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors duration-100"
@@ -371,7 +372,7 @@
                     @if ($expanded && isset($monthlyData[$yr['year']]))
                         @foreach ($monthlyData[$yr['year']] as $mNum => $m)
                             @if ($m['income'] > 0 || $m['expense'] > 0)
-                                <tr class="border-b border-gray-50 dark:border-gray-800/30 bg-gray-50/40 dark:bg-gray-800/20">
+                                <tr wire:key="pl-month-{{ $yr['year'] }}-{{ $mNum }}" class="border-b border-gray-50 dark:border-gray-800/30 bg-gray-50/40 dark:bg-gray-800/20">
                                     <td class="px-3 py-1.5"></td>
                                     <td class="px-4 py-1.5 text-gray-500 dark:text-gray-400">
                                         <span class="pl-4 text-xs">{{ $m['name'] }}</span>
