@@ -43,6 +43,39 @@ class ProfitLossReport extends Page
     /** Abbreviation of the first expense JournalColumn */
     public string $expenseAbbr = '';
 
+    /**
+     * Historical per-year defaults for a self-employed person / sole trader (pašnodarbinātais / IK).
+     * Used only when no saved ProfitLossSetting row exists for that year — the user can still override.
+     *
+     *  iin     – IIN rate. Flat until 2017 (24% in 2014, 23% in 2015–2017); progressive from 2018
+     *            (base 20% bracket used here, applicable to annual income below ~€20,004);
+     *            2025 reform: 25.5% (up to €105,300/year).
+     *  wage    – minimum monthly wage (minimālā alga), source: Labklājības ministrija.
+     *  full    – self-employed VSAOI full rate on the minimum object (= min. wage).
+     *  reduced – pension-insurance rate on income exceeding the minimum object;
+     *            5% before 1 July 2021, raised to 10% from then on.
+     *
+     * Sources: LM, VID, FM, LV portāls, Baltikon, LLKC.
+     */
+    private const YEAR_DEFAULTS = [
+        2014 => ['iin' => 24.0,  'wage' => 320.0, 'full' => 30.58, 'reduced' => 5.0],
+        2015 => ['iin' => 23.0,  'wage' => 360.0, 'full' => 30.58, 'reduced' => 5.0],
+        2016 => ['iin' => 23.0,  'wage' => 370.0, 'full' => 30.58, 'reduced' => 5.0],
+        2017 => ['iin' => 23.0,  'wage' => 380.0, 'full' => 31.13, 'reduced' => 5.0],
+        2018 => ['iin' => 20.0,  'wage' => 430.0, 'full' => 32.15, 'reduced' => 5.0],
+        2019 => ['iin' => 20.0,  'wage' => 430.0, 'full' => 32.15, 'reduced' => 5.0],
+        2020 => ['iin' => 20.0,  'wage' => 430.0, 'full' => 32.15, 'reduced' => 5.0],
+        2021 => ['iin' => 20.0,  'wage' => 500.0, 'full' => 31.07, 'reduced' => 10.0],
+        2022 => ['iin' => 20.0,  'wage' => 500.0, 'full' => 31.07, 'reduced' => 10.0],
+        2023 => ['iin' => 20.0,  'wage' => 620.0, 'full' => 31.07, 'reduced' => 10.0],
+        2024 => ['iin' => 20.0,  'wage' => 700.0, 'full' => 31.07, 'reduced' => 10.0],
+        2025 => ['iin' => 25.5,  'wage' => 740.0, 'full' => 31.07, 'reduced' => 10.0],
+        2026 => ['iin' => 25.5,  'wage' => 780.0, 'full' => 31.07, 'reduced' => 10.0],
+    ];
+
+    /** Fallback defaults for years outside the table above. */
+    private const GENERIC_DEFAULTS = ['iin' => 25.5, 'wage' => 780.0, 'full' => 31.07, 'reduced' => 10.0];
+
     // ──────────────────────────────────────────────────────────────
     // Lifecycle
     // ──────────────────────────────────────────────────────────────
@@ -193,10 +226,11 @@ class ProfitLossReport extends Page
 
         foreach ($years as $year) {
             $s = $savedByYear->get($year);
-            $this->taxRates[$year]         = $s ? (string) $s->tax_rate         : '23.00';
-            $this->minWages[$year]         = $s ? (string) $s->min_wage         : '700.00';
-            $this->vsaaFullRates[$year]    = $s ? (string) $s->vsaa_full_rate   : '31.07';
-            $this->vsaaReducedRates[$year] = $s ? (string) $s->vsaa_reduced_rate : '10.00';
+            $d = self::YEAR_DEFAULTS[$year] ?? self::GENERIC_DEFAULTS;
+            $this->taxRates[$year]         = $s ? (string) $s->tax_rate          : number_format($d['iin'],     2, '.', '');
+            $this->minWages[$year]         = $s ? (string) $s->min_wage          : number_format($d['wage'],    2, '.', '');
+            $this->vsaaFullRates[$year]    = $s ? (string) $s->vsaa_full_rate    : number_format($d['full'],    2, '.', '');
+            $this->vsaaReducedRates[$year] = $s ? (string) $s->vsaa_reduced_rate : number_format($d['reduced'], 2, '.', '');
         }
 
         $this->computeCumulativeBalances();

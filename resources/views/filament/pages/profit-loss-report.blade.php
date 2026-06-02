@@ -276,9 +276,9 @@
                                 <input
                                     type="text"
                                     wire:model.blur="taxRates.{{ $yr['year'] }}"
-                                    class="w-14 rounded border border-gray-200 dark:border-gray-600
-                                           bg-transparent text-right font-mono text-sm
-                                           text-amber-700 dark:text-amber-400
+                                    class="w-14 rounded border border-gray-300 dark:border-gray-600
+                                           bg-white dark:bg-gray-800 text-right font-mono text-sm font-semibold
+                                           text-amber-700 dark:text-amber-300
                                            px-1.5 py-0.5
                                            focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400
                                            transition"
@@ -302,9 +302,9 @@
                                 <input
                                     type="text"
                                     wire:model.blur="minWages.{{ $yr['year'] }}"
-                                    class="w-16 rounded border border-gray-200 dark:border-gray-600
-                                           bg-transparent text-right font-mono text-sm
-                                           text-teal-700 dark:text-teal-400
+                                    class="w-16 rounded border border-gray-300 dark:border-gray-600
+                                           bg-white dark:bg-gray-800 text-right font-mono text-sm font-semibold
+                                           text-teal-700 dark:text-teal-300
                                            px-1.5 py-0.5
                                            focus:outline-none focus:ring-1 focus:ring-teal-400 focus:border-teal-400
                                            transition"
@@ -318,9 +318,9 @@
                                 <input
                                     type="text"
                                     wire:model.blur="vsaaFullRates.{{ $yr['year'] }}"
-                                    class="w-14 rounded border border-gray-200 dark:border-gray-600
-                                           bg-transparent text-right font-mono text-sm
-                                           text-teal-700 dark:text-teal-400
+                                    class="w-14 rounded border border-gray-300 dark:border-gray-600
+                                           bg-white dark:bg-gray-800 text-right font-mono text-sm font-semibold
+                                           text-teal-700 dark:text-teal-300
                                            px-1.5 py-0.5
                                            focus:outline-none focus:ring-1 focus:ring-teal-400 focus:border-teal-400
                                            transition"
@@ -334,9 +334,9 @@
                                 <input
                                     type="text"
                                     wire:model.blur="vsaaReducedRates.{{ $yr['year'] }}"
-                                    class="w-14 rounded border border-gray-200 dark:border-gray-600
-                                           bg-transparent text-right font-mono text-sm
-                                           text-teal-700 dark:text-teal-400
+                                    class="w-14 rounded border border-gray-300 dark:border-gray-600
+                                           bg-white dark:bg-gray-800 text-right font-mono text-sm font-semibold
+                                           text-teal-700 dark:text-teal-300
                                            px-1.5 py-0.5
                                            focus:outline-none focus:ring-1 focus:ring-teal-400 focus:border-teal-400
                                            transition"
