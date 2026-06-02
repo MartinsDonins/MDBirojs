@@ -43,6 +43,9 @@ class ProfitLossReport extends Page
     /** Abbreviation of the first expense JournalColumn */
     public string $expenseAbbr = '';
 
+    /** Label for the non-deductible expenses column (all visible expense columns except the first / deductible one) */
+    public string $nonDeductibleAbbr = 'Nesaist.+Nav att.';
+
     /**
      * Historical per-year defaults for a self-employed person / sole trader (pašnodarbinātais / IK).
      * Used only when no saved ProfitLossSetting row exists for that year — the user can still override.
@@ -145,14 +148,27 @@ class ProfitLossReport extends Page
 
     private function loadData(): void
     {
-        $incomeCol  = JournalColumn::visibleForGroup('income')->first();
-        $expenseCol = JournalColumn::visibleForGroup('expense')->first();
+        $incomeCol      = JournalColumn::visibleForGroup('income')->first();
+        $expenseColumns = JournalColumn::visibleForGroup('expense');
+        $expenseCol     = $expenseColumns->first();
 
         $this->incomeAbbr  = $incomeCol?->abbr  ?? 'Saimn.darb.';
         $this->expenseAbbr = $expenseCol?->abbr  ?? 'Saist.SD.';
 
         $incomeVids  = array_map('intval', $incomeCol?->vid_columns  ?? []);
         $expenseVids = array_map('intval', $expenseCol?->vid_columns ?? []);
+
+        // Non-deductible expenses = every visible expense column EXCEPT the first (deductible "Saist.SD").
+        // These are real cash outflows that do NOT affect taxable profit / IIN / VSAA, but DO reduce the balance.
+        $nonDeductibleCols = $expenseColumns->slice(1);
+        $nonDeductibleVids = $nonDeductibleCols
+            ->flatMap(fn ($c) => array_map('intval', $c->vid_columns ?? []))
+            ->unique()
+            ->values()
+            ->all();
+        $this->nonDeductibleAbbr = $nonDeductibleCols->isNotEmpty()
+            ? $nonDeductibleCols->pluck('abbr')->implode(' + ')
+            : '—';
 
         // Single query: year + month breakdown by type + vid_column (COMPLETED only)
         $breakdown = Transaction::query()
@@ -192,24 +208,32 @@ class ProfitLossReport extends Page
 
             $yearIncome  = $this->sumFor($yearRows, 'INCOME',           $incomeVids);
             $yearExpense = $this->sumFor($yearRows, ['EXPENSE', 'FEE'], $expenseVids);
+            $yearNonDed  = empty($nonDeductibleVids)
+                ? 0.0
+                : $this->sumFor($yearRows, ['EXPENSE', 'FEE'], $nonDeductibleVids);
 
             $yearlyAsc[] = [
-                'year'    => $year,
-                'income'  => $yearIncome,
-                'expense' => $yearExpense,
-                'profit'  => $yearIncome - $yearExpense,
+                'year'          => $year,
+                'income'        => $yearIncome,
+                'expense'       => $yearExpense,
+                'nondeductible' => $yearNonDed,
+                'profit'        => $yearIncome - $yearExpense,
             ];
 
             $months = [];
             for ($m = 1; $m <= 12; $m++) {
-                $mRows = $yearRows->filter(fn ($r) => (int) round((float) $r->mo) === $m);
-                $mInc  = $this->sumFor($mRows, 'INCOME',           $incomeVids);
-                $mExp  = $this->sumFor($mRows, ['EXPENSE', 'FEE'], $expenseVids);
+                $mRows   = $yearRows->filter(fn ($r) => (int) round((float) $r->mo) === $m);
+                $mInc    = $this->sumFor($mRows, 'INCOME',           $incomeVids);
+                $mExp    = $this->sumFor($mRows, ['EXPENSE', 'FEE'], $expenseVids);
+                $mNonDed = empty($nonDeductibleVids)
+                    ? 0.0
+                    : $this->sumFor($mRows, ['EXPENSE', 'FEE'], $nonDeductibleVids);
                 $months[$m] = [
-                    'name'    => $monthNames[$m],
-                    'income'  => $mInc,
-                    'expense' => $mExp,
-                    'profit'  => $mInc - $mExp,
+                    'name'          => $monthNames[$m],
+                    'income'        => $mInc,
+                    'expense'       => $mExp,
+                    'nondeductible' => $mNonDed,
+                    'profit'        => $mInc - $mExp,
                 ];
             }
             $this->monthlyData[$year] = $months;
@@ -255,8 +279,10 @@ class ProfitLossReport extends Page
         $result    = [];
 
         foreach ($ascending as $yr) {
+            // Non-deductible expenses are real cash outflows: they reduce the running balance
+            // but NOT the taxable profit (so IIN/VSAA below stay based on $yr['profit']).
             $yearOpening = $running;
-            $running    += $yr['profit'];
+            $running    += $yr['profit'] - ($yr['nondeductible'] ?? 0.0);
 
             $yr['cumulative']   = $running;
             $yr['year_opening'] = $yearOpening;
@@ -283,7 +309,7 @@ class ProfitLossReport extends Page
                 $mRunning = $yearOpening;
                 foreach ($this->monthlyData[$yr['year']] as $m => $mData) {
                     $mProfit  = $mData['profit'];
-                    $mRunning += $mProfit;
+                    $mRunning += $mProfit - ($mData['nondeductible'] ?? 0.0);
                     $this->monthlyData[$yr['year']][$m]['cumulative'] = $mRunning;
 
                     // VSAA formula (based on monthly profit):

@@ -180,7 +180,7 @@
                 {{-- Group headers --}}
                 <tr class="bg-gray-100 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
                     <th colspan="2" class="px-3 py-1.5"></th>
-                    <th colspan="4" class="px-4 py-1.5 text-center border-x border-gray-200 dark:border-gray-700 font-medium">
+                    <th colspan="5" class="px-4 py-1.5 text-center border-x border-gray-200 dark:border-gray-700 font-medium">
                         Peļņas / Zaudējumu aprēķins
                     </th>
                     <th colspan="2" class="px-3 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 font-medium text-blue-600 dark:text-blue-400">
@@ -202,6 +202,10 @@
                     <th class="px-4 py-2.5 text-right font-semibold text-red-700 dark:text-red-400">
                         Izdevumi
                         <div class="text-xs font-normal text-gray-400">({{ $expenseAbbr }})</div>
+                    </th>
+                    <th class="px-4 py-2.5 text-right font-semibold text-orange-700 dark:text-orange-400" title="Izdevumi, kas nav attiecināmi uz ienākuma nodokļa aprēķināšanu. Samazina Kopā atlikumu, bet neietekmē Peļņu/IIN/VSAA.">
+                        Neattaisn. izd.
+                        <div class="text-xs font-normal text-gray-400">({{ $nonDeductibleAbbr }})</div>
                     </th>
                     <th class="px-4 py-2.5 text-right font-semibold text-blue-700 dark:text-blue-400">
                         Peļņa / Zauda.
@@ -260,6 +264,14 @@
                         </td>
                         <td class="px-4 py-3 text-right font-mono text-red-700 dark:text-red-400">
                             {{ number_format($yr['expense'], 2, ',', ' ') }} €
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono
+                                   {{ ($yr['nondeductible'] ?? 0) > 0 ? 'text-orange-700 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500' }}">
+                            @if (($yr['nondeductible'] ?? 0) > 0)
+                                {{ number_format($yr['nondeductible'], 2, ',', ' ') }} €
+                            @else
+                                <span class="text-xs italic">—</span>
+                            @endif
                         </td>
                         <td class="px-4 py-3 text-right font-mono font-semibold
                                    {{ $yr['profit'] >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-red-700 dark:text-red-400' }}">
@@ -372,6 +384,10 @@
                                                {{ $m['expense'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400' }}">
                                         {{ $m['expense'] > 0 ? number_format($m['expense'], 2, ',', ' ') . ' €' : '—' }}
                                     </td>
+                                    <td class="px-4 py-1.5 text-right font-mono text-xs
+                                               {{ ($m['nondeductible'] ?? 0) > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400' }}">
+                                        {{ ($m['nondeductible'] ?? 0) > 0 ? number_format($m['nondeductible'], 2, ',', ' ') . ' €' : '—' }}
+                                    </td>
                                     <td class="px-4 py-1.5 text-right font-mono text-xs font-medium
                                                {{ $m['profit'] > 0 ? 'text-blue-600 dark:text-blue-400' : ($m['profit'] < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400') }}">
                                         {{ ($m['profit'] >= 0 ? '+' : '') . number_format($m['profit'], 2, ',', ' ') }} €
@@ -403,7 +419,7 @@
 
                 @empty
                     <tr>
-                        <td colspan="12" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
+                        <td colspan="13" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
                             Nav datu. Pārliecinies, ka ir darījumi ar statusu <em>COMPLETED</em> un konfigurētas žurnāla kolonnas.
                         </td>
                     </tr>
@@ -414,6 +430,7 @@
                 @php
                     $totalIncome  = array_sum(array_column($yearlyData, 'income'));
                     $totalExpense = array_sum(array_column($yearlyData, 'expense'));
+                    $totalNonDed  = array_sum(array_column($yearlyData, 'nondeductible'));
                     $totalProfit  = $totalIncome - $totalExpense;
                     $finalBalance = $yearlyData[0]['cumulative'] ?? 0;
                     $totalTax     = array_sum(array_column($yearlyData, 'tax_amount'));
@@ -429,6 +446,10 @@
                         </td>
                         <td class="px-4 py-3 text-right font-mono font-bold text-red-700 dark:text-red-400">
                             {{ number_format($totalExpense, 2, ',', ' ') }} €
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono font-bold
+                                   {{ $totalNonDed > 0 ? 'text-orange-700 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500' }}">
+                            {{ $totalNonDed > 0 ? number_format($totalNonDed, 2, ',', ' ') . ' €' : '—' }}
                         </td>
                         <td class="px-4 py-3 text-right font-mono font-bold
                                    {{ $totalProfit >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-red-700 dark:text-red-400' }}">
