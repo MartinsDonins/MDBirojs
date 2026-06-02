@@ -22,6 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // GlitchTip / Sentry error monitoring.
+        // Safe no-op until `sentry/sentry-laravel` is installed AND SENTRY_LARAVEL_DSN is set.
+        // Setup: BRAIN/docs/GlitchTip-Setup.md
+        if (class_exists(\Sentry\Laravel\Integration::class)) {
+            \Sentry\Laravel\Integration::handles($exceptions);
+        }
+
         $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, $request) {
             return redirect()->route('filament.admin.auth.login');
         });
