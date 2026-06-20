@@ -61,6 +61,7 @@ class AdminPanelProvider extends PanelProvider
                 )['version'] ?? 'dev';
                 $version = 'v' . $composerVersion . ' (' . date('Y-m-d') . ')';
                 return view('filament.hooks.footer', ['version' => $version]);
-            });
+            })
+            ->renderHook('panels::head.end', fn () => view('filament.hooks.sentry'));
     }
 }
