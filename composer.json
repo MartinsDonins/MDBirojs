@@ -8,7 +8,7 @@
         "framework"
     ],
     "license": "MIT",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "*",
@@ -16,7 +16,8 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "*",
-        "predis/predis": "^3.3"
+        "predis/predis": "^3.3",
+        "sentry/sentry-laravel": "^4.26"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

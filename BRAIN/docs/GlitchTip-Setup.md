@@ -70,7 +70,8 @@ A new issue should appear in the GlitchTip project within a few seconds.
 
 - [x] `bootstrap/app.php` — Sentry exception hook wired (guarded, safe no-op)
 - [x] `.env.example` — `SENTRY_LARAVEL_DSN` / `SENTRY_TRACES_SAMPLE_RATE` documented
-- [ ] GlitchTip project created + DSN obtained (UI — manual)
-- [ ] `composer require sentry/sentry-laravel` run and committed
+- [x] `composer require sentry/sentry-laravel` added to `composer.json` + `composer.lock`
+      (`sentry/sentry-laravel ^4.26`, resolved on Laravel 12 / PHP 8.3) — vendor installs on deploy
+- [ ] GlitchTip project created + DSN obtained (UI — manual; MCP is read-only)
 - [ ] `SENTRY_LARAVEL_DSN` set in Coolify production env
 - [ ] `php artisan sentry:test` verified
