@@ -72,6 +72,12 @@ A new issue should appear in the GlitchTip project within a few seconds.
 - [x] `.env.example` — `SENTRY_LARAVEL_DSN` / `SENTRY_TRACES_SAMPLE_RATE` documented
 - [x] `composer require sentry/sentry-laravel` added to `composer.json` + `composer.lock`
       (`sentry/sentry-laravel ^4.26`, resolved on Laravel 12 / PHP 8.3) — vendor installs on deploy
-- [ ] GlitchTip project created + DSN obtained (UI — manual; MCP is read-only)
-- [ ] `SENTRY_LARAVEL_DSN` set in Coolify production env
-- [ ] `php artisan sentry:test` verified
+- [x] GlitchTip project created + DSN obtained — `MDBirojs Beckend` (project id 20),
+      DSN host `glitchtip.coredigify.com`
+- [x] `SENTRY_LARAVEL_DSN` set in Coolify production env
+- [x] `php artisan sentry:test` verified — test event landed as issue
+      `MDBIROJS-BECKEND-1` and was confirmed via the GlitchTip MCP
+
+> **DSN gotcha:** the DSN public key is NOT the same as `SENTRY_AUTH_TOKEN`.
+> Copy the full DSN verbatim from Project → Settings → Client Keys (DSN);
+> don't hand-assemble it from the auth token, or events get rejected silently.
