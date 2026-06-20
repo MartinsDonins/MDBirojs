@@ -949,9 +949,10 @@
              }"
              x-init="
                  if (!Alpine.store('journal')) { Alpine.store('journal', { expandedRows: [] }); }
-                 $nextTick(() => this.initSortable());
+                 const cmp = $data;
+                 $nextTick(() => cmp.initSortable());
              "
-             @journal-rows-updated.window="$nextTick(() => this.initSortable())">
+             @journal-rows-updated.window="const cmp = $data; $nextTick(() => cmp.initSortable())">
             <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                 <thead>
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px] font-semibold">

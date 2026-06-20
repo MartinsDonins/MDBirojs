@@ -8,7 +8,7 @@
         "framework"
     ],
     "license": "MIT",
-    "version": "1.4.2",
+    "version": "1.4.3",
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "*",
