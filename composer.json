@@ -8,12 +8,12 @@
         "framework"
     ],
     "license": "MIT",
-    "version": "1.3.3",
+    "version": "1.4.0",
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "*",
-        "filament/filament": "^3.2",
-        "laravel/framework": "^11.0",
+        "filament/filament": "^3.3",
+        "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "*",
         "predis/predis": "^3.3"
@@ -88,7 +88,10 @@
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
         },
-        "platform-check": false
+        "platform-check": false,
+        "platform": {
+            "php": "8.3.30"
+        }
     },
     "minimum-stability": "stable",
     "prefer-stable": true

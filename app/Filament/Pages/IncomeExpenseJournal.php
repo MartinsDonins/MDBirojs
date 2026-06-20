@@ -250,6 +250,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             // Use ABS to handle amounts stored as negative values (e.g. Swedbank exports)
             $transactionsSum = Transaction::where('account_id', $acc->id)
                 ->where('occurred_at', '<', $periodStart)
+                ->where('status', '!=', 'IGNORED')  // ignored = excluded from all data, incl. balance
                 ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN ABS(COALESCE(amount_eur, amount)) WHEN type = 'TRANSFER' THEN COALESCE(amount_eur, amount) ELSE -ABS(COALESCE(amount_eur, amount)) END"));
                 
             $this->opening_balances[$acc->id] = $initialBalance + $transactionsSum;
@@ -285,13 +286,16 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             // (LVL, USD, etc.) are tracked in EUR in the running account balance.
             $amountEur = (float) ($transaction->amount_eur ?? $transaction->amount);
 
-            if ($transaction->type === 'INCOME') {
-                $currentBalances[$transaction->account_id] += abs($amountEur);
-            } elseif ($transaction->type === 'TRANSFER') {
-                $currentBalances[$transaction->account_id] += $amountEur; // signed: positive=in, negative=out
-            } else {
-                // EXPENSE, FEE, etc.
-                $currentBalances[$transaction->account_id] -= abs($amountEur);
+            // IGNORED transactions are shown in the list (greyed) but must not move any balance.
+            if ($transaction->status !== 'IGNORED') {
+                if ($transaction->type === 'INCOME') {
+                    $currentBalances[$transaction->account_id] += abs($amountEur);
+                } elseif ($transaction->type === 'TRANSFER') {
+                    $currentBalances[$transaction->account_id] += $amountEur; // signed: positive=in, negative=out
+                } else {
+                    // EXPENSE, FEE, etc.
+                    $currentBalances[$transaction->account_id] -= abs($amountEur);
+                }
             }
 
             $row = [
@@ -369,6 +373,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         // Balance changes from ALL transactions (including DRAFT/NEEDS_REVIEW)
         $yearlyBalanceData = Transaction::query()
+            ->where('status', '!=', 'IGNORED')  // ignored excluded from balance
             ->selectRaw('
                 EXTRACT(YEAR FROM occurred_at) as year,
                 SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as balance_change
@@ -391,6 +396,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         // Per-account balance changes per year — ALL transactions (for running Atlikums)
         $yearlyAccountBalanceChanges = Transaction::query()
+            ->where('status', '!=', 'IGNORED')  // ignored excluded from balance
             ->selectRaw("
                 EXTRACT(YEAR FROM occurred_at) as year,
                 account_id,
@@ -404,7 +410,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->selectRaw("
                 EXTRACT(YEAR FROM occurred_at) as year,
                 COUNT(*) as total_count,
-                SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count
+                SUM(CASE WHEN status IN ('COMPLETED', 'IGNORED') THEN 1 ELSE 0 END) as completed_count
             ")
             ->groupBy(DB::raw('EXTRACT(YEAR FROM occurred_at)'))
             ->get();
@@ -555,7 +561,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $totalInitialBalance = \App\Models\Account::sum('balance');
 
         $openingBalance = $totalInitialBalance + (Transaction::query()
-            ->whereYear('occurred_at', '<', $this->selectedYear)  // no status filter
+            ->whereYear('occurred_at', '<', $this->selectedYear)  // no status filter (DRAFT included)
+            ->where('status', '!=', 'IGNORED')  // ignored excluded from balance
             ->selectRaw('SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
             ->value('balance') ?? 0);
 
@@ -563,7 +570,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $accountOpeningBalances = [];
         foreach ($this->accounts as $acc) {
             $txBeforeYear = Transaction::where('account_id', $acc->id)
-                ->whereYear('occurred_at', '<', $this->selectedYear)  // no status filter
+                ->whereYear('occurred_at', '<', $this->selectedYear)  // no status filter (DRAFT included)
+                ->where('status', '!=', 'IGNORED')  // ignored excluded from balance
                 ->sum(DB::raw("CASE WHEN type = 'INCOME' THEN ABS(COALESCE(amount_eur, amount)) WHEN type = 'TRANSFER' THEN COALESCE(amount_eur, amount) ELSE -ABS(COALESCE(amount_eur, amount)) END"));
             $accountOpeningBalances[$acc->id] = ($acc->balance ?? 0) + $txBeforeYear;
         }
@@ -584,7 +592,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         // 2b. Monthly net balance changes — ALL transactions (for running balance column)
         $monthlyAllNetChanges = Transaction::query()
-            ->whereYear('occurred_at', $this->selectedYear)  // no status filter
+            ->whereYear('occurred_at', $this->selectedYear)  // no status filter (DRAFT included)
+            ->where('status', '!=', 'IGNORED')  // ignored excluded from balance
             ->selectRaw('
                 EXTRACT(MONTH FROM occurred_at) as month_number,
                 SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as net_change
@@ -616,7 +625,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         // 3b. Monthly per-account net changes — ALL transactions (for account balance columns)
         $monthlyAccountChanges = Transaction::query()
-            ->whereYear('occurred_at', $this->selectedYear)  // no status filter
+            ->whereYear('occurred_at', $this->selectedYear)  // no status filter (DRAFT included)
+            ->where('status', '!=', 'IGNORED')  // ignored excluded from balance
             ->selectRaw("
                 EXTRACT(MONTH FROM occurred_at) as month_number,
                 account_id,
@@ -628,6 +638,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         // 3c. Monthly per-account income and expense — for Ieņ./Izd. sub-columns in year view
         $monthlyAccountIncomeExpense = Transaction::query()
             ->whereYear('occurred_at', $this->selectedYear)
+            ->where('status', '!=', 'IGNORED')  // ignored excluded from data
             ->selectRaw("
                 EXTRACT(MONTH FROM occurred_at) as month_number,
                 account_id,
@@ -643,7 +654,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->selectRaw("
                 EXTRACT(MONTH FROM occurred_at) as month_number,
                 COUNT(*) as total_count,
-                SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count
+                SUM(CASE WHEN status IN ('COMPLETED', 'IGNORED') THEN 1 ELSE 0 END) as completed_count
             ")
             ->groupBy(DB::raw('EXTRACT(MONTH FROM occurred_at)'))
             ->get();
@@ -781,7 +792,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $totalInitialBalance = \App\Models\Account::sum('balance');
 
         $allTxBalance = Transaction::query()
-            ->whereYear('occurred_at', '<=', $this->selectedYear)  // no status filter
+            ->whereYear('occurred_at', '<=', $this->selectedYear)  // no status filter (DRAFT included)
+            ->where('status', '!=', 'IGNORED')  // ignored excluded from balance
             ->selectRaw('SUM(CASE WHEN type = ? THEN COALESCE(amount_eur, amount) WHEN type = ? THEN -ABS(COALESCE(amount_eur, amount)) ELSE 0 END) as balance', ['INCOME', 'EXPENSE'])
             ->value('balance') ?? 0;
 
@@ -1260,6 +1272,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                                 'DRAFT'        => 'Melnraksts',
                                 'COMPLETED'    => 'Apstiprināts',
                                 'NEEDS_REVIEW' => 'Nepieciešama pārbaude',
+                                'IGNORED'      => 'Ignorēts (izslēgts no datiem)',
                             ])
                             ->required()
                             ->native(false),
@@ -1765,6 +1778,12 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
     protected function isTransactionMapped(Transaction $transaction): bool
     {
+        // IGNORED = intentionally excluded from data; treat as "handled" so it is not
+        // flagged as invalid/unmapped (✓, and hidden under the "only invalid" filter).
+        if ($transaction->status === 'IGNORED') {
+            return true;
+        }
+
         // Only COMPLETED transactions can be considered mapped
         if ($transaction->status !== 'COMPLETED') {
             return false;
@@ -1915,6 +1934,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                         'DRAFT' => 'Melnraksts',
                         'COMPLETED' => 'Apstiprināts',
                         'NEEDS_REVIEW' => 'Nepieciešama pārbaude',
+                        'IGNORED' => 'Ignorēts (izslēgts no datiem)',
                     ])
                     ->default('COMPLETED')
                     ->required()

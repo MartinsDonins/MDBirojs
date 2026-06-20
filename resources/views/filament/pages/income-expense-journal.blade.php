@@ -330,6 +330,23 @@
                     <x-filament::button wire:click="mountAction('createTransaction')" icon="heroicon-o-plus">
                         Pievienot darījumu
                     </x-filament::button>
+                    {{-- Gada pārskata eksports (PDF / Excel) --}}
+                    <x-filament::button
+                        tag="a"
+                        href="{{ route('reports.annual.pdf', $selectedYear) }}"
+                        target="_blank"
+                        color="success"
+                        icon="heroicon-o-document-arrow-down">
+                        Gada pārskats PDF
+                    </x-filament::button>
+                    <x-filament::button
+                        tag="a"
+                        href="{{ route('reports.annual.excel', $selectedYear) }}"
+                        target="_blank"
+                        color="success"
+                        icon="heroicon-o-table-cells">
+                        Excel
+                    </x-filament::button>
                     <x-filament::button
                         wire:click="mountAction('clearYearData')"
                         color="danger"
@@ -1052,7 +1069,7 @@
                     @foreach($rows as $row)
                     @if(!$showOnlyInvalid || !$row['is_mapped'])
                         <tr wire:key="row-{{ $row['transaction_id'] }}"
-                            class="transaction-row group cursor-pointer transition-colors duration-100 {{ in_array($row['transaction_type'], ['EXPENSE', 'FEE']) ? 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100/60 dark:hover:bg-red-900/25' : 'hover:bg-sky-50/70 dark:hover:bg-sky-900/20' }}"
+                            class="transaction-row group cursor-pointer transition-colors duration-100 {{ $row['status'] === 'IGNORED' ? 'opacity-50 bg-gray-100/60 dark:bg-gray-800/40' : (in_array($row['transaction_type'], ['EXPENSE', 'FEE']) ? 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100/60 dark:hover:bg-red-900/25' : 'hover:bg-sky-50/70 dark:hover:bg-sky-900/20') }}"
                             data-txid="{{ $row['transaction_id'] }}"
                             @click="$store.journal.expandedRows.includes({{ $row['transaction_id'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['transaction_id'] }}) : $store.journal.expandedRows.push({{ $row['transaction_id'] }})">
 
@@ -1108,7 +1125,7 @@
 
                             {{-- Statuss (single click toggle, right-click for modal) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                                title="{{ $row['status'] === 'COMPLETED' ? 'Apstiprināts — klikšķis: pārvērst Melnrakstā' : ($row['status'] === 'NEEDS_REVIEW' ? 'Nepieciešama pārbaude — klikšķis: Apstiprināt' : 'Melnraksts — klikšķis: Apstiprināt') }}">
+                                title="{{ $row['status'] === 'COMPLETED' ? 'Apstiprināts — klikšķis: pārvērst Melnrakstā' : ($row['status'] === 'NEEDS_REVIEW' ? 'Nepieciešama pārbaude — klikšķis: Apstiprināt' : ($row['status'] === 'IGNORED' ? 'Ignorēts (izslēgts no datiem) — klikšķis: atjaunot kā Apstiprinātu' : 'Melnraksts — klikšķis: Apstiprināt')) }}">
                                 @if($row['transaction_id'])
                                 <div class="w-full h-full select-none"
                                      @click.stop
@@ -1117,6 +1134,8 @@
                                         <span class="text-green-600 dark:text-green-400 text-lg font-bold">✓</span>
                                     @elseif($row['status'] === 'NEEDS_REVIEW')
                                         <span class="text-orange-500 text-lg font-bold">?</span>
+                                    @elseif($row['status'] === 'IGNORED')
+                                        <span class="text-gray-400 dark:text-gray-500 text-lg font-bold" title="Ignorēts — izslēgts no datiem">⊘</span>
                                     @else
                                         <span class="text-gray-400 text-lg">○</span>
                                     @endif
