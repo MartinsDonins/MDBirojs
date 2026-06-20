@@ -1051,10 +1051,10 @@
 
                     @foreach($rows as $row)
                     @if(!$showOnlyInvalid || !$row['is_mapped'])
-                        <tr wire:key="row-{{ $row['entry_number'] }}"
+                        <tr wire:key="row-{{ $row['transaction_id'] }}"
                             class="transaction-row group cursor-pointer transition-colors duration-100 {{ in_array($row['transaction_type'], ['EXPENSE', 'FEE']) ? 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100/60 dark:hover:bg-red-900/25' : 'hover:bg-sky-50/70 dark:hover:bg-sky-900/20' }}"
                             data-txid="{{ $row['transaction_id'] }}"
-                            @click="$store.journal.expandedRows.includes({{ $row['entry_number'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['entry_number'] }}) : $store.journal.expandedRows.push({{ $row['entry_number'] }})">
+                            @click="$store.journal.expandedRows.includes({{ $row['transaction_id'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['transaction_id'] }}) : $store.journal.expandedRows.push({{ $row['transaction_id'] }})">
 
                             {{-- 1. Identifikācija --}}
                             <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Nr. — vilkt vai ▲▼: kārtot">
@@ -1211,7 +1211,7 @@
                         </tr>
 
                         {{-- Expandable Detail Row --}}
-                        <tr x-show="$store.journal && $store.journal.expandedRows.includes({{ $row['entry_number'] }})" class="no-sort-row bg-blue-50/50 dark:bg-blue-900/10">
+                        <tr wire:key="rowdetail-{{ $row['transaction_id'] }}" x-show="$store.journal && $store.journal.expandedRows.includes({{ $row['transaction_id'] }})" class="no-sort-row bg-blue-50/50 dark:bg-blue-900/10">
                             <td colspan="{{ $detailColSpan }}" class="px-4 py-2 border border-gray-300 dark:border-gray-700">
                                 <div class="flex items-start justify-between gap-4 text-xs">
                                     <div>
