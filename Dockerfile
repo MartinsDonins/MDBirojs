@@ -3,6 +3,18 @@
 ###############################################
 FROM node:22-alpine AS assets
 
+# GlitchTip source-map upload (consumed by @sentry/vite-plugin during build).
+# Pass these from Coolify as BUILD variables. When SENTRY_AUTH_TOKEN is empty
+# the plugin no-ops, so the build still succeeds without them.
+ARG SENTRY_AUTH_TOKEN=""
+ARG SENTRY_ORG=""
+ARG SENTRY_URL=""
+ARG SENTRY_PROJECT=""
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN \
+    SENTRY_ORG=$SENTRY_ORG \
+    SENTRY_URL=$SENTRY_URL \
+    SENTRY_PROJECT=$SENTRY_PROJECT
+
 WORKDIR /app
 COPY package.json ./
 RUN npm install
