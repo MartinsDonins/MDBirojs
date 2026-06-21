@@ -29,4 +29,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/reports/annual/{year}/excel', [AnnualReportController::class, 'excel'])
         ->whereNumber('year')
         ->name('reports.annual.excel');
+
+    // Pre-filled VID D3 annex (saimnieciskās darbības ienākumi) as PDF.
+    Route::get('/admin/reports/d3/{year}/pdf', [AnnualReportController::class, 'd3Pdf'])
+        ->whereNumber('year')
+        ->name('reports.d3.pdf');
 });

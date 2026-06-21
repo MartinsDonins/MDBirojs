@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\AnnualReviewExport;
 use App\Services\AnnualReviewService;
+use App\Services\D3DeclarationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -37,5 +38,18 @@ class AnnualReportController extends Controller
             new AnnualReviewExport($this->service->build($year)),
             "gada-parskats-{$year}.xlsx",
         );
+    }
+
+    /**
+     * Pre-filled VID D3 annex ("Ienākumi no saimnieciskās darbības") as PDF.
+     * Journal-derived rows (4, 5, 6) are auto-filled; the rest come from the
+     * per-year manual inputs saved on the D3 declaration page.
+     */
+    public function d3Pdf(int $year, D3DeclarationService $d3)
+    {
+        $pdf = Pdf::loadView('reports.d3-declaration', $d3->fullReport($year))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->stream("d3-deklaracija-{$year}.pdf");
     }
 }

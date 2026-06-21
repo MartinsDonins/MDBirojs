@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\AppSetting;
+use App\Models\D3Setting;
 use App\Models\JournalColumn;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +71,78 @@ class D3DeclarationService
             'expense_abbr'       => $deductibleExpenseCol->abbr ?? 'Saist.SD',
             'non_taxable_abbr'   => $nonTaxableCol->abbr ?? 'Neapl.',
         ];
+    }
+
+    /**
+     * Full D3 report for the year: journal-derived auto figures + saved manual
+     * inputs + computed totals + taxpayer header. Used by the PDF export.
+     *
+     * @return array<string,mixed>
+     */
+    public function fullReport(int $year): array
+    {
+        $auto = $this->build($year);
+        $s    = D3Setting::firstOrNew(['year' => $year]);
+
+        $manual = [
+            'farm_1_1'  => (float) ($s->farm_income_agriculture ?? 0),
+            'farm_1_2'  => (float) ($s->farm_income_fishery ?? 0),
+            'farm_1_3'  => (float) ($s->farm_income_tourism ?? 0),
+            'farm_1_4'  => (float) ($s->farm_income_support ?? 0),
+            'farm_2'    => (float) ($s->farm_expenses ?? 0),
+            'farm_3'    => (float) ($s->farm_prior_losses ?? 0),
+            'other_7'   => (float) ($s->other_prior_losses ?? 0),
+            'foreign_9' => (float) ($s->foreign_tax ?? 0),
+            'min_10'    => (float) ($s->min_taxable_income ?? 0),
+        ];
+
+        return [
+            'year'           => $year,
+            'rows'           => self::computeRows($auto, $manual),
+            'income_abbr'    => $auto['income_abbr'],
+            'expense_abbr'   => $auto['expense_abbr'],
+            'non_taxable_abbr' => $auto['non_taxable_abbr'],
+            'taxpayer_name'  => AppSetting::getRaw('taxpayer_name'),
+            'taxpayer_code'  => AppSetting::getRaw('taxpayer_code'),
+        ];
+    }
+
+    /**
+     * Compute the full D3 row set from journal-derived auto figures and manual inputs.
+     * Single source of truth shared by the Filament page and the PDF.
+     *
+     * @param  array{other_income:float,other_expenses:float,non_taxable_income:float}  $auto
+     * @param  array<string,float>  $manual
+     * @return array<string,float>
+     */
+    public static function computeRows(array $auto, array $manual): array
+    {
+        $row1_1 = $manual['farm_1_1'] ?? 0.0;
+        $row1_2 = $manual['farm_1_2'] ?? 0.0;
+        $row1_3 = $manual['farm_1_3'] ?? 0.0;
+        $row1_4 = $manual['farm_1_4'] ?? 0.0;
+        $row1   = $row1_1 + $row1_2 + $row1_3 + $row1_4;
+        $row2   = $manual['farm_2'] ?? 0.0;
+        $row3   = $manual['farm_3'] ?? 0.0;
+        $row4   = $auto['non_taxable_income'];
+        $row5   = $auto['other_income'];
+        $row6   = $auto['other_expenses'];
+        $row7   = $manual['other_7'] ?? 0.0;
+
+        // 8 = (farming bracket) + (other-activity bracket).
+        // Non-taxable income (row 4) is shown for completeness; the taxable income
+        // column (row 5) in this journal already excludes it, so it does not reduce
+        // the result here.
+        $row8  = ($row1 - $row1_4 - $row2 - $row3) + ($row5 - $row6 - $row7);
+        $row9  = $manual['foreign_9'] ?? 0.0;
+        $row10 = $manual['min_10'] ?? 0.0;
+        $row11 = $row8 - $row10;
+
+        return compact(
+            'row1_1', 'row1_2', 'row1_3', 'row1_4', 'row1',
+            'row2', 'row3', 'row4', 'row5', 'row6', 'row7',
+            'row8', 'row9', 'row10', 'row11',
+        );
     }
 
     /**

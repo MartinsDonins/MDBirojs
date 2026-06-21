@@ -906,7 +906,7 @@
             // 9 fixed cols (incl. Kases orderis) + 3*accounts + income cols + 1 kopā + expense cols + 1 kopā + 1 atb
             $totalAnalysisCols = $incomeColCount + 1 + $expenseColCount + 1 + 1;
             $fcCount           = count($foreignCurrencies);
-            $detailColSpan     = 9 + $fcCount + count($accounts) * 3 + $incomeColCount + 1 + $expenseColCount + 1 + 1;
+            $detailColSpan     = 10 + $fcCount + count($accounts) * 3 + $incomeColCount + 1 + $expenseColCount + 1 + 1;
         @endphp
         <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
         <style>
@@ -988,8 +988,9 @@
             <table class="jnl-table w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                 <thead x-ref="journalThead">
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px] font-semibold">
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-8 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 65px;">Datums</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 28px;" title="Karodziņi">⚑</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[28px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[68px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 65px;">Datums</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 100px;">Dok. nr.<br>un datums</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 90px; max-width: 120px;">Partneris</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 110px; max-width: 170px;">Apraksts</th>
@@ -1040,8 +1041,9 @@
 
                     {{-- Column Numbers --}}
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px] text-gray-500 font-mono">
-                        <th class="border border-gray-300 dark:border-gray-700 sticky left-0 z-20 bg-gray-100 dark:bg-gray-800">1</th>
-                        <th class="border border-gray-300 dark:border-gray-700 sticky left-8 z-20 bg-gray-100 dark:bg-gray-800">2</th>
+                        <th class="border border-gray-300 dark:border-gray-700 sticky left-0 z-20 bg-gray-100 dark:bg-gray-800">0</th>
+                        <th class="border border-gray-300 dark:border-gray-700 sticky left-[28px] z-20 bg-gray-100 dark:bg-gray-800">1</th>
+                        <th class="border border-gray-300 dark:border-gray-700 sticky left-[68px] z-20 bg-gray-100 dark:bg-gray-800">2</th>
                         <th class="border border-gray-300 dark:border-gray-700">3</th>
                         <th class="border border-gray-300 dark:border-gray-700">4</th>
                         <th class="border border-gray-300 dark:border-gray-700">5</th>
@@ -1074,6 +1076,7 @@
                 <tbody class="bg-white dark:bg-gray-900" x-ref="sortableTbody">
                     {{-- Opening Balances Row --}}
                     <tr class="no-sort-row bg-yellow-50 dark:bg-yellow-900/10 font-bold text-gray-700 dark:text-gray-300">
+                        <td class="border border-gray-300 dark:border-gray-700"></td>
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right text-xs">Sākuma atlikums:</td>
                         <td class="border border-gray-300 dark:border-gray-700"></td>
                         <td class="border border-gray-300 dark:border-gray-700 bg-violet-50/30 dark:bg-violet-900/10"></td>
@@ -1106,8 +1109,23 @@
                             data-txid="{{ $row['transaction_id'] }}"
                             @click="$store.journal.expandedRows.includes({{ $row['transaction_id'] }}) ? $store.journal.expandedRows = $store.journal.expandedRows.filter(id => id !== {{ $row['transaction_id'] }}) : $store.journal.expandedRows.push({{ $row['transaction_id'] }})">
 
-                            {{-- 1. Identifikācija --}}
-                            <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Nr. — vilkt vai ▲▼: kārtot">
+                            {{-- 0. Karodziņi (atsevišķa kolona, lai netraucē Nr klikšķiem) --}}
+                            <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20" style="min-width:28px;">
+                                <div class="jnl-flags" @click.stop wire:click="mountRowFlagsModal({{ $row['transaction_id'] }})"
+                                     title="Karodziņi — klikšķini, lai atzīmētu"
+                                     style="display:flex; flex-wrap:wrap; gap:2px; justify-content:center; align-items:center; cursor:pointer; min-height:18px; padding:2px 0;">
+                                    @forelse(($row['flag_ids'] ?? []) as $fid)
+                                        @if(isset($flagDefs[$fid]))
+                                            <span style="width:10px; height:10px; border-radius:2px; display:inline-block; background: {{ $flagDefs[$fid]['color'] }};"
+                                                  title="{{ $flagDefs[$fid]['name'] }}"></span>
+                                        @endif
+                                    @empty
+                                        <span class="jnl-flag-empty" style="font-size:12px; color:#cbd5e1; line-height:1;">⚐</span>
+                                    @endforelse
+                                </div>
+                            </td>
+                            {{-- 1. Identifikācija (Nr + kārtošana) --}}
+                            <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-[28px] z-10 font-mono font-bold text-xs bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="Nr. — vilkt vai ▲▼: kārtot">
                                 <div style="display:flex; align-items:center; justify-content:center; gap:2px; line-height:1;">
                                     {{-- Drag handle --}}
                                     <span class="drag-handle jnl-drag-handle" @click.stop title="Vilkt, lai pārkārtotu">⠿</span>
@@ -1118,21 +1136,8 @@
                                         <span class="jnl-sort-btn" @click.stop wire:click="moveTransactionDown({{ $row['transaction_id'] }})">▼</span>
                                     </div>
                                 </div>
-                                {{-- Krāsainie karodziņi (pārvietojas līdzi darījumam) --}}
-                                <div class="jnl-flags" @click.stop wire:click="mountRowFlagsModal({{ $row['transaction_id'] }})"
-                                     title="Karodziņi — klikšķini, lai atzīmētu"
-                                     style="display:flex; flex-wrap:wrap; gap:2px; justify-content:center; align-items:center; cursor:pointer; margin-top:3px; min-height:11px;">
-                                    @forelse(($row['flag_ids'] ?? []) as $fid)
-                                        @if(isset($flagDefs[$fid]))
-                                            <span style="width:9px; height:9px; border-radius:2px; display:inline-block; background: {{ $flagDefs[$fid]['color'] }};"
-                                                  title="{{ $flagDefs[$fid]['name'] }}"></span>
-                                        @endif
-                                    @empty
-                                        <span class="jnl-flag-empty" style="font-size:10px; color:#cbd5e1; line-height:1;">⚐</span>
-                                    @endforelse
-                                </div>
                             </td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-8 z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['date'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-[68px] z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['date'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all text-gray-900 dark:text-gray-100">{{ $row['document_details'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top max-w-[120px] text-gray-900 dark:text-gray-100" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top max-w-[170px] text-gray-900 dark:text-gray-100" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
@@ -1307,8 +1312,10 @@
 
                     {{-- Closing Balances Row --}}
                     <tr class="no-sort-row bg-yellow-100 dark:bg-yellow-900/20 font-bold text-gray-800 dark:text-gray-200 border-t-2 border-gray-400">
+                        <td class="border border-gray-300 dark:border-gray-700"></td>
                         <td colspan="7" class="px-2 py-2 border border-gray-300 dark:border-gray-700 text-right">Beigu atlikums:</td>
                         <td class="border border-gray-300 dark:border-gray-700"></td>
+                        <td class="border border-gray-300 dark:border-gray-700 bg-violet-50/30 dark:bg-violet-900/10"></td>
                         @foreach($foreignCurrencies as $curr)
                             <td class="border border-gray-300 dark:border-gray-700 bg-yellow-50/40 dark:bg-yellow-900/10"></td>
                         @endforeach
