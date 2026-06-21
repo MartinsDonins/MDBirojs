@@ -764,6 +764,9 @@
                         title="Filtrēt rindas bez analīzes kartēšanas">
                         {{ $showOnlyInvalid ? 'Rādīt visus' : 'Nekartētie' }}
                     </x-filament::button>
+                    <x-filament::button wire:click="mountAction('manageFlags')" color="gray" icon="heroicon-o-flag">
+                        Pārvaldīt karodziņus
+                    </x-filament::button>
                     <x-filament::button wire:click="mountAction('createTransaction')" icon="heroicon-o-plus">
                         Pievienot darījumu
                     </x-filament::button>
@@ -775,6 +778,20 @@
                     {{ mb_strtoupper($latvianMonths[$selectedMonth] ?? '', 'UTF-8') }} {{ $selectedYear }}
                 </h2>
             </div>
+
+            {{-- Karodziņu leģenda --}}
+            @if(!empty($flagDefs))
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-xs text-gray-600 dark:text-gray-300">
+                <span class="font-semibold text-gray-500 dark:text-gray-400">Karodziņi:</span>
+                @foreach($flagDefs as $fid => $def)
+                    <span class="inline-flex items-center gap-1">
+                        <span style="width:11px; height:11px; border-radius:3px; display:inline-block; background: {{ $def['color'] }};"></span>
+                        {{ $def['name'] }}
+                    </span>
+                @endforeach
+                <button type="button" wire:click="mountAction('manageFlags')" class="text-primary-600 dark:text-primary-400 hover:underline">+ pievienot / rediģēt</button>
+            </div>
+            @endif
 
             {{-- Month Summary: compact single panel --}}
             @php
@@ -924,6 +941,9 @@
             /* SortableJS ghost/drag styles */
             .sortable-ghost { opacity: 0.4; background: #eff6ff !important; }
             .sortable-drag  { opacity: 0.9; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+            /* Sticky header rows — per-row top offset is set in JS (initStickyHead) */
+            .jnl-table thead th { position: sticky; z-index: 12; }
+            .jnl-table thead th.sticky { z-index: 22; }
         </style>
         <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm"
              x-data="{
@@ -945,22 +965,34 @@
                              wire.reorderTransactions(ids);
                          }
                      });
+                 },
+                 initStickyHead() {
+                     try {
+                         const thead = this.$refs.journalThead;
+                         if (!thead) return;
+                         let top = 0;
+                         thead.querySelectorAll('tr').forEach(tr => {
+                             tr.querySelectorAll('th').forEach(th => { th.style.top = top + 'px'; });
+                             top += tr.offsetHeight;
+                         });
+                     } catch (e) {}
                  }
              }"
              x-init="
                  if (!Alpine.store('journal')) { Alpine.store('journal', { expandedRows: [] }); }
                  const cmp = $data;
-                 $nextTick(() => cmp.initSortable());
+                 $nextTick(() => { cmp.initSortable(); cmp.initStickyHead(); });
+                 window.addEventListener('resize', () => cmp.initStickyHead());
              "
-             @journal-rows-updated.window="const cmp = $data; $nextTick(() => cmp.initSortable())">
-            <table class="w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
-                <thead>
+             @journal-rows-updated.window="const cmp = $data; $nextTick(() => { cmp.initSortable(); cmp.initStickyHead(); })">
+            <table class="jnl-table w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
+                <thead x-ref="journalThead">
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px] font-semibold">
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-8 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 65px;">Datums</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 100px;">Dok. nr.<br>un datums</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 120px;">Partneris</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 150px;">Apraksts</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 90px; max-width: 120px;">Partneris</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 110px; max-width: 170px;">Apraksts</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 80px;">Kategorija</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100">Sasaite</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 40px;">Statuss</th>
@@ -1086,11 +1118,24 @@
                                         <span class="jnl-sort-btn" @click.stop wire:click="moveTransactionDown({{ $row['transaction_id'] }})">▼</span>
                                     </div>
                                 </div>
+                                {{-- Krāsainie karodziņi (pārvietojas līdzi darījumam) --}}
+                                <div class="jnl-flags" @click.stop wire:click="mountRowFlagsModal({{ $row['transaction_id'] }})"
+                                     title="Karodziņi — klikšķini, lai atzīmētu"
+                                     style="display:flex; flex-wrap:wrap; gap:2px; justify-content:center; align-items:center; cursor:pointer; margin-top:3px; min-height:11px;">
+                                    @forelse(($row['flag_ids'] ?? []) as $fid)
+                                        @if(isset($flagDefs[$fid]))
+                                            <span style="width:9px; height:9px; border-radius:2px; display:inline-block; background: {{ $flagDefs[$fid]['color'] }};"
+                                                  title="{{ $flagDefs[$fid]['name'] }}"></span>
+                                        @endif
+                                    @empty
+                                        <span class="jnl-flag-empty" style="font-size:10px; color:#cbd5e1; line-height:1;">⚐</span>
+                                    @endforelse
+                                </div>
                             </td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-8 z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['date'] }}</td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all text-gray-900 dark:text-gray-100">{{ $row['document_details'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[100px] text-gray-900 dark:text-gray-100" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] truncate max-w-[150px] text-gray-900 dark:text-gray-100" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top max-w-[120px] text-gray-900 dark:text-gray-100" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top max-w-[170px] text-gray-900 dark:text-gray-100" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
 
                             {{-- Kategorija (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 dark:text-primary-400 cursor-pointer"

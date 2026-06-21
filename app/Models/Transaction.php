@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -64,5 +65,10 @@ class Transaction extends Model
     public function appliedRule(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Rule::class, 'applied_rule_id');
+    }
+
+    public function flags(): BelongsToMany
+    {
+        return $this->belongsToMany(TransactionFlag::class, 'flag_transaction');
     }
 }

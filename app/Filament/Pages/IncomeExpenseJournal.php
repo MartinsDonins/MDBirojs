@@ -61,6 +61,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public array $foreignCurrencies = [];
     /** Per-account opening balances for the selected year (populated by calculateMonthlySummary) */
     public array $yearOpeningAccountBalances = [];
+    /** Flag definitions [id => ['name' => ..., 'color' => ...]] for the legend + per-row dots */
+    public array $flagDefs = [];
 
     // Cached dynamic column configs (loaded from journal_columns table)
     private ?array $cachedIncomeColumns  = null;
@@ -122,7 +124,16 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         $this->loadVerifiedYears();
         $this->loadVerifiedMonths();
+        $this->loadFlagDefs();
         $this->calculateYearlySummary();
+    }
+
+    private function loadFlagDefs(): void
+    {
+        $this->flagDefs = \App\Models\TransactionFlag::orderBy('sort_order')
+            ->get()
+            ->mapWithKeys(fn ($f) => [$f->id => ['name' => $f->name, 'color' => $f->color]])
+            ->toArray();
     }
 
     private function loadVerifiedYears(): void
@@ -258,7 +269,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
         // 2. Get transactions for the selected period
         // sort_order: manual order within the same date; NULL falls back to id (import order)
-        $transactions = Transaction::with(['account', 'category', 'linkedTransaction.account', 'cashOrder'])
+        $transactions = Transaction::with(['account', 'category', 'linkedTransaction.account', 'cashOrder', 'flags'])
             ->where('occurred_at', '>=', $periodStart)
             ->where('occurred_at', '<=', $periodEnd)
             ->orderBy('occurred_at')
@@ -330,6 +341,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 // CoreDigify sync status
                 'coredigify_sent_at'    => $transaction->coredigify_sent_at?->format('d.m.Y H:i'),
                 'coredigify_sync_error' => $transaction->coredigify_sync_error,
+
+                // Work flags (ids; rendered as colored dots using $flagDefs)
+                'flag_ids' => $transaction->flags->pluck('id')->all(),
             ];
             
             $data[] = $row;
@@ -883,6 +897,11 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public function mountDeleteModal($transactionId)
     {
         $this->mountAction('deleteTransaction', ['transaction_id' => $transactionId]);
+    }
+
+    public function mountRowFlagsModal($transactionId)
+    {
+        $this->mountAction('editRowFlags', ['transaction_id' => $transactionId]);
     }
 
     public function mountLinkModal($transactionId)
@@ -1740,6 +1759,8 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             $this->editCategoryAction(),
             $this->editTransactionAction(),
             $this->deleteTransactionAction(),
+            $this->editRowFlagsAction(),
+            $this->manageFlagsAction(),
             $this->linkTransactionAction(),
             $this->editOpeningBalanceAction(),
             $this->createTransactionAction(),
@@ -1850,6 +1871,97 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
                 \Filament\Notifications\Notification::make()
                     ->title('Darījums dzēsts')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public function editRowFlagsAction(): Action
+    {
+        return Action::make('editRowFlags')
+            ->label('Karodziņi')
+            ->modalWidth('sm')
+            ->modalHeading('Darījuma karodziņi')
+            ->fillForm(function (array $arguments) {
+                $t = \App\Models\Transaction::with('flags')->find($arguments['transaction_id']);
+                return ['flag_ids' => $t ? $t->flags->pluck('id')->all() : []];
+            })
+            ->form([
+                Forms\Components\CheckboxList::make('flag_ids')
+                    ->label('Atzīmē karodziņus šim darījumam')
+                    ->options(fn () => \App\Models\TransactionFlag::orderBy('sort_order')->pluck('name', 'id'))
+                    ->columns(1),
+                Forms\Components\Placeholder::make('manage_hint')
+                    ->label('')
+                    ->content('Lai pievienotu jaunu karodziņu vai mainītu krāsas/nosaukumus, izmanto pogu "Pārvaldīt karodziņus" virs tabulas.'),
+            ])
+            ->modalSubmitActionLabel('Saglabāt')
+            ->action(function (array $data, array $arguments) {
+                $t = \App\Models\Transaction::find($arguments['transaction_id']);
+                if ($t) {
+                    $t->flags()->sync($data['flag_ids'] ?? []);
+                    $this->calculateMonthData();
+                }
+            });
+    }
+
+    public function manageFlagsAction(): Action
+    {
+        return Action::make('manageFlags')
+            ->label('Pārvaldīt karodziņus')
+            ->icon('heroicon-o-flag')
+            ->modalWidth('lg')
+            ->modalHeading('Karodziņu pārvaldība')
+            ->modalDescription('Definē karodziņu krāsas un nozīmes. Tos var piešķirt darījumiem, lai vieglāk pārvaldītu mēneša ierakstus (piem., "Pārbaudīts", "Jāsalabo pretdarījums").')
+            ->fillForm(fn () => [
+                'flags' => \App\Models\TransactionFlag::orderBy('sort_order')->get()
+                    ->map(fn ($f) => ['id' => $f->id, 'name' => $f->name, 'color' => $f->color])
+                    ->toArray(),
+            ])
+            ->form([
+                Forms\Components\Repeater::make('flags')
+                    ->label('Karodziņi')
+                    ->schema([
+                        Forms\Components\Hidden::make('id'),
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nosaukums')
+                            ->required(),
+                        Forms\Components\ColorPicker::make('color')
+                            ->label('Krāsa')
+                            ->required(),
+                    ])
+                    ->columns(2)
+                    ->reorderable()
+                    ->addActionLabel('Pievienot karodziņu')
+                    ->defaultItems(1),
+            ])
+            ->modalSubmitActionLabel('Saglabāt')
+            ->action(function (array $data) {
+                $keepIds = [];
+                foreach (($data['flags'] ?? []) as $i => $f) {
+                    if (empty($f['name'])) {
+                        continue;
+                    }
+                    $flag = ! empty($f['id'])
+                        ? \App\Models\TransactionFlag::find($f['id'])
+                        : null;
+                    if (! $flag) {
+                        $flag = new \App\Models\TransactionFlag();
+                    }
+                    $flag->name = $f['name'];
+                    $flag->color = $f['color'] ?: '#9ca3af';
+                    $flag->sort_order = $i + 1;
+                    $flag->save();
+                    $keepIds[] = $flag->id;
+                }
+                // Remove flags the user deleted in the repeater (cascade detaches pivot rows)
+                \App\Models\TransactionFlag::whereNotIn('id', $keepIds)->delete();
+
+                $this->loadFlagDefs();
+                $this->calculateMonthData();
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Karodziņi saglabāti')
                     ->success()
                     ->send();
             });
