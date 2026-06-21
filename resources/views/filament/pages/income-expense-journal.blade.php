@@ -774,6 +774,24 @@
                         title="Filtrēt rindas bez analīzes kartēšanas">
                         {{ $showOnlyInvalid ? 'Rādīt visus' : 'Nekartētie' }}
                     </x-filament::button>
+                    {{-- Kolonu rādīšana/slēpšana (pārskatāmākam skatam) --}}
+                    <div class="relative" x-data="{ open: false }">
+                        <x-filament::button size="md" color="gray" icon="heroicon-o-view-columns" x-on:click="open = !open">
+                            Kolonas
+                        </x-filament::button>
+                        <div x-show="open" @click.outside="open = false" x-cloak
+                             class="absolute right-0 z-50 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-sm space-y-2 min-w-[210px]">
+                            <div class="font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase">Rādīt kolonas</div>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" wire:model.live="showAccounts" class="rounded border-gray-300 dark:border-gray-600">
+                                Kontu kolonas (Ieņ./Izd./Atlikums)
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" wire:model.live="showAnalysis" class="rounded border-gray-300 dark:border-gray-600">
+                                Analīzes kolonas (žurnāla ailes)
+                            </label>
+                        </div>
+                    </div>
                     <x-filament::button wire:click="mountAction('manageFlags')" color="gray" icon="heroicon-o-flag">
                         Pārvaldīt karodziņus
                     </x-filament::button>
@@ -954,6 +972,7 @@
             /* Sticky header rows — per-row top offset is set in JS (initStickyHead) */
             .jnl-table thead th { position: sticky; z-index: 12; }
             .jnl-table thead th.sticky { z-index: 22; }
+            [x-cloak] { display: none !important; }
         </style>
         <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm"
              x-data="{
@@ -1015,27 +1034,34 @@
                         @endforeach
 
                         {{-- Konto kolonnas --}}
+                        @if($showAccounts)
                         @foreach($accounts as $acc)
                             <th colspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 text-gray-900 dark:text-gray-100">{{ $acc->name }}</th>
                         @endforeach
+                        @endif
 
+                        @if($showAnalysis)
                         {{-- Ieņēmumu analīze --}}
                         <th colspan="{{ $incomeColCount + 1 }}" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-gray-100">Ieņēmumi (EUR)</th>
 
                         {{-- Izdevumu analīze --}}
                         <th colspan="{{ $expenseColCount + 1 }}" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-red-50 dark:bg-red-900/30 text-gray-900 dark:text-gray-100">Izdevumi (EUR)</th>
+                        @endif
 
                         {{-- Atbilstība --}}
                         <th rowspan="3" class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-center text-gray-900 dark:text-gray-100" title="Atbilstība: vai darījuma summa pilnībā iekļaujas analīzes kolonnās">Atb.</th>
                     </tr>
                     <tr class="bg-gray-50 dark:bg-gray-800/50 text-center text-[10px]">
                         {{-- Kontu apakškolonnas --}}
+                        @if($showAccounts)
                         @foreach($accounts as $acc)
                             <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-green-600 dark:text-green-400 bg-gray-100 dark:bg-gray-800" title="Ieņēmumi">Ieņ.</th>
                             <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-red-600 dark:text-red-400 bg-gray-100 dark:bg-gray-800" title="Izdevumi">Izd.</th>
                             <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="Atlikums">Atlikums</th>
                         @endforeach
+                        @endif
 
+                        @if($showAnalysis)
                         {{-- Ieņēmumu analīzes apakškolonnas --}}
                         @foreach($journalIncomeColumns as $col)
                             <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">{{ $col['abbr'] }}</th>
@@ -1047,6 +1073,7 @@
                             <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">{{ $col['abbr'] }}</th>
                         @endforeach
                         <th class="px-1 py-1 border border-gray-300 dark:border-gray-700 font-bold bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Kopā</th>
+                        @endif
                     </tr>
 
                     {{-- Column Numbers --}}
@@ -1066,12 +1093,15 @@
                         @foreach($foreignCurrencies as $curr)
                             <th class="border border-gray-300 dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20">{{ $colNum++ }}</th>
                         @endforeach
+                        @if($showAccounts)
                         @foreach($accounts as $acc)
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                         @endforeach
+                        @endif
 
+                        @if($showAnalysis)
                         {{-- Income + expense analysis col numbers --}}
                         @foreach($journalIncomeColumns as $col)
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
@@ -1081,6 +1111,7 @@
                             <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
                         @endforeach
                         <th class="border border-gray-300 dark:border-gray-700">{{ $colNum++ }}</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-900" x-ref="sortableTbody">
@@ -1093,6 +1124,7 @@
                         @foreach($foreignCurrencies as $curr)
                             <td class="border border-gray-300 dark:border-gray-700 bg-yellow-50/40 dark:bg-yellow-900/10"></td>
                         @endforeach
+                        @if($showAccounts)
                         @foreach($accounts as $acc)
                             <td colspan="2" class="border border-gray-300 dark:border-gray-700"></td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right hover:bg-yellow-100 dark:hover:bg-yellow-800/30 cursor-pointer group/bal"
@@ -1109,7 +1141,10 @@
                                 @endif
                             </td>
                         @endforeach
+                        @endif
+                        @if($showAnalysis)
                         <td colspan="{{ $totalAnalysisCols }}" class="border border-gray-300 dark:border-gray-700"></td>
+                        @endif
                     </tr>
 
                     @foreach($rows as $row)
@@ -1234,6 +1269,7 @@
                             @endforeach
 
                             {{-- 2. Konti --}}
+                            @if($showAccounts)
                             @foreach($accounts as $acc)
                                 <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-green-600 dark:text-green-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
                                     @if($row['transaction_account_id'] == $acc->id && ($row['transaction_type'] == 'INCOME' || ($row['transaction_type'] == 'TRANSFER' && $row['transaction_amount'] > 0)))
@@ -1249,7 +1285,9 @@
                                     {{ number_format($row['account_balances'][$acc->id] ?? 0, 2, ',', ' ') }}
                                 </td>
                             @endforeach
+                            @endif
 
+                            @if($showAnalysis)
                             {{-- 3. Ieņēmumu analīze (dynamic columns) --}}
                             @foreach($journalIncomeColumns as $col)
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">
@@ -1279,6 +1317,7 @@
                                     {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
                                 @endif
                             </td>
+                            @endif
 
                             {{-- 5. Atbilstības indikators --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-center">
@@ -1329,13 +1368,17 @@
                         @foreach($foreignCurrencies as $curr)
                             <td class="border border-gray-300 dark:border-gray-700 bg-yellow-50/40 dark:bg-yellow-900/10"></td>
                         @endforeach
+                        @if($showAccounts)
                         @foreach($accounts as $acc)
                             <td colspan="2" class="border border-gray-300 dark:border-gray-700"></td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right {{ ($closing_balances[$acc->id] ?? 0) < 0 ? 'text-red-600' : '' }}">
                                 {{ number_format($closing_balances[$acc->id] ?? 0, 2, ',', ' ') }}
                             </td>
                         @endforeach
+                        @endif
+                        @if($showAnalysis)
                         <td colspan="{{ $totalAnalysisCols }}" class="border border-gray-300 dark:border-gray-700"></td>
+                        @endif
                     </tr>
                 </tbody>
             </table>

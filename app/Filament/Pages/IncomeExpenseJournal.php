@@ -63,6 +63,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public array $yearOpeningAccountBalances = [];
     /** Flag definitions [id => ['name' => ..., 'color' => ...]] for the legend + per-row dots */
     public array $flagDefs = [];
+    /** Column-group visibility toggles for the month detail table (kept for the session) */
+    public bool $showAccounts = true;
+    public bool $showAnalysis = true;
 
     // Cached dynamic column configs (loaded from journal_columns table)
     private ?array $cachedIncomeColumns  = null;
@@ -2004,6 +2007,17 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public function toggleInvalidFilter(): void
     {
         $this->showOnlyInvalid = !$this->showOnlyInvalid;
+    }
+
+    // Re-init the sortable + sticky header after a column toggle re-renders the table.
+    public function updatedShowAccounts(): void
+    {
+        $this->dispatch('journal-rows-updated');
+    }
+
+    public function updatedShowAnalysis(): void
+    {
+        $this->dispatch('journal-rows-updated');
     }
 
     protected function isTransactionMapped(Transaction $transaction): bool
