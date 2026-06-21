@@ -616,6 +616,16 @@
                                         <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" title="Žurnāla ailes aizpildītas">OK</span>
                                     @endif
                                 @endif
+                                @if(!empty($mSummary['flags']))
+                                    <span class="inline-flex flex-wrap items-center gap-1 ml-1 align-middle">
+                                        @foreach($mSummary['flags'] as $mf)
+                                            <span class="inline-flex items-center gap-0.5" title="{{ $mf['name'] }} — {{ $mf['count'] }} darījums(i)">
+                                                <span style="width:9px; height:9px; border-radius:2px; display:inline-block; background: {{ $mf['color'] }};"></span>
+                                                <span class="text-[9px] text-gray-500 dark:text-gray-400">{{ $mf['count'] }}</span>
+                                            </span>
+                                        @endforeach
+                                    </span>
+                                @endif
                             </td>
                             {{-- Per-account: Ieņ. | Izd. | Atlikums --}}
                             @foreach($accounts as $acc)

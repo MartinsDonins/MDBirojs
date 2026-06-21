@@ -673,6 +673,29 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
             ->groupBy(DB::raw('EXTRACT(MONTH FROM occurred_at)'))
             ->get();
 
+        // Per-month flag aggregation — which work flags appear in each month (+ count),
+        // shown as colored dots in the year overview so months needing attention stand out.
+        $monthlyFlags = \App\Models\TransactionFlag::query()
+            ->join('flag_transaction', 'transaction_flags.id', '=', 'flag_transaction.transaction_flag_id')
+            ->join('transactions', 'transactions.id', '=', 'flag_transaction.transaction_id')
+            ->whereYear('transactions.occurred_at', $this->selectedYear)
+            ->selectRaw("
+                EXTRACT(MONTH FROM transactions.occurred_at) as month_number,
+                transaction_flags.id    as flag_id,
+                transaction_flags.name  as flag_name,
+                transaction_flags.color as flag_color,
+                COUNT(*) as cnt
+            ")
+            ->groupBy(
+                DB::raw('EXTRACT(MONTH FROM transactions.occurred_at)'),
+                'transaction_flags.id',
+                'transaction_flags.name',
+                'transaction_flags.color',
+                'transaction_flags.sort_order'
+            )
+            ->orderBy('transaction_flags.sort_order')
+            ->get();
+
         $monthNames = [
             1 => 'Janvāris', 2 => 'Februāris', 3 => 'Marts', 4 => 'Aprīlis',
             5 => 'Maijs', 6 => 'Jūnijs', 7 => 'Jūlijs', 8 => 'Augusts',
@@ -774,6 +797,17 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 // Manual verification
                 'verified'      => isset($this->verifiedMonths[$this->selectedYear . '-' . $month]),
                 'verified_at'   => $this->verifiedMonths[$this->selectedYear . '-' . $month] ?? null,
+                // Work flags present in this month (colored dots in the year overview)
+                'flags'        => $monthlyFlags
+                    ->filter(fn ($f) => (int) round((float) $f->month_number) === $month)
+                    ->map(fn ($f) => [
+                        'id'    => $f->flag_id,
+                        'name'  => $f->flag_name,
+                        'color' => $f->flag_color,
+                        'count' => (int) $f->cnt,
+                    ])
+                    ->values()
+                    ->toArray(),
                 // Per-category detail (sorted: INCOME first, then EXPENSE; alphabetically within each)
                 'categories'   => $monthCats
                     ->sortBy(fn ($c) => ($c->type === 'INCOME' ? '0' : '1') . ($c->category_name ?? ''))
