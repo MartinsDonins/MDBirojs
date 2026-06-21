@@ -880,6 +880,11 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         $this->mountAction('editTransaction', ['transaction_id' => $transactionId]);
     }
 
+    public function mountDeleteModal($transactionId)
+    {
+        $this->mountAction('deleteTransaction', ['transaction_id' => $transactionId]);
+    }
+
     public function mountLinkModal($transactionId)
     {
         $this->mountAction('linkTransaction', ['transaction_id' => $transactionId]);
@@ -1734,6 +1739,7 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
         return array_merge($this->getHeaderActions(), [
             $this->editCategoryAction(),
             $this->editTransactionAction(),
+            $this->deleteTransactionAction(),
             $this->linkTransactionAction(),
             $this->editOpeningBalanceAction(),
             $this->createTransactionAction(),
@@ -1766,6 +1772,84 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
                 \Filament\Notifications\Notification::make()
                     ->title("{$this->selectedYear}. gada dati notīrīti ({$count} darījumi dzēsti)")
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public function deleteTransactionAction(): Action
+    {
+        return Action::make('deleteTransaction')
+            ->label('Dzēst darījumu')
+            ->color('danger')
+            ->icon('heroicon-o-trash')
+            ->requiresConfirmation()
+            ->modalIcon('heroicon-o-exclamation-triangle')
+            ->modalIconColor('danger')
+            ->modalHeading('Dzēst darījumu')
+            ->modalDescription(function (array $arguments) {
+                $t = \App\Models\Transaction::with('account', 'cashOrder')->find($arguments['transaction_id']);
+                if (! $t) {
+                    return 'Darījums nav atrasts.';
+                }
+                $line = implode(' · ', array_filter([
+                    $t->occurred_at?->format('d.m.Y'),
+                    $t->account?->name,
+                    number_format(abs((float) $t->amount), 2, ',', ' ') . ' ' . ($t->currency ?? 'EUR'),
+                    $t->counterparty_name ?: $t->description,
+                ]));
+                $extra = $t->cashOrder
+                    ? ' Tiks dzēsts arī saistītais kases orderis (' . $t->cashOrder->number . ').'
+                    : '';
+                return "Tiks neatgriezeniski dzēsts darījums: {$line}.{$extra} Šo darbību nevar atcelt!";
+            })
+            ->modalSubmitActionLabel('Jā, dzēst')
+            ->form(function (array $arguments) {
+                $t = \App\Models\Transaction::with('linkedTransaction.account')->find($arguments['transaction_id']);
+                if (! $t || ! $t->linked_transaction_id || ! $t->linkedTransaction) {
+                    return [];
+                }
+                $acc = $t->linkedTransaction->account?->name ?? '';
+                return [
+                    Forms\Components\Checkbox::make('delete_linked')
+                        ->label('Dzēst arī saistīto pretdarījumu' . ($acc ? " ({$acc})" : ''))
+                        ->helperText('Pārskaitījumiem starp kontiem/kasi parasti ir divi darījumi. Atzīmējiet, lai dzēstu abus.')
+                        ->default(false),
+                ];
+            })
+            ->action(function (array $data, array $arguments) {
+                $t = \App\Models\Transaction::with('linkedTransaction')->find($arguments['transaction_id']);
+                if (! $t) {
+                    return;
+                }
+                $linked = $t->linkedTransaction;
+
+                // Remove this transaction's cash order (HasOne via transaction_id)
+                \App\Models\CashOrder::where('transaction_id', $t->id)->delete();
+
+                if ($linked) {
+                    if (! empty($data['delete_linked'])) {
+                        \App\Models\CashOrder::where('transaction_id', $linked->id)->delete();
+                        // Break links both ways before deleting to avoid dangling references
+                        $linked->update(['linked_transaction_id' => null]);
+                        $t->update(['linked_transaction_id' => null]);
+                        $linked->delete();
+                    } else {
+                        // Keep the counterpart but clear its back-reference to the deleted row
+                        $linked->update(['linked_transaction_id' => null]);
+                    }
+                }
+
+                $t->delete();
+
+                $this->calculateMonthData();
+                if ($this->selectedYear) {
+                    $this->calculateMonthlySummary();
+                    $this->calculateYearlySummary();
+                }
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Darījums dzēsts')
                     ->success()
                     ->send();
             });

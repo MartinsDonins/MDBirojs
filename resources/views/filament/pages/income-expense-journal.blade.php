@@ -1241,12 +1241,17 @@
                                         <strong>Bankas info:</strong> {{ $row['partner'] }} ({{ $row['document_details'] }})
                                     </div>
                                     @if($row['transaction_id'])
-                                    <div class="shrink-0"
-                                         @click.stop
-                                         wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
-                                        <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil">
-                                            Rediģēt
-                                        </x-filament::button>
+                                    <div class="shrink-0 flex items-center gap-2">
+                                        <div @click.stop wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
+                                            <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil">
+                                                Rediģēt
+                                            </x-filament::button>
+                                        </div>
+                                        <div @click.stop wire:click="mountDeleteModal({{ $row['transaction_id'] }})">
+                                            <x-filament::button size="xs" color="danger" icon="heroicon-o-trash">
+                                                Dzēst
+                                            </x-filament::button>
+                                        </div>
                                     </div>
                                     @endif
                                 </div>
