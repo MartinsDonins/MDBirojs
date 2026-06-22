@@ -145,7 +145,7 @@
                                                                 class="fi-select text-xs rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 max-w-[150px] py-0.5">
                                                                 <option value="">— piesaistīt EDS —</option>
                                                                 @foreach ($unmapped as $path => $val)
-                                                                    <option value="{{ $path }}">{{ \Illuminate\Support\Str::limit($path, 32) }} = {{ $val }}</option>
+                                                                    <option value="{{ $path }}">{{ \App\Services\Gid\GidEdsLabels::labelOrPath($path, 40) }} = {{ $val }}</option>
                                                                 @endforeach
                                                             </select>
                                                             <button type="button" wire:click="assignPath({{ $year }}, '{{ $row['key'] }}')"
@@ -165,8 +165,8 @@
                                     <summary class="text-gray-500 cursor-pointer">Nepiesaistītie EDS lauki ({{ count($unmapped) }})</summary>
                                     <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0.5 text-gray-600 dark:text-gray-400">
                                         @foreach ($unmapped as $path => $val)
-                                            <div class="flex justify-between gap-2 border-b border-dashed border-gray-100 dark:border-gray-800 py-0.5">
-                                                <span class="truncate">{{ $path }}</span>
+                                            <div class="flex justify-between gap-2 border-b border-dashed border-gray-100 dark:border-gray-800 py-0.5" title="{{ $path }}">
+                                                <span class="truncate">{{ \App\Services\Gid\GidEdsLabels::labelOrPath($path) }}</span>
                                                 <span class="tabular-nums shrink-0">{{ $val }}</span>
                                             </div>
                                         @endforeach
