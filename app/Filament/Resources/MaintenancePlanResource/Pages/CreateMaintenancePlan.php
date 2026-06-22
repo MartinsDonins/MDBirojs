@@ -1,0 +1,16 @@
+<?php
+
+namespace App\Filament\Resources\MaintenancePlanResource\Pages;
+
+use App\Filament\Resources\MaintenancePlanResource;
+use Filament\Resources\Pages\CreateRecord;
+
+class CreateMaintenancePlan extends CreateRecord
+{
+    protected static string $resource = MaintenancePlanResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+}
