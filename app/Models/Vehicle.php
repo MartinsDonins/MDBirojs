@@ -29,12 +29,12 @@ class Vehicle extends Model
     ];
 
     protected $casts = [
-        'has_lpg'               => 'boolean',
-        'is_active'             => 'boolean',
-        'tank_capacity'         => 'decimal:1',
-        'lpg_capacity'          => 'decimal:1',
-        'insurance_expires_at'  => 'date',
-        'casco_expires_at'      => 'date',
+        'has_lpg' => 'boolean',
+        'is_active' => 'boolean',
+        'tank_capacity' => 'decimal:1',
+        'lpg_capacity' => 'decimal:1',
+        'insurance_expires_at' => 'date',
+        'casco_expires_at' => 'date',
         'inspection_expires_at' => 'date',
     ];
 
@@ -62,7 +62,7 @@ class Vehicle extends Model
 
         $parts = array_filter([$this->make, $this->model, $this->reg_number]);
 
-        return $parts ? implode(' ', $parts) : 'Auto #' . $this->id;
+        return $parts ? implode(' ', $parts) : 'Auto #'.$this->id;
     }
 
     /** Pašreizējais nobraukums — jaunākais zināmais odometra rādījums. */

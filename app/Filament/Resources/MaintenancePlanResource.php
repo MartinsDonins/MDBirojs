@@ -120,10 +120,10 @@ class MaintenancePlanResource extends Resource
                     ->state(function (MaintenancePlan $record): string {
                         $parts = [];
                         if ($record->interval_km) {
-                            $parts[] = number_format($record->interval_km, 0, ',', ' ') . ' km';
+                            $parts[] = number_format($record->interval_km, 0, ',', ' ').' km';
                         }
                         if ($record->interval_months) {
-                            $parts[] = $record->interval_months . ' mēn.';
+                            $parts[] = $record->interval_months.' mēn.';
                         }
 
                         return $parts ? implode(' / ', $parts) : '—';
@@ -136,12 +136,12 @@ class MaintenancePlanResource extends Resource
                         if ($record->next_due_odometer === null) {
                             return '—';
                         }
-                        $km = number_format($record->next_due_odometer, 0, ',', ' ') . ' km';
+                        $km = number_format($record->next_due_odometer, 0, ',', ' ').' km';
                         $remaining = $record->km_remaining;
                         if ($remaining !== null) {
                             $km .= $remaining < 0
-                                ? ' (−' . number_format(abs($remaining), 0, ',', ' ') . ')'
-                                : ' (+' . number_format($remaining, 0, ',', ' ') . ')';
+                                ? ' (−'.number_format(abs($remaining), 0, ',', ' ').')'
+                                : ' (+'.number_format($remaining, 0, ',', ' ').')';
                         }
 
                         return $km;
@@ -181,7 +181,7 @@ class MaintenancePlanResource extends Resource
                     ->modalDescription('Pēdējoreiz veikts tiks atjaunots uz šodienu un pašreizējo nobraukumu.')
                     ->action(function (MaintenancePlan $record): void {
                         $record->update([
-                            'last_done_at'       => now(),
+                            'last_done_at' => now(),
                             'last_done_odometer' => $record->vehicle->current_odometer,
                         ]);
                     }),
@@ -200,9 +200,9 @@ class MaintenancePlanResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListMaintenancePlans::route('/'),
+            'index' => Pages\ListMaintenancePlans::route('/'),
             'create' => Pages\CreateMaintenancePlan::route('/create'),
-            'edit'   => Pages\EditMaintenancePlan::route('/{record}/edit'),
+            'edit' => Pages\EditMaintenancePlan::route('/{record}/edit'),
         ];
     }
 }

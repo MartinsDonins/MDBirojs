@@ -26,23 +26,23 @@ class MaintenanceLog extends Model
 
     protected $casts = [
         'performed_at' => 'date',
-        'total_cost'   => 'decimal:2',
-        'amount_paid'  => 'decimal:2',
-        'attachments'  => 'array',
+        'total_cost' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
+        'attachments' => 'array',
     ];
 
     public const TYPES = [
-        'service'    => 'Apkope',
-        'repair'     => 'Remonts',
+        'service' => 'Apkope',
+        'repair' => 'Remonts',
         'inspection' => 'Tehniskā apskate',
-        'tires'      => 'Riepu maiņa',
-        'other'      => 'Cits',
+        'tires' => 'Riepu maiņa',
+        'other' => 'Cits',
     ];
 
     public const STATUSES = [
-        'planned'     => 'Plānots',
+        'planned' => 'Plānots',
         'in_progress' => 'Procesā',
-        'completed'   => 'Pabeigts',
+        'completed' => 'Pabeigts',
     ];
 
     public function vehicle(): BelongsTo
@@ -77,20 +77,20 @@ class MaintenanceLog extends Model
     public static function paymentStatusLabel(string $status): string
     {
         return match ($status) {
-            'paid'    => 'Apmaksāts',
+            'paid' => 'Apmaksāts',
             'partial' => 'Daļēji',
-            'unpaid'  => 'Nesamaksāts',
-            default   => $status,
+            'unpaid' => 'Nesamaksāts',
+            default => $status,
         };
     }
 
     public static function paymentStatusColor(string $status): string
     {
         return match ($status) {
-            'paid'    => 'success',
+            'paid' => 'success',
             'partial' => 'warning',
-            'unpaid'  => 'danger',
-            default   => 'gray',
+            'unpaid' => 'danger',
+            default => 'gray',
         };
     }
 }

@@ -16,7 +16,7 @@ class MaintenanceItem extends Model
     ];
 
     protected $casts = [
-        'cost'         => 'decimal:2',
+        'cost' => 'decimal:2',
         'is_completed' => 'boolean',
     ];
 

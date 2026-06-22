@@ -73,10 +73,10 @@ class VehicleResource extends Resource
                                 Forms\Components\Select::make('primary_fuel')
                                     ->label('Galvenā degviela')
                                     ->options([
-                                        'petrol'   => 'Benzīns',
-                                        'diesel'   => 'Dīzelis',
-                                        'lpg'      => 'Gāze (LPG)',
-                                        'hybrid'   => 'Hibrīds',
+                                        'petrol' => 'Benzīns',
+                                        'diesel' => 'Dīzelis',
+                                        'lpg' => 'Gāze (LPG)',
+                                        'hybrid' => 'Hibrīds',
                                         'electric' => 'Elektrība',
                                     ])
                                     ->default('petrol')
@@ -162,12 +162,12 @@ class VehicleResource extends Resource
                 Tables\Columns\TextColumn::make('primary_fuel')
                     ->label('Degviela')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'petrol'   => 'Benzīns',
-                        'diesel'   => 'Dīzelis',
-                        'lpg'      => 'Gāze',
-                        'hybrid'   => 'Hibrīds',
+                        'petrol' => 'Benzīns',
+                        'diesel' => 'Dīzelis',
+                        'lpg' => 'Gāze',
+                        'hybrid' => 'Hibrīds',
                         'electric' => 'Elektrība',
-                        default    => $state,
+                        default => $state,
                     })
                     ->badge()
                     ->color('gray')
@@ -175,7 +175,7 @@ class VehicleResource extends Resource
 
                 Tables\Columns\TextColumn::make('current_odometer')
                     ->label('Nobraukums')
-                    ->state(fn (Vehicle $record): string => number_format($record->current_odometer, 0, ',', ' ') . ' km')
+                    ->state(fn (Vehicle $record): string => number_format($record->current_odometer, 0, ',', ' ').' km')
                     ->alignEnd(),
 
                 Tables\Columns\TextColumn::make('consumption')
@@ -183,23 +183,23 @@ class VehicleResource extends Resource
                     ->state(function (Vehicle $record): string {
                         $parts = [];
                         if (($p = $record->averageConsumption('petrol')) !== null) {
-                            $parts[] = 'B ' . number_format($p, 1, ',', ' ');
+                            $parts[] = 'B '.number_format($p, 1, ',', ' ');
                         }
                         if (($d = $record->averageConsumption('diesel')) !== null) {
-                            $parts[] = 'D ' . number_format($d, 1, ',', ' ');
+                            $parts[] = 'D '.number_format($d, 1, ',', ' ');
                         }
                         if (($g = $record->averageConsumption('lpg')) !== null) {
-                            $parts[] = 'G ' . number_format($g, 1, ',', ' ');
+                            $parts[] = 'G '.number_format($g, 1, ',', ' ');
                         }
 
-                        return $parts ? implode(' · ', $parts) . ' L/100' : '—';
+                        return $parts ? implode(' · ', $parts).' L/100' : '—';
                     })
                     ->color('gray'),
 
                 Tables\Columns\TextColumn::make('outstanding_amount')
                     ->label('Jāsamaksā')
                     ->state(fn (Vehicle $record): string => $record->outstanding_amount > 0
-                        ? number_format($record->outstanding_amount, 2, ',', ' ') . ' €'
+                        ? number_format($record->outstanding_amount, 2, ',', ' ').' €'
                         : '—')
                     ->badge()
                     ->color(fn (Vehicle $record): string => $record->outstanding_amount > 0 ? 'danger' : 'gray')
@@ -236,9 +236,9 @@ class VehicleResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListVehicles::route('/'),
+            'index' => Pages\ListVehicles::route('/'),
             'create' => Pages\CreateVehicle::route('/create'),
-            'edit'   => Pages\EditVehicle::route('/{record}/edit'),
+            'edit' => Pages\EditVehicle::route('/{record}/edit'),
         ];
     }
 }

@@ -180,11 +180,11 @@ class MaintenanceLogResource extends Resource
                     ->formatStateUsing(fn (string $state): string => MaintenanceLog::TYPES[$state] ?? $state)
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'service'    => 'success',
-                        'repair'     => 'danger',
+                        'service' => 'success',
+                        'repair' => 'danger',
                         'inspection' => 'info',
-                        'tires'      => 'warning',
-                        default      => 'gray',
+                        'tires' => 'warning',
+                        default => 'gray',
                     })
                     ->sortable(),
 
@@ -216,7 +216,7 @@ class MaintenanceLogResource extends Resource
                 Tables\Columns\TextColumn::make('outstanding')
                     ->label('Jāsamaksā')
                     ->state(fn (MaintenanceLog $record): string => $record->outstanding > 0
-                        ? number_format($record->outstanding, 2, ',', ' ') . ' €'
+                        ? number_format($record->outstanding, 2, ',', ' ').' €'
                         : '—')
                     ->badge()
                     ->color(fn (MaintenanceLog $record): string => $record->outstanding > 0 ? 'danger' : 'gray')
@@ -267,9 +267,9 @@ class MaintenanceLogResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListMaintenanceLogs::route('/'),
+            'index' => Pages\ListMaintenanceLogs::route('/'),
             'create' => Pages\CreateMaintenanceLog::route('/create'),
-            'edit'   => Pages\EditMaintenanceLog::route('/{record}/edit'),
+            'edit' => Pages\EditMaintenanceLog::route('/{record}/edit'),
         ];
     }
 }

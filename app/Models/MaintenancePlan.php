@@ -23,7 +23,7 @@ class MaintenancePlan extends Model
 
     protected $casts = [
         'last_done_at' => 'date',
-        'is_active'    => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function vehicle(): BelongsTo
@@ -107,9 +107,9 @@ class MaintenancePlan extends Model
     {
         return match ($status) {
             'overdue' => 'Nokavēts',
-            'soon'    => 'Drīz',
-            'ok'      => 'Kārtībā',
-            default   => $status,
+            'soon' => 'Drīz',
+            'ok' => 'Kārtībā',
+            default => $status,
         };
     }
 
@@ -117,9 +117,9 @@ class MaintenancePlan extends Model
     {
         return match ($status) {
             'overdue' => 'danger',
-            'soon'    => 'warning',
-            'ok'      => 'success',
-            default   => 'gray',
+            'soon' => 'warning',
+            'ok' => 'success',
+            default => 'gray',
         };
     }
 }

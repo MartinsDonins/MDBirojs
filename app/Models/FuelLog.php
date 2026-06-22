@@ -21,17 +21,17 @@ class FuelLog extends Model
     ];
 
     protected $casts = [
-        'filled_at'       => 'date',
-        'liters'          => 'decimal:2',
+        'filled_at' => 'date',
+        'liters' => 'decimal:2',
         'price_per_liter' => 'decimal:3',
-        'total_cost'      => 'decimal:2',
-        'full_tank'       => 'boolean',
+        'total_cost' => 'decimal:2',
+        'full_tank' => 'boolean',
     ];
 
     public const FUEL_TYPES = [
         'petrol' => 'Benzīns',
         'diesel' => 'Dīzelis',
-        'lpg'    => 'Gāze (LPG)',
+        'lpg' => 'Gāze (LPG)',
     ];
 
     public function vehicle(): BelongsTo

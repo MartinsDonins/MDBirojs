@@ -6,12 +6,17 @@ use App\Filament\Resources\FuelLogResource;
 use App\Filament\Resources\MaintenanceLogResource;
 use App\Filament\Resources\MaintenancePlanResource;
 use App\Filament\Resources\VehicleResource;
+use App\Filament\Widgets\VehicleConsumptionChart;
+use App\Filament\Widgets\VehicleCostChart;
 use App\Models\FuelLog;
 use App\Models\MaintenanceLog;
 use App\Models\MaintenancePlan;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\TelegramService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -45,10 +50,10 @@ class VehicleSectionTest extends TestCase
     private function makeVehicle(): Vehicle
     {
         return Vehicle::create([
-            'name'             => 'Test auto',
-            'make'             => 'VW',
-            'primary_fuel'     => 'petrol',
-            'has_lpg'          => true,
+            'name' => 'Test auto',
+            'make' => 'VW',
+            'primary_fuel' => 'petrol',
+            'has_lpg' => true,
             'initial_odometer' => 100000,
         ]);
     }
@@ -69,12 +74,12 @@ class VehicleSectionTest extends TestCase
         $vehicle = $this->makeVehicle();
         $log = FuelLog::create([
             'vehicle_id' => $vehicle->id,
-            'filled_at'  => now(),
-            'odometer'   => 100100,
-            'fuel_type'  => 'petrol',
-            'liters'     => 40,
+            'filled_at' => now(),
+            'odometer' => 100100,
+            'fuel_type' => 'petrol',
+            'liters' => 40,
             'total_cost' => 60,
-            'full_tank'  => true,
+            'full_tank' => true,
         ]);
 
         Livewire::test(FuelLogResource\Pages\ListFuelLogs::class)->assertOk();
@@ -87,12 +92,12 @@ class VehicleSectionTest extends TestCase
         $this->actingAs(User::factory()->create());
         $vehicle = $this->makeVehicle();
         $log = MaintenanceLog::create([
-            'vehicle_id'   => $vehicle->id,
+            'vehicle_id' => $vehicle->id,
             'performed_at' => now(),
-            'type'         => 'service',
-            'title'        => 'Eļļas maiņa',
-            'total_cost'   => 120,
-            'amount_paid'  => 50,
+            'type' => 'service',
+            'title' => 'Eļļas maiņa',
+            'total_cost' => 120,
+            'amount_paid' => 50,
         ]);
 
         Livewire::test(MaintenanceLogResource\Pages\ListMaintenanceLogs::class)->assertOk();
@@ -105,12 +110,12 @@ class VehicleSectionTest extends TestCase
         $this->actingAs(User::factory()->create());
         $vehicle = $this->makeVehicle();
         $plan = MaintenancePlan::create([
-            'vehicle_id'         => $vehicle->id,
-            'title'              => 'Eļļas maiņa',
-            'interval_km'        => 10000,
-            'interval_months'    => 12,
+            'vehicle_id' => $vehicle->id,
+            'title' => 'Eļļas maiņa',
+            'interval_km' => 10000,
+            'interval_months' => 12,
             'last_done_odometer' => 95000,
-            'last_done_at'       => now()->subMonths(13),
+            'last_done_at' => now()->subMonths(13),
         ]);
 
         Livewire::test(MaintenancePlanResource\Pages\ListMaintenancePlans::class)->assertOk();
@@ -125,22 +130,22 @@ class VehicleSectionTest extends TestCase
         foreach ([[100000, 40], [100500, 35], [101000, 40]] as [$odo, $liters]) {
             FuelLog::create([
                 'vehicle_id' => $vehicle->id,
-                'filled_at'  => now(),
-                'odometer'   => $odo,
-                'fuel_type'  => 'petrol',
-                'liters'     => $liters,
+                'filled_at' => now(),
+                'odometer' => $odo,
+                'fuel_type' => 'petrol',
+                'liters' => $liters,
                 'total_cost' => 60,
-                'full_tank'  => true,
+                'full_tank' => true,
             ]);
         }
 
         MaintenanceLog::create([
-            'vehicle_id'   => $vehicle->id,
+            'vehicle_id' => $vehicle->id,
             'performed_at' => now(),
-            'type'         => 'service',
-            'title'        => 'Apkope',
-            'total_cost'   => 120,
-            'amount_paid'  => 50,
+            'type' => 'service',
+            'title' => 'Apkope',
+            'total_cost' => 120,
+            'amount_paid' => 50,
         ]);
 
         $vehicle->refresh();
@@ -155,12 +160,74 @@ class VehicleSectionTest extends TestCase
     {
         $vehicle = $this->makeVehicle();
         $plan = MaintenancePlan::create([
-            'vehicle_id'         => $vehicle->id,
-            'title'              => 'Tehniskā apskate',
-            'interval_months'    => 12,
-            'last_done_at'       => now()->subMonths(13),
+            'vehicle_id' => $vehicle->id,
+            'title' => 'Tehniskā apskate',
+            'interval_months' => 12,
+            'last_done_at' => now()->subMonths(13),
         ]);
 
         $this->assertSame('overdue', $plan->due_status);
+    }
+
+    public function test_chart_widgets_render(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->makeVehicle();
+
+        Livewire::test(VehicleCostChart::class)->assertOk();
+        Livewire::test(VehicleConsumptionChart::class)->assertOk();
+    }
+
+    public function test_reminder_command_reports_overdue_plan_and_documents(): void
+    {
+        $vehicle = Vehicle::create([
+            'name' => 'Reminder auto',
+            'primary_fuel' => 'petrol',
+            'initial_odometer' => 50000,
+            'inspection_expires_at' => now()->addDays(10),
+            'insurance_expires_at' => now()->subDays(3),
+        ]);
+        MaintenancePlan::create([
+            'vehicle_id' => $vehicle->id,
+            'title' => 'Eļļas maiņa',
+            'interval_months' => 12,
+            'last_done_at' => now()->subMonths(13),
+        ]);
+
+        $exit = Artisan::call('auto:reminders', ['--dry-run' => true]);
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exit);
+        $this->assertStringContainsString('Eļļas maiņa', $output);
+        $this->assertStringContainsString('OCTA', $output);
+        $this->assertStringContainsString('Tehniskā apskate', $output);
+    }
+
+    public function test_reminder_command_sends_when_due(): void
+    {
+        Mail::fake();
+        config(['services.auto.reminder_email' => 'test@example.com']);
+
+        $vehicle = $this->makeVehicle();
+        MaintenancePlan::create([
+            'vehicle_id' => $vehicle->id,
+            'title' => 'Apkope',
+            'interval_months' => 12,
+            'last_done_at' => now()->subMonths(13),
+        ]);
+
+        $this->artisan('auto:reminders')
+            ->expectsOutputToContain('Atgādinājumi nosūtīti')
+            ->assertSuccessful();
+    }
+
+    public function test_telegram_service_disabled_without_config(): void
+    {
+        config(['services.telegram.bot_token' => '', 'services.telegram.chat_id' => '']);
+
+        $service = app(TelegramService::class);
+
+        $this->assertFalse($service->isConfigured());
+        $this->assertFalse($service->send('test'));
     }
 }

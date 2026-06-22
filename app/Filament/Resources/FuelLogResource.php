@@ -133,8 +133,8 @@ class FuelLogResource extends Resource
                     ->color(fn (string $state): string => match ($state) {
                         'petrol' => 'warning',
                         'diesel' => 'gray',
-                        'lpg'    => 'success',
-                        default  => 'gray',
+                        'lpg' => 'success',
+                        default => 'gray',
                     })
                     ->sortable(),
 
@@ -168,7 +168,7 @@ class FuelLogResource extends Resource
                 Tables\Columns\TextColumn::make('consumption')
                     ->label('Patēriņš')
                     ->state(fn (FuelLog $record): string => $record->consumption !== null
-                        ? number_format($record->consumption, 2, ',', ' ') . ' L/100'
+                        ? number_format($record->consumption, 2, ',', ' ').' L/100'
                         : '—')
                     ->color('gray')
                     ->alignEnd(),
@@ -204,9 +204,9 @@ class FuelLogResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListFuelLogs::route('/'),
+            'index' => Pages\ListFuelLogs::route('/'),
             'create' => Pages\CreateFuelLog::route('/create'),
-            'edit'   => Pages\EditFuelLog::route('/{record}/edit'),
+            'edit' => Pages\EditFuelLog::route('/{record}/edit'),
         ];
     }
 }

@@ -44,12 +44,12 @@ class VehicleStatsWidget extends BaseWidget
         })->count();
 
         return [
-            Stat::make('Jāsamaksā', number_format($outstanding, 2, ',', ' ') . ' €')
+            Stat::make('Jāsamaksā', number_format($outstanding, 2, ',', ' ').' €')
                 ->description('Nesamaksātās apkopes/remonti')
                 ->descriptionIcon('heroicon-o-banknotes')
                 ->color($outstanding > 0 ? 'danger' : 'success'),
 
-            Stat::make('Izmaksas ' . now()->year, number_format($yearCost, 2, ',', ' ') . ' €')
+            Stat::make('Izmaksas '.now()->year, number_format($yearCost, 2, ',', ' ').' €')
                 ->description('Apkopes un remonti šogad')
                 ->descriptionIcon('heroicon-o-wrench-screwdriver')
                 ->color('gray'),
