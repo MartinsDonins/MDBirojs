@@ -36,9 +36,23 @@ return [
     ],
 
     'coredigify' => [
-        'url'     => env('COREDIGIFY_API_URL', ''),
-        'key'     => env('COREDIGIFY_API_KEY', ''),
+        'url' => env('COREDIGIFY_API_URL', ''),
+        'key' => env('COREDIGIFY_API_KEY', ''),
         'enabled' => env('COREDIGIFY_ENABLED', false),
+    ],
+
+    // Telegram bots paziņojumiem (piem. Auto sadaļas atgādinājumi).
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN', ''),
+        'chat_id' => env('TELEGRAM_CHAT_ID', ''),
+    ],
+
+    // "Auto" sadaļas atgādinājumi (apkopes, OCTA, tehniskā apskate).
+    'auto' => [
+        'reminders_enabled' => env('AUTO_REMINDERS_ENABLED', true),
+        'reminder_email' => env('AUTO_REMINDER_EMAIL', ''),
+        'soon_days' => (int) env('AUTO_REMINDER_SOON_DAYS', 30),
+        'soon_km' => (int) env('AUTO_REMINDER_SOON_KM', 1000),
     ],
 
 ];
