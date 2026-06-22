@@ -70,6 +70,11 @@ class CategoryResource extends Resource
                     ->nullable()
                     ->searchable()
                     ->helperText('Norāda, kurā žurnāla analīzes kolonnā parādīsies darījums'),
+                Forms\Components\Toggle::make('include_in_pl')
+                    ->label('Iekļaut peļņas/zaudējumu (P/Z) aprēķinā')
+                    ->helperText('Ja ieslēgts: ieņēmumu kategorijas tiek pieskaitītas SD ieņēmumiem, izdevumu kategorijas — SD izdevumiem. Šī atzīme nosaka, kas veido peļņas/zaudējumu rezultātu žurnālā.')
+                    ->inline(false)
+                    ->default(false),
                 Forms\Components\Select::make('parent_id')
                     ->label('Virs-kategorija')
                     ->relationship('parent', 'name')
@@ -121,6 +126,10 @@ class CategoryResource extends Resource
                         24 => 'Kol.24 Citi izdevumi',
                         default => $state ? 'Kol.' . $state : '—',
                     }),
+                Tables\Columns\ToggleColumn::make('include_in_pl')
+                    ->label('P/Z aprēķinā')
+                    ->tooltip('Iekļaut peļņas/zaudējumu aprēķinā (SD ieņēmumi/izdevumi)')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('parent.name')
                     ->label('Virs-kategorija')
                     ->sortable(),

@@ -74,12 +74,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     private ?array $cachedExpenseColumns = null;
 
     // ── Profit/Loss (Peļņa/Zaudējumi) — economic-activity (SD) basis ────────────
-    // P/L = income mapped to these VID columns minus expenses mapped to these VID
-    // columns. Standard LV SD taxable-result definition:
-    //   income  → "Saimnieciskā darbība" (VID 4,5,6); excludes non-taxable (10) & N/A (8)
-    //   expense → "Saistīti ar saimniecisko darbību" (VID 19–23); excludes non-SD (18) & N/A (16)
-    private const PL_INCOME_VIDS  = [4, 5, 6];
-    private const PL_EXPENSE_VIDS = [19, 20, 21, 22, 23];
+    // P/L = income minus expenses, counting only categories flagged
+    // `include_in_pl` (toggled per category in CategoryResource). The transaction
+    // type decides the side: INCOME → SD income, EXPENSE/FEE → SD expenses.
 
     // ── Dynamic column helpers ─────────────────────────────────────────────────
 
@@ -474,12 +471,14 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 EXTRACT(YEAR FROM transactions.occurred_at) as year,
                 transactions.type,
                 categories.vid_column,
+                COALESCE(categories.include_in_pl, false) as include_in_pl,
                 SUM(ABS(COALESCE(transactions.amount_eur, transactions.amount))) as total
             ")
             ->groupBy(
                 DB::raw('EXTRACT(YEAR FROM transactions.occurred_at)'),
                 'transactions.type',
-                'categories.vid_column'
+                'categories.vid_column',
+                'categories.include_in_pl'
             )
             ->get();
 
@@ -549,12 +548,13 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 $expenseKopaa += $total;
             }
 
-            // Profit/Loss (SD basis): SD income − SD-related expenses for the year
+            // Profit/Loss (SD basis): income vs expenses from categories flagged
+            // "include_in_pl". Transaction type decides the side (income/expense).
             $plIncome  = (float) $yearIncomeCats
-                ->filter(fn ($c) => in_array((int) $c->vid_column, self::PL_INCOME_VIDS, true))
+                ->filter(fn ($c) => (bool) $c->include_in_pl)
                 ->sum('total');
             $plExpense = (float) $yearExpenseCats
-                ->filter(fn ($c) => in_array((int) $c->vid_column, self::PL_EXPENSE_VIDS, true))
+                ->filter(fn ($c) => (bool) $c->include_in_pl)
                 ->sum('total');
 
             // Status badges for year row
@@ -657,13 +657,15 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 transactions.type,
                 COALESCE(categories.name, '— nav kategorijas') as category_name,
                 categories.vid_column,
+                COALESCE(categories.include_in_pl, false) as include_in_pl,
                 SUM(ABS(COALESCE(transactions.amount_eur, transactions.amount))) as total
             ")
             ->groupBy(
                 DB::raw('EXTRACT(MONTH FROM transactions.occurred_at)'),
                 'transactions.type',
                 'categories.name',
-                'categories.vid_column'
+                'categories.vid_column',
+                'categories.include_in_pl'
             )
             ->orderBy('month_number')
             ->get();
@@ -793,12 +795,13 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 $expenseKopaa += $total;
             }
 
-            // Profit/Loss (SD basis): SD income − SD-related expenses for the month
+            // Profit/Loss (SD basis): income vs expenses from categories flagged
+            // "include_in_pl". Transaction type decides the side (income/expense).
             $plIncome  = (float) $incomeCats
-                ->filter(fn ($c) => in_array((int) $c->vid_column, self::PL_INCOME_VIDS, true))
+                ->filter(fn ($c) => (bool) $c->include_in_pl)
                 ->sum('total');
             $plExpense = (float) $expenseCats
-                ->filter(fn ($c) => in_array((int) $c->vid_column, self::PL_EXPENSE_VIDS, true))
+                ->filter(fn ($c) => (bool) $c->include_in_pl)
                 ->sum('total');
 
             // Status badges

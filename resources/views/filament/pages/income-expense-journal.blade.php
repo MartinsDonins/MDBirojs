@@ -299,7 +299,7 @@
             <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
                     <h3 class="text-base font-bold text-gray-950 dark:text-white">Peļņas vai zaudējumu aprēķins pa gadiem</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ar saimniecisko darbību saistītie ieņēmumi (kol. 4, 5, 6) mīnus ar SD saistītie izdevumi (kol. 19–23).</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ar saimniecisko darbību saistītie ieņēmumi mīnus izdevumi. Iekļauj kategorijas, kas atzīmētas “Iekļaut P/Z aprēķinā” (Iestatījumi → Kategorijas).</p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse text-sm">
@@ -806,7 +806,7 @@
             <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
                     <h3 class="text-base font-bold text-gray-950 dark:text-white">Peļņas vai zaudējumu aprēķins pa mēnešiem — {{ $selectedYear }}. gads</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ar saimniecisko darbību saistītie ieņēmumi (kol. 4, 5, 6) mīnus ar SD saistītie izdevumi (kol. 19–23).</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ar saimniecisko darbību saistītie ieņēmumi mīnus izdevumi. Iekļauj kategorijas, kas atzīmētas “Iekļaut P/Z aprēķinā” (Iestatījumi → Kategorijas).</p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse text-sm">
