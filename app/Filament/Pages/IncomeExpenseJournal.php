@@ -329,6 +329,12 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 // Account specific data
                 'transaction_account_id' => $transaction->account_id,
                 'transaction_amount' => $transaction->amount,
+                // EUR-equivalent amount: for foreign-currency transactions this is the
+                // converted value (amount_eur); for EUR transactions it equals amount.
+                // All EUR-denominated journal columns (accounts, analysis, totals) use
+                // this so a foreign-currency transaction is shown in EUR — never its raw
+                // foreign value. Sign matches transaction_amount (signed for TRANSFER).
+                'transaction_amount_eur' => $amountEur,
                 'transaction_type' => $transaction->type,
 
                 // Original currency (for foreign-currency columns)
@@ -2018,6 +2024,45 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     public function updatedShowAnalysis(): void
     {
         $this->dispatch('journal-rows-updated');
+    }
+
+    /**
+     * Quick single-click flag change on a row: cycles the primary flag
+     * none → 1st → 2nd → … → last → none (replacing any existing flags).
+     * The full multi-flag modal is still available from the row detail.
+     */
+    public function cycleTransactionFlag(int $transactionId): void
+    {
+        $t = \App\Models\Transaction::with('flags')->find($transactionId);
+        if (! $t) {
+            return;
+        }
+
+        $allIds = array_map('intval', array_keys($this->flagDefs)); // ordered by sort_order
+        if (empty($allIds)) {
+            return;
+        }
+
+        $current = $t->flags->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        $idx = null;
+        foreach ($allIds as $i => $id) {
+            if (in_array($id, $current, true)) {
+                $idx = $i;
+                break;
+            }
+        }
+
+        if ($idx === null) {
+            $next = $allIds[0];                       // none → first
+        } elseif ($idx + 1 < count($allIds)) {
+            $next = $allIds[$idx + 1];                // → next
+        } else {
+            $next = null;                             // last → none
+        }
+
+        $t->flags()->sync($next !== null ? [$next] : []);
+        $this->calculateMonthData();
     }
 
     protected function isTransactionMapped(Transaction $transaction): bool

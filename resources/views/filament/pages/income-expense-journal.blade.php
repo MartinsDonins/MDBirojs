@@ -776,9 +776,14 @@
                     </x-filament::button>
                     {{-- Kolonu rādīšana/slēpšana (pārskatāmākam skatam) --}}
                     <div class="relative" x-data="{ open: false }">
-                        <x-filament::button size="md" color="gray" icon="heroicon-o-view-columns" x-on:click="open = !open">
+                        <button type="button" @click="open = !open"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z" />
+                            </svg>
                             Kolonas
-                        </x-filament::button>
+                            <span class="text-[10px]" x-text="open ? '▴' : '▾'"></span>
+                        </button>
                         <div x-show="open" @click.outside="open = false" x-cloak
                              class="absolute right-0 z-50 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-sm space-y-2 min-w-[210px]">
                             <div class="font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase">Rādīt kolonas</div>
@@ -1020,9 +1025,9 @@
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 28px;" title="Karodziņi">⚑</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[28px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[68px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 65px;">Datums</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 100px;">Dok. nr.<br>un datums</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 90px; max-width: 120px;">Partneris</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 110px; max-width: 170px;">Apraksts</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[133px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="width:80px; min-width:80px; max-width:80px;">Dok. nr.<br>un datums</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[213px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="width:95px; min-width:95px; max-width:95px;">Partneris</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[308px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="width:120px; min-width:120px; max-width:120px;">Apraksts</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 80px;">Kategorija</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100">Sasaite</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 40px;">Statuss</th>
@@ -1081,9 +1086,9 @@
                         <th class="border border-gray-300 dark:border-gray-700 sticky left-0 z-20 bg-gray-100 dark:bg-gray-800">0</th>
                         <th class="border border-gray-300 dark:border-gray-700 sticky left-[28px] z-20 bg-gray-100 dark:bg-gray-800">1</th>
                         <th class="border border-gray-300 dark:border-gray-700 sticky left-[68px] z-20 bg-gray-100 dark:bg-gray-800">2</th>
-                        <th class="border border-gray-300 dark:border-gray-700">3</th>
-                        <th class="border border-gray-300 dark:border-gray-700">4</th>
-                        <th class="border border-gray-300 dark:border-gray-700">5</th>
+                        <th class="border border-gray-300 dark:border-gray-700 sticky left-[133px] z-20 bg-gray-100 dark:bg-gray-800">3</th>
+                        <th class="border border-gray-300 dark:border-gray-700 sticky left-[213px] z-20 bg-gray-100 dark:bg-gray-800">4</th>
+                        <th class="border border-gray-300 dark:border-gray-700 sticky left-[308px] z-20 bg-gray-100 dark:bg-gray-800">5</th>
                         <th class="border border-gray-300 dark:border-gray-700">6</th>
                         <th class="border border-gray-300 dark:border-gray-700">7</th>
                         <th class="border border-gray-300 dark:border-gray-700">8</th>
@@ -1156,8 +1161,8 @@
 
                             {{-- 0. Karodziņi (atsevišķa kolona, lai netraucē Nr klikšķiem) --}}
                             <td class="px-0.5 py-0 border border-gray-300 dark:border-gray-700 text-center sticky left-0 z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20" style="min-width:28px;">
-                                <div class="jnl-flags" @click.stop wire:click="mountRowFlagsModal({{ $row['transaction_id'] }})"
-                                     title="Karodziņi — klikšķini, lai atzīmētu"
+                                <div class="jnl-flags" @click.stop wire:click="cycleTransactionFlag({{ $row['transaction_id'] }})"
+                                     title="Klikšķini, lai cikliski mainītu karodziņu (vairākiem — izvērstajā rindā)"
                                      style="display:flex; flex-wrap:wrap; gap:2px; justify-content:center; align-items:center; cursor:pointer; min-height:18px; padding:2px 0;">
                                     @forelse(($row['flag_ids'] ?? []) as $fid)
                                         @if(isset($flagDefs[$fid]))
@@ -1183,9 +1188,9 @@
                                 </div>
                             </td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-[68px] z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['date'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all text-gray-900 dark:text-gray-100">{{ $row['document_details'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top max-w-[120px] text-gray-900 dark:text-gray-100" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top max-w-[170px] text-gray-900 dark:text-gray-100" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all align-top sticky left-[133px] z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" style="width:80px; min-width:80px; max-width:80px;">{{ $row['document_details'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top sticky left-[213px] z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" style="width:95px; min-width:95px; max-width:95px;" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top sticky left-[308px] z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" style="width:120px; min-width:120px; max-width:120px;" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
 
                             {{-- Kategorija (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 dark:text-primary-400 cursor-pointer"
@@ -1273,12 +1278,12 @@
                             @foreach($accounts as $acc)
                                 <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-green-600 dark:text-green-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
                                     @if($row['transaction_account_id'] == $acc->id && ($row['transaction_type'] == 'INCOME' || ($row['transaction_type'] == 'TRANSFER' && $row['transaction_amount'] > 0)))
-                                        {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
+                                        {{ number_format($row['transaction_amount_eur'], 2, ',', ' ') }}
                                     @endif
                                 </td>
                                 <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-red-600 dark:text-red-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
                                     @if($row['transaction_account_id'] == $acc->id && (in_array($row['transaction_type'], ['EXPENSE', 'FEE']) || ($row['transaction_type'] == 'TRANSFER' && $row['transaction_amount'] < 0)))
-                                        {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
+                                        {{ number_format(abs($row['transaction_amount_eur']), 2, ',', ' ') }}
                                     @endif
                                 </td>
                                 <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold bg-gray-50 dark:bg-gray-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 {{ ($row['account_balances'][$acc->id] ?? 0) < 0 ? 'text-red-600' : 'text-gray-900 dark:text-gray-100' }}">
@@ -1292,14 +1297,14 @@
                             @foreach($journalIncomeColumns as $col)
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">
                                 @if($row['status'] === 'COMPLETED' && $row['transaction_type'] == 'INCOME' && in_array($row['category_vid_column'], $col['vid_columns']))
-                                    {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
+                                    {{ number_format($row['transaction_amount_eur'], 2, ',', ' ') }}
                                 @endif
                             </td>
                             @endforeach
                             {{-- Ieņēmumi Kopā --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-green-600 dark:text-green-400">
                                 @if($row['status'] === 'COMPLETED' && $row['transaction_type'] == 'INCOME' && $row['is_mapped'])
-                                    {{ number_format($row['transaction_amount'], 2, ',', ' ') }}
+                                    {{ number_format($row['transaction_amount_eur'], 2, ',', ' ') }}
                                 @endif
                             </td>
 
@@ -1307,14 +1312,14 @@
                             @foreach($journalExpenseColumns as $col)
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right text-gray-900 dark:text-gray-100" title="{{ $col['name'] }}">
                                 @if($row['status'] === 'COMPLETED' && $row['transaction_type'] == 'EXPENSE' && in_array($row['category_vid_column'], $col['vid_columns']))
-                                    {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
+                                    {{ number_format(abs($row['transaction_amount_eur']), 2, ',', ' ') }}
                                 @endif
                             </td>
                             @endforeach
                             {{-- Izdevumi Kopā --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-right font-bold text-red-600 dark:text-red-400">
                                 @if($row['status'] === 'COMPLETED' && $row['transaction_type'] == 'EXPENSE' && $row['is_mapped'])
-                                    {{ number_format(abs($row['transaction_amount']), 2, ',', ' ') }}
+                                    {{ number_format(abs($row['transaction_amount_eur']), 2, ',', ' ') }}
                                 @endif
                             </td>
                             @endif
@@ -1341,6 +1346,11 @@
                                     </div>
                                     @if($row['transaction_id'])
                                     <div class="shrink-0 flex items-center gap-2">
+                                        <div @click.stop wire:click="mountRowFlagsModal({{ $row['transaction_id'] }})">
+                                            <x-filament::button size="xs" color="gray" icon="heroicon-o-flag">
+                                                Karodziņi
+                                            </x-filament::button>
+                                        </div>
                                         <div @click.stop wire:click="mountTransactionModal({{ $row['transaction_id'] }})">
                                             <x-filament::button size="xs" color="gray" icon="heroicon-o-pencil">
                                                 Rediģēt
