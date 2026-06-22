@@ -69,6 +69,11 @@ class GidEdsLabels
             'PielikumsD3/A19'  => 'D3 19. Apliekamais ienākums, atskaitot minimālo',
             'PielikumsD3/A20'  => 'D3 20. Apliekamais ienākums no saimnieciskās darbības',
 
+            // ── D1 column totals (synthetic — summed across payer rows) ──
+            'D1KOPA/BrutoIenem' => 'D1 Bruto ieņēmumi (kopā)',
+            'D1KOPA/NodAvanss'  => 'D1 Avansā ieturētais nodoklis (kopā)',
+            'D1KOPA/Vsaoi'      => 'D1 VSAOI (kopā)',
+
             // ── Header / general ──
             'DokIINGDv2/NeaplIenNorma'  => 'Neapliekamā minimuma norma',
             'NeaplIenNorma'             => 'Neapliekamā minimuma norma',

@@ -180,38 +180,76 @@ class GidDeclarationService
      */
     public function importEds(int $year, string $absolutePath, string $filename): array
     {
-        $flat = self::parseEdsXml($absolutePath);
+        $flat = self::withComputedTotals(self::parseEdsXml($absolutePath));
 
         $rec = GidDeclaration::firstOrNew(['year' => $year]);
         $rec->eds_data = $flat;
         $rec->eds_meta = ['filename' => $filename, 'imported_at' => now()->toDateTimeString()];
         $rec->save();
 
-        // Auto-map the journal-derived D3 income/expense fields so the comparison
-        // works out of the box (the rest stay manually assignable in the UI).
+        // Auto-map the declaration fields to their EDS values so the comparison works
+        // out of the box; whatever can't be resolved stays manually assignable.
         $this->applyAutoMap($year, $flat);
 
         return $flat;
     }
 
     /**
-     * Resolve the EDS XML paths for the D3 income/expense fields from flattened EDS
-     * data. The GID schema version (DokIINGDv2…v11) and field codes differ every year:
-     *   - income   : PielikumsD3/A09 (2014–2017) or /A11 (2018+)
-     *   - expenses : PielikumsD3/A10 (2014–2017) or /A121 | /A122 (2018+, by method)
-     * so the codes are resolved from the actual data, preferring a non-zero value when
-     * several candidate codes are present.
+     * Add synthetic "D1 total" entries to the flattened EDS data. The EDS export lists
+     * D1 income as one row per payer (PielikumsD1/R[n]/…); the declaration needs the
+     * per-column totals, so we sum them by field name (BrutoIenem / NodAvanss / Vsaoi),
+     * which are stable across every schema version (DokIINGDv2…v11).
+     *
+     * @param  array<string,string>  $flat
+     * @return array<string,string>
+     */
+    public static function withComputedTotals(array $flat): array
+    {
+        $totals = [
+            'BrutoIenem' => 'D1KOPA/BrutoIenem',
+            'NodAvanss'  => 'D1KOPA/NodAvanss',
+            'Vsaoi'      => 'D1KOPA/Vsaoi',
+        ];
+
+        foreach ($totals as $field => $key) {
+            $re = '~/PielikumsD1/R(\[\d+\])?/'.preg_quote($field, '~').'$~';
+            $found = false;
+            $sum = 0.0;
+            foreach ($flat as $path => $val) {
+                if (preg_match($re, $path)) {
+                    $found = true;
+                    $sum += self::toFloat($val);
+                }
+            }
+            if ($found) {
+                $flat[$key] = number_format(round($sum, 2), 2, '.', '');
+            }
+        }
+
+        return $flat;
+    }
+
+    /**
+     * Resolve the EDS XML paths for the declaration fields from flattened EDS data. The
+     * GID schema version (DokIINGDv2…v11) and many field codes differ every year, so the
+     * paths are resolved from the actual data rather than a static table:
+     *   - D3 income   : PielikumsD3/A09 (2014–2017) or /A11 (2018+)
+     *   - D3 expenses : PielikumsD3/A10 (2014–2017) or /A121 | /A122 (2018+, by method)
+     *   - D1 totals   : the synthetic per-column sums from {@see withComputedTotals()}
+     *   - D4 / D minimum: SadalaD line codes, only for the old schema (DokIINGDv2…v4),
+     *     where the SadalaD line numbering still matches the printed form.
+     * When several candidate codes are present the one carrying a non-zero value wins.
      *
      * @param  array<string,string>  $flat
      * @return array<string,string> field key => eds path
      */
-    public static function resolveD3Map(array $flat): array
+    public static function resolveAutoMap(array $flat): array
     {
-        $pick = static function (array $codes) use ($flat): ?string {
+        $pick = static function (array $codes, string $section) use ($flat): ?string {
             $firstPresent = null;
             foreach ($codes as $code) {
                 foreach ($flat as $path => $val) {
-                    if (preg_match('~/PielikumsD3/'.preg_quote($code, '~').'$~', $path)) {
+                    if (preg_match('~/'.$section.'/'.preg_quote($code, '~').'$~', $path)) {
                         $firstPresent ??= $path;
                         if (abs(self::toFloat($val)) > 0.0) {
                             return $path; // prefer a code that actually carries a value
@@ -221,12 +259,39 @@ class GidDeclarationService
             }
             return $firstPresent;
         };
+        $exact = static fn (string $key): ?string => array_key_exists($key, $flat) ? $key : null;
 
         $map = [];
-        if ($p = $pick(['A09', 'A11']))           { $map['d3_income'] = $p; }
-        if ($p = $pick(['A10', 'A121', 'A122']))  { $map['d3_expenses'] = $p; }
+
+        // D3 — saimnieciskā darbība (journal-derived; all years)
+        if ($p = $pick(['A09', 'A11'], 'PielikumsD3'))          { $map['d3_income'] = $p; }
+        if ($p = $pick(['A10', 'A121', 'A122'], 'PielikumsD3')) { $map['d3_expenses'] = $p; }
+
+        // D1 — algota darba / citi ienākumi (per-column totals; all years)
+        if ($p = $exact('D1KOPA/BrutoIenem')) { $map['d1_employment_income'] = $p; }
+        if ($p = $exact('D1KOPA/NodAvanss'))  { $map['d1_tax_withheld'] = $p; }
+        if ($p = $exact('D1KOPA/Vsaoi'))      { $map['d1_vsaoi_withheld'] = $p; }
+
+        // D4 / D-summary — only the old schema keeps the SadalaD line numbering used here
+        if (self::schemaVersion($flat) <= 4) {
+            if ($p = $pick(['D08'], 'SadalaD'))        { $map['d4_donations'] = $p; }
+            if ($p = $pick(['D13'], 'SadalaD'))        { $map['d4_dependent_relief'] = $p; }
+            if ($p = $pick(['D12', 'D11'], 'SadalaD')) { $map['d_nontaxable_minimum'] = $p; }
+        }
 
         return $map;
+    }
+
+    /** GID schema version (the v-number of DokIINGDv*), or PHP_INT_MAX when unknown. */
+    private static function schemaVersion(array $flat): int
+    {
+        foreach ($flat as $path => $val) {
+            if (preg_match('~/Declaration/DokIINGDv(\d+)/~', $path, $m)) {
+                return (int) $m[1];
+            }
+        }
+
+        return PHP_INT_MAX;
     }
 
     /**
@@ -238,7 +303,7 @@ class GidDeclarationService
      */
     public function applyAutoMap(int $year, array $flat): array
     {
-        $map = self::resolveD3Map($flat);
+        $map = self::resolveAutoMap($flat);
         if (empty($map)) {
             return [];
         }

@@ -40,7 +40,7 @@ class ImportGidEds extends Command
 
         foreach ($files as $file) {
             $name = basename($file);
-            $flat = GidDeclarationService::parseEdsXml($file);
+            $flat = GidDeclarationService::withComputedTotals(GidDeclarationService::parseEdsXml($file));
 
             if (empty($flat)) {
                 $this->warn("⚠️  {$name}: neizdevās nolasīt XML — izlaists.");
@@ -55,10 +55,10 @@ class ImportGidEds extends Command
                 continue;
             }
 
-            $map = GidDeclarationService::resolveD3Map($flat);
+            $map = GidDeclarationService::resolveAutoMap($flat);
             $mapInfo = $map
                 ? collect($map)->map(fn ($p, $k) => $k.'→'.\Illuminate\Support\Str::afterLast($p, '/'))->implode(', ')
-                : 'nav D3 kartējuma';
+                : 'nav kartējuma';
 
             if ($dry) {
                 $this->line(sprintf('• %s → %d. gads (%d lauki; %s)', $name, $year, count($flat), $mapInfo));
