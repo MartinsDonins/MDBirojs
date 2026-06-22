@@ -6,6 +6,7 @@ use App\Filament\Resources\CashOrderResource;
 use App\Models\Account;
 use App\Models\CashOrder;
 use App\Models\Transaction;
+use App\Services\CashOrderService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
@@ -20,6 +21,28 @@ class ListCashOrders extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label('Pievienot'),
+
+            Actions\Action::make('renumber')
+                ->label('Pārģenerēt numurus')
+                ->icon('heroicon-o-hashtag')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Pārģenerēt kases orderu numurus')
+                ->modalDescription(
+                    'Visiem kases orderiem numuri tiks piešķirti no jauna secīgi pēc datuma '
+                    . '(atsevišķi KII un KIO, pa gadiem). Vienā dienā saglabājas žurnāla secība. '
+                    . 'Esošie numuri tiks pārrakstīti — šo nevar atsaukt.'
+                )
+                ->modalSubmitActionLabel('Pārģenerēt')
+                ->action(function (): void {
+                    $result = app(CashOrderService::class)->renumberByDate();
+
+                    Notification::make()
+                        ->title('Numuri pārģenerēti')
+                        ->body("Apstrādāti: {$result['total']} orderi, mainīti: {$result['changed']}.")
+                        ->success()
+                        ->send();
+                }),
 
             Actions\Action::make('generate_missing')
                 ->label('Izveidot trūkstošos orderus')

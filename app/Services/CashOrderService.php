@@ -73,6 +73,57 @@ class CashOrderService
     }
 
     /**
+     * Re-sequence all cash order numbers so they run consecutively by transaction
+     * date, separately per type (KII / KIO) and per year (taken from the order date).
+     *
+     * Same-day orders keep journal order (linked transaction sort_order, then id).
+     * Done in two phases inside a transaction so the unique constraint on `number`
+     * is never violated mid-update.
+     *
+     * @return array{total:int,changed:int}
+     */
+    public function renumberByDate(): array
+    {
+        return DB::transaction(function (): array {
+            $orders = CashOrder::query()
+                ->leftJoin('transactions', 'cash_orders.transaction_id', '=', 'transactions.id')
+                ->orderBy('cash_orders.date')
+                ->orderByRaw('COALESCE(transactions.sort_order, 999999)')
+                ->orderBy('cash_orders.id')
+                ->select('cash_orders.id', 'cash_orders.number', 'cash_orders.type', 'cash_orders.date')
+                ->get();
+
+            $counters = [];
+            $targets  = [];   // id => final number
+            $changed  = 0;
+
+            foreach ($orders as $o) {
+                $year   = \Carbon\Carbon::parse($o->date)->year;
+                $prefix = $o->type === 'INCOME' ? 'KII' : 'KIO';
+                $key    = "{$prefix}-{$year}";
+
+                $counters[$key] = ($counters[$key] ?? 0) + 1;
+                $new = sprintf('%s-%d-%04d', $prefix, $year, $counters[$key]);
+
+                if ($o->number !== $new) {
+                    $changed++;
+                }
+                $targets[$o->id] = $new;
+            }
+
+            // Phase 1: park every number at a guaranteed-unique temporary value.
+            CashOrder::query()->update(['number' => DB::raw("'TMP-' || id")]);
+
+            // Phase 2: assign the final consecutive numbers.
+            foreach ($targets as $id => $new) {
+                CashOrder::whereKey($id)->update(['number' => $new]);
+            }
+
+            return ['total' => $orders->count(), 'changed' => $changed];
+        });
+    }
+
+    /**
      * Check if transaction is cash-related
      */
     protected function isCashTransaction(Transaction $transaction): bool
