@@ -24,11 +24,11 @@ class RuleResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Kārtulas';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-funnel';
 
-    protected static ?string $navigationGroup = 'Kārtulas';
+    protected static ?string $navigationGroup = 'Iestatījumi';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {

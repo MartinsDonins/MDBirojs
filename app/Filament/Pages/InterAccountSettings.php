@@ -25,9 +25,9 @@ class InterAccountSettings extends Page implements HasForms
 
     protected static ?string $title = 'Maksājumi starp kontiem';
 
-    protected static ?string $navigationGroup = 'Kārtulas';
+    protected static ?string $navigationGroup = 'Iestatījumi';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 3;
 
     public const RULE_NAME      = '⚙ Maksājumi starp kontiem';
     public const KASE_RULE_NAME = '⚙ Kases darījumi';

@@ -289,6 +289,59 @@
             </div>
         </div>
 
+        {{-- ── Peļņas vai zaudējumu aprēķins pa gadiem (SD) ────────────────────── --}}
+        @php
+            $plAllIncome  = collect($yearlySummary)->sum('pl_income');
+            $plAllExpense = collect($yearlySummary)->sum('pl_expense');
+            $plAllResult  = $plAllIncome - $plAllExpense;
+        @endphp
+        <div class="mb-6">
+            <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+                    <h3 class="text-base font-bold text-gray-950 dark:text-white">Peļņas vai zaudējumu aprēķins pa gadiem</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ar saimniecisko darbību saistītie ieņēmumi (kol. 4, 5, 6) mīnus ar SD saistītie izdevumi (kol. 19–23).</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-200">
+                                <th class="px-3 py-2 text-start font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap">Gads</th>
+                                <th class="px-3 py-2 text-end font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap">SD ieņēmumi</th>
+                                <th class="px-3 py-2 text-end font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap">SD izdevumi</th>
+                                <th class="px-3 py-2 text-end font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap">Peļņa / zaudējumi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($yearlySummary as $yearData)
+                                <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" wire:click="selectYear({{ $yearData['year'] }})">
+                                    <td class="px-3 py-1.5 border border-gray-300 dark:border-gray-700 whitespace-nowrap font-medium text-gray-900 dark:text-white">{{ $yearData['year'] }}</td>
+                                    <td class="px-3 py-1.5 text-end border border-gray-300 dark:border-gray-700 whitespace-nowrap text-success-700 dark:text-success-400">
+                                        @if($yearData['pl_income'] != 0){{ number_format($yearData['pl_income'], 2, ',', ' ') }}@else<span class="text-gray-300 dark:text-gray-600">—</span>@endif
+                                    </td>
+                                    <td class="px-3 py-1.5 text-end border border-gray-300 dark:border-gray-700 whitespace-nowrap text-danger-700 dark:text-danger-400">
+                                        @if($yearData['pl_expense'] != 0){{ number_format($yearData['pl_expense'], 2, ',', ' ') }}@else<span class="text-gray-300 dark:text-gray-600">—</span>@endif
+                                    </td>
+                                    <td class="px-3 py-1.5 text-end font-semibold border border-gray-300 dark:border-gray-700 whitespace-nowrap {{ $yearData['pl_result'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
+                                        @if($yearData['pl_income'] != 0 || $yearData['pl_expense'] != 0){{ ($yearData['pl_result'] >= 0 ? '+' : '') . number_format($yearData['pl_result'], 2, ',', ' ') }}@else<span class="text-gray-300 dark:text-gray-600">—</span>@endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-gray-100 dark:bg-white/5 font-bold border-t-2 border-gray-400 dark:border-gray-500">
+                                <td class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-gray-950 dark:text-white whitespace-nowrap">KOPĀ</td>
+                                <td class="px-3 py-2 text-end border border-gray-300 dark:border-gray-700 text-success-700 dark:text-success-400 whitespace-nowrap">{{ number_format($plAllIncome, 2, ',', ' ') }}</td>
+                                <td class="px-3 py-2 text-end border border-gray-300 dark:border-gray-700 text-danger-700 dark:text-danger-400 whitespace-nowrap">{{ number_format($plAllExpense, 2, ',', ' ') }}</td>
+                                <td class="px-3 py-2 text-end border border-gray-300 dark:border-gray-700 whitespace-nowrap {{ $plAllResult >= 0 ? 'text-success-700 dark:text-success-300' : 'text-danger-700 dark:text-danger-300' }}">
+                                    {{ ($plAllResult >= 0 ? 'Peļņa +' : 'Zaudējumi ') . number_format($plAllResult, 2, ',', ' ') }} €
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     @elseif($selectedMonth === null)
         {{-- Year Summary View --}}
         <div class="mb-6">
@@ -740,6 +793,65 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        {{-- ── Peļņas vai zaudējumu aprēķins pa mēnešiem (SD) ──────────────────── --}}
+        @php
+            $plYearIncome  = collect($monthlySummary)->sum('pl_income');
+            $plYearExpense = collect($monthlySummary)->sum('pl_expense');
+            $plYearResult  = $plYearIncome - $plYearExpense;
+            $plRunning     = 0;
+        @endphp
+        <div class="mb-6">
+            <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5">
+                    <h3 class="text-base font-bold text-gray-950 dark:text-white">Peļņas vai zaudējumu aprēķins pa mēnešiem — {{ $selectedYear }}. gads</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ar saimniecisko darbību saistītie ieņēmumi (kol. 4, 5, 6) mīnus ar SD saistītie izdevumi (kol. 19–23).</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-200">
+                                <th class="px-3 py-2 text-start font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap">Mēnesis</th>
+                                <th class="px-3 py-2 text-end font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap">SD ieņēmumi</th>
+                                <th class="px-3 py-2 text-end font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap">SD izdevumi</th>
+                                <th class="px-3 py-2 text-end font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap">Peļņa / zaudējumi</th>
+                                <th class="px-3 py-2 text-end font-medium border border-gray-300 dark:border-gray-700 whitespace-nowrap">Uzkrātais (kopš gada sākuma)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($monthlySummary as $mSummary)
+                                @php $plRunning += $mSummary['pl_result']; @endphp
+                                <tr class="hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer" wire:click="viewMonthDetails({{ $mSummary['month_number'] }})">
+                                    <td class="px-3 py-1.5 border border-gray-300 dark:border-gray-700 whitespace-nowrap text-gray-900 dark:text-white">{{ $mSummary['month'] }}</td>
+                                    <td class="px-3 py-1.5 text-end border border-gray-300 dark:border-gray-700 whitespace-nowrap text-success-700 dark:text-success-400">
+                                        @if($mSummary['pl_income'] != 0){{ number_format($mSummary['pl_income'], 2, ',', ' ') }}@else<span class="text-gray-300 dark:text-gray-600">—</span>@endif
+                                    </td>
+                                    <td class="px-3 py-1.5 text-end border border-gray-300 dark:border-gray-700 whitespace-nowrap text-danger-700 dark:text-danger-400">
+                                        @if($mSummary['pl_expense'] != 0){{ number_format($mSummary['pl_expense'], 2, ',', ' ') }}@else<span class="text-gray-300 dark:text-gray-600">—</span>@endif
+                                    </td>
+                                    <td class="px-3 py-1.5 text-end font-semibold border border-gray-300 dark:border-gray-700 whitespace-nowrap {{ $mSummary['pl_result'] >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
+                                        @if($mSummary['pl_income'] != 0 || $mSummary['pl_expense'] != 0){{ ($mSummary['pl_result'] >= 0 ? '+' : '') . number_format($mSummary['pl_result'], 2, ',', ' ') }}@else<span class="text-gray-300 dark:text-gray-600">—</span>@endif
+                                    </td>
+                                    <td class="px-3 py-1.5 text-end border border-gray-300 dark:border-gray-700 whitespace-nowrap font-medium {{ $plRunning >= 0 ? 'text-gray-900 dark:text-white' : 'text-danger-600 dark:text-danger-400' }}">
+                                        {{ ($plRunning >= 0 ? '+' : '') . number_format($plRunning, 2, ',', ' ') }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-gray-100 dark:bg-white/5 font-bold border-t-2 border-gray-400 dark:border-gray-500">
+                                <td class="px-3 py-2 border border-gray-300 dark:border-gray-700 text-gray-950 dark:text-white whitespace-nowrap">GADA KOPĀ</td>
+                                <td class="px-3 py-2 text-end border border-gray-300 dark:border-gray-700 text-success-700 dark:text-success-400 whitespace-nowrap">{{ number_format($plYearIncome, 2, ',', ' ') }}</td>
+                                <td class="px-3 py-2 text-end border border-gray-300 dark:border-gray-700 text-danger-700 dark:text-danger-400 whitespace-nowrap">{{ number_format($plYearExpense, 2, ',', ' ') }}</td>
+                                <td class="px-3 py-2 text-end border border-gray-300 dark:border-gray-700 whitespace-nowrap {{ $plYearResult >= 0 ? 'text-success-700 dark:text-success-300' : 'text-danger-700 dark:text-danger-300' }}" colspan="2">
+                                    {{ ($plYearResult >= 0 ? 'Peļņa +' : 'Zaudējumi ') . number_format($plYearResult, 2, ',', ' ') }} €
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
         </div>
 
     @else

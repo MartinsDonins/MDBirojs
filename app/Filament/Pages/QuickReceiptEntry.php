@@ -31,7 +31,8 @@ class QuickReceiptEntry extends Page implements HasForms, HasActions
     protected static ?string $navigationLabel = 'Ātrā čeku ievade';
     protected static ?string $title           = 'Ātrā čeku ievade';
     protected static string  $view            = 'filament.pages.quick-receipt-entry';
-    protected static ?int    $navigationSort  = 6;
+    protected static ?string $navigationGroup = 'Grāmatvedība';
+    protected static ?int    $navigationSort  = 3;
 
     public ?array $data = [];
 

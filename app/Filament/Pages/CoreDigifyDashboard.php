@@ -21,7 +21,8 @@ class CoreDigifyDashboard extends Page implements HasActions
     protected static ?string $navigationLabel = 'CoreDigify';
     protected static ?string $navigationIcon  = 'heroicon-o-cloud-arrow-up';
     protected static ?string $title           = 'CoreDigify — Maksājumu sinhronizācija';
-    protected static ?int    $navigationSort  = 10;
+    protected static ?string $navigationGroup = 'Iestatījumi';
+    protected static ?int    $navigationSort  = 5;
 
     /** VID columns that qualify as business income */
     private const VID_COLS = [4, 5, 6];

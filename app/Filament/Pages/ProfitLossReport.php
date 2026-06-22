@@ -15,7 +15,8 @@ class ProfitLossReport extends Page
     protected static ?string $title           = 'Nodokļu aprēķins';
     protected static string $view             = 'filament.pages.profit-loss-report';
     protected ?string $maxContentWidth        = 'full';
-    protected static ?int $navigationSort     = 7;
+    protected static ?string $navigationGroup = 'Žurnāls un pārskati';
+    protected static ?int $navigationSort     = 2;
 
     /** Yearly summary rows (descending by year for table display) */
     public array $yearlyData    = [];

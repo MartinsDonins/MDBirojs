@@ -24,7 +24,8 @@ class D3Declaration extends Page
     protected static ?string $title           = 'VID D3 pielikums — Ienākumi no saimnieciskās darbības';
     protected static string $view             = 'filament.pages.d3-declaration';
     protected ?string $maxContentWidth        = 'full';
-    protected static ?int $navigationSort     = 8;
+    protected static ?string $navigationGroup = 'VID un deklarācijas';
+    protected static ?int $navigationSort     = 2;
 
     /** Selected taxation year. */
     public ?int $year = null;

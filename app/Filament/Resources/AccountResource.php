@@ -21,7 +21,11 @@ class AccountResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Konti';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-library';
+
+    protected static ?string $navigationGroup = 'Grāmatvedība';
+
+    protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
     {

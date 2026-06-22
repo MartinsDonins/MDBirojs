@@ -6,8 +6,18 @@ use App\Http\Controllers\GidDocumentController;
 use Illuminate\Support\Facades\Route;
 use Maatwebsite\Excel\Facades\Excel;
 
+/**
+ * Public root. This app exposes only the authenticated /admin panel, so the bare
+ * domain has no public-facing content. Redirect visitors to the company website
+ * instead of revealing a default framework landing page (reduces the chance of the
+ * admin app being discovered and probed). Logged-in users go straight to the panel.
+ */
 Route::get('/', function () {
-    return view('welcome');
+    if (auth()->check()) {
+        return redirect('/admin');
+    }
+
+    return redirect()->away('https://donins.lv');
 });
 
 /**

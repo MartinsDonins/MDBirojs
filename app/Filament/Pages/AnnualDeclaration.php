@@ -29,7 +29,8 @@ class AnnualDeclaration extends Page
     protected static ?string $title           = 'Gada ienākumu deklarācija (saimnieciskā darbība)';
     protected static string $view             = 'filament.pages.annual-declaration';
     protected ?string $maxContentWidth        = 'full';
-    protected static ?int $navigationSort     = 9;
+    protected static ?string $navigationGroup = 'VID un deklarācijas';
+    protected static ?int $navigationSort     = 1;
 
     /** @var int[] */
     public array $availableYears = [];

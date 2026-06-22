@@ -38,7 +38,9 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
 
     protected ?string $maxContentWidth = 'full';
     
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationGroup = 'Žurnāls un pārskati';
+
+    protected static ?int $navigationSort = 1;
 
     public ?int $selectedYear = null; // null = show year list
     public ?int $selectedMonth = null; // null = show year summary (if year selected), 1-12 = show month detail
@@ -70,6 +72,14 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
     // Cached dynamic column configs (loaded from journal_columns table)
     private ?array $cachedIncomeColumns  = null;
     private ?array $cachedExpenseColumns = null;
+
+    // ── Profit/Loss (Peļņa/Zaudējumi) — economic-activity (SD) basis ────────────
+    // P/L = income mapped to these VID columns minus expenses mapped to these VID
+    // columns. Standard LV SD taxable-result definition:
+    //   income  → "Saimnieciskā darbība" (VID 4,5,6); excludes non-taxable (10) & N/A (8)
+    //   expense → "Saistīti ar saimniecisko darbību" (VID 19–23); excludes non-SD (18) & N/A (16)
+    private const PL_INCOME_VIDS  = [4, 5, 6];
+    private const PL_EXPENSE_VIDS = [19, 20, 21, 22, 23];
 
     // ── Dynamic column helpers ─────────────────────────────────────────────────
 
@@ -539,6 +549,14 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 $expenseKopaa += $total;
             }
 
+            // Profit/Loss (SD basis): SD income − SD-related expenses for the year
+            $plIncome  = (float) $yearIncomeCats
+                ->filter(fn ($c) => in_array((int) $c->vid_column, self::PL_INCOME_VIDS, true))
+                ->sum('total');
+            $plExpense = (float) $yearExpenseCats
+                ->filter(fn ($c) => in_array((int) $c->vid_column, self::PL_EXPENSE_VIDS, true))
+                ->sum('total');
+
             // Status badges for year row
             $yearStatusData  = $yearlyStatusCounts->filter(fn ($item) => (int) round((float) $item->year) === $yearKey)->first();
             $yearTotalTx     = (int) ($yearStatusData?->total_count     ?? 0);
@@ -564,6 +582,10 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'income_kopaa'  => $incomeKopaa,
                 'expense_cols'  => $expenseCols,
                 'expense_kopaa' => $expenseKopaa,
+                // Profit/Loss (SD basis): SD income − SD-related expenses
+                'pl_income'     => $plIncome,
+                'pl_expense'    => $plExpense,
+                'pl_result'     => $plIncome - $plExpense,
                 // Status badges
                 'tx_total'      => $yearTotalTx,
                 'tx_completed'  => $yearCompletedTx,
@@ -771,6 +793,14 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 $expenseKopaa += $total;
             }
 
+            // Profit/Loss (SD basis): SD income − SD-related expenses for the month
+            $plIncome  = (float) $incomeCats
+                ->filter(fn ($c) => in_array((int) $c->vid_column, self::PL_INCOME_VIDS, true))
+                ->sum('total');
+            $plExpense = (float) $expenseCats
+                ->filter(fn ($c) => in_array((int) $c->vid_column, self::PL_EXPENSE_VIDS, true))
+                ->sum('total');
+
             // Status badges
             $statusData  = $monthlyStatusCounts->filter(fn ($item) => (int) round((float) $item->month_number) === $month)->first();
             $totalTx     = (int) ($statusData?->total_count     ?? 0);
@@ -795,6 +825,10 @@ class IncomeExpenseJournal extends Page implements HasTable, HasActions, HasForm
                 'income_kopaa' => $incomeKopaa,
                 'expense_cols' => $expenseCols,
                 'expense_kopaa'    => $expenseKopaa,
+                // Profit/Loss (SD basis): SD income − SD-related expenses
+                'pl_income'    => $plIncome,
+                'pl_expense'   => $plExpense,
+                'pl_result'    => $plIncome - $plExpense,
                 'account_balances' => $runningAccountBalances,
                 'account_income'   => $accountMonthIncome,
                 'account_expense'  => $accountMonthExpense,

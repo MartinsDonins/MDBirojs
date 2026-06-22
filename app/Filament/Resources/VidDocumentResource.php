@@ -22,7 +22,9 @@ class VidDocumentResource extends Resource
 
     protected static ?string $pluralModelLabel = 'VID dokumenti';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?string $navigationGroup = 'VID un deklarācijas';
+
+    protected static ?int $navigationSort = 3;
 
     /**
      * Year options: current year down to 2015 (newest first).

@@ -27,7 +27,8 @@ class InvestmentSummary extends Page implements HasTable, HasForms
     protected static ?string $navigationLabel   = 'Ieguldījumi';
     protected static ?string $title             = 'Ieguldījumu reģistrs';
     protected static string  $view              = 'filament.pages.investment-summary';
-    protected static ?int    $navigationSort    = 5;
+    protected static ?string $navigationGroup   = 'Žurnāls un pārskati';
+    protected static ?int    $navigationSort    = 3;
 
     // Computed summary stats shown in the header
     public float  $totalInvested   = 0;
