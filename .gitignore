@@ -32,5 +32,6 @@ Thumbs.db
 # Personal signed EDS tax declarations (private data — never commit)
 /BRAIN/GID-*.xml
 /BRAIN/GID-*.html
+/BRAIN/GID-*.pdf
 /BRAIN/IIN-*.xml
 /BRAIN/EDS_file

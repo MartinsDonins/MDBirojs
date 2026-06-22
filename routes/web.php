@@ -2,6 +2,7 @@
 
 use App\Exports\CashImportTemplate;
 use App\Http\Controllers\AnnualReportController;
+use App\Http\Controllers\GidDocumentController;
 use Illuminate\Support\Facades\Route;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -34,4 +35,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/reports/d3/{year}/pdf', [AnnualReportController::class, 'd3Pdf'])
         ->whereNumber('year')
         ->name('reports.d3.pdf');
+
+    // Serve a stored EDS document (GID XML/HTML/PDF, IIN XML).
+    Route::get('/admin/gid/document/{document}', [GidDocumentController::class, 'show'])
+        ->name('gid.document');
 });

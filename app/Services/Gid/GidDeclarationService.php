@@ -3,11 +3,15 @@
 namespace App\Services\Gid;
 
 use App\Models\GidDeclaration;
+use App\Models\GidDocument;
 use App\Models\JournalColumn;
 use App\Models\ProfitLossSetting;
 use App\Models\Transaction;
 use App\Services\D3DeclarationService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Builds the full self-employed annual income declaration (GID) for a year and
@@ -192,6 +196,170 @@ class GidDeclarationService
         $this->applyAutoMap($year, $flat);
 
         return $flat;
+    }
+
+    // ── Document library (multi-type upload: XML / HTML / PDF / IIN) ───────
+
+    /**
+     * Store an uploaded EDS file. The kind and the tax year are detected from the file
+     * itself, so the user can drop any GID/IIN export (XML, HTML, PDF) and it is filed
+     * under the right year; GID XML additionally populates the comparison data + map.
+     */
+    public function storeUpload(UploadedFile $file): GidDocument
+    {
+        return $this->ingest($file->getRealPath(), $file->getClientOriginalName(), $file->getMimeType());
+    }
+
+    /** Store a file already on disk (used by the bulk import command). */
+    public function storeFromPath(string $absolutePath, ?string $filename = null): GidDocument
+    {
+        return $this->ingest($absolutePath, $filename ?? basename($absolutePath), null);
+    }
+
+    private function ingest(string $absolutePath, string $filename, ?string $mime): GidDocument
+    {
+        $kind = self::detectKind($absolutePath, $filename);
+        $year = $this->detectYear($absolutePath, $filename, $kind);
+
+        // Replace a previously uploaded file with the same name/year (keeps re-imports
+        // and re-uploads idempotent).
+        foreach (GidDocument::where('year', $year)->where('filename', $filename)->get() as $old) {
+            Storage::disk('local')->delete($old->path);
+            $old->delete();
+        }
+
+        $ext  = strtolower(pathinfo($filename, PATHINFO_EXTENSION) ?: 'dat');
+        $dest = sprintf('gid/%d/%s.%s', $year, Str::random(24), $ext);
+        Storage::disk('local')->put($dest, (string) file_get_contents($absolutePath));
+
+        $meta = [];
+        if ($kind === 'gid_xml') {
+            $this->importEds($year, $absolutePath, $filename); // eds_data + auto-map
+            $meta = $this->gidSummary(self::withComputedTotals(self::parseEdsXml($absolutePath)));
+        } elseif ($kind === 'iin_xml') {
+            $meta = self::parseIinSummary(self::parseEdsXml($absolutePath));
+        }
+
+        return GidDocument::create([
+            'year'     => $year,
+            'kind'     => $kind,
+            'filename' => $filename,
+            'path'     => $dest,
+            'mime'     => $mime ?: self::mimeFor($kind),
+            'size'     => (int) (filesize($absolutePath) ?: 0),
+            'meta'     => $meta ?: null,
+        ]);
+    }
+
+    /** Delete a stored document; clears comparison data if the last GID XML is removed. */
+    public function deleteDocument(GidDocument $doc): void
+    {
+        Storage::disk('local')->delete($doc->path);
+        $kind = $doc->kind;
+        $year = $doc->year;
+        $doc->delete();
+
+        if ($kind === 'gid_xml' && ! GidDocument::where('year', $year)->where('kind', 'gid_xml')->exists()) {
+            $rec = GidDeclaration::firstWhere('year', $year);
+            if ($rec) {
+                $rec->eds_data = null;
+                $rec->eds_meta = null;
+                $data = $rec->data ?? [];
+                unset($data['_eds_map']);
+                $rec->data = $data;
+                $rec->save();
+            }
+        }
+    }
+
+    /** Classify a file as gid_xml | iin_xml | gid_html | gid_pdf from its extension/content. */
+    public static function detectKind(string $absolutePath, string $filename): string
+    {
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        if (in_array($ext, ['html', 'htm'], true)) {
+            return 'gid_html';
+        }
+        if ($ext === 'pdf') {
+            return 'gid_pdf';
+        }
+
+        $head = (string) @file_get_contents($absolutePath, false, null, 0, 4096);
+        if (str_starts_with(ltrim($head), '%PDF')) {
+            return 'gid_pdf';
+        }
+        if (stripos($head, '<html') !== false || stripos($head, '<!doctype html') !== false) {
+            return 'gid_html';
+        }
+        if (preg_match('~<DokAVAv~', $head)) {
+            return 'iin_xml';
+        }
+
+        return 'gid_xml';
+    }
+
+    /** Tax year of a file: TaksGads/ParskGads for XML, else a 4-digit year in the name. */
+    private function detectYear(string $absolutePath, string $filename, string $kind): int
+    {
+        if (in_array($kind, ['gid_xml', 'iin_xml'], true)) {
+            foreach (self::parseEdsXml($absolutePath) as $path => $val) {
+                if ((str_ends_with($path, '/TaksGads') || str_ends_with($path, '/ParskGads')) && ctype_digit($val)) {
+                    return (int) $val;
+                }
+            }
+        }
+
+        if (preg_match('~(20\d{2})~', $filename, $m)) {
+            return (int) $m[1];
+        }
+
+        $head = (string) @file_get_contents($absolutePath, false, null, 0, 8192);
+        if (preg_match('~(20\d{2})~', $head, $m)) {
+            return (int) $m[1];
+        }
+
+        return (int) date('Y');
+    }
+
+    /** Short summary of a GID XML for the document library. */
+    private function gidSummary(array $flat): array
+    {
+        $map = self::resolveAutoMap($flat);
+        $val = fn (string $k): ?float => isset($map[$k]) ? self::toFloat($flat[$map[$k]] ?? '0') : null;
+
+        return array_filter([
+            'd3_income'   => $val('d3_income'),
+            'd3_expenses' => $val('d3_expenses'),
+            'd1_income'   => $val('d1_employment_income'),
+            'fields'      => count($flat),
+        ], fn ($v) => $v !== null);
+    }
+
+    /** Key figures from an IIN advance-tax XML (DokAVAv). */
+    public static function parseIinSummary(array $flat): array
+    {
+        $find = function (string $suffix) use ($flat): ?string {
+            foreach ($flat as $path => $val) {
+                if (str_ends_with($path, '/'.$suffix)) {
+                    return $val;
+                }
+            }
+            return null;
+        };
+
+        return array_filter([
+            'taxable'   => $find('Rindas/Pirmstaksac'),
+            'maksat'    => $find('Rindas/Maksat'),
+            'nak_gadam' => $find('Rindas/NakGadam'),
+        ], fn ($v) => $v !== null);
+    }
+
+    private static function mimeFor(string $kind): string
+    {
+        return match ($kind) {
+            'gid_pdf'  => 'application/pdf',
+            'gid_html' => 'text/html',
+            default    => 'application/xml',
+        };
     }
 
     /**

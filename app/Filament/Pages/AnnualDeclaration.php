@@ -2,10 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\GidDocument;
 use App\Services\Gid\GidDeclarationService;
 use App\Services\Gid\GidFieldRegistry;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Collection;
 use Livewire\WithFileUploads;
 
 /**
@@ -41,18 +43,33 @@ class AnnualDeclaration extends Page
     /** Comparison result per loaded year. */
     public array $compareData = [];
 
-    /** Temporary EDS uploads keyed by year (Livewire file model). */
-    public array $eds = [];
+    /** Temporary EDS document uploads (one global drop zone, any kind/year). */
+    public array $docs = [];
     /** Path to assign for an unmapped EDS field, keyed by year. */
     public array $assignTarget = [];
 
     public function mount(): void
     {
-        $this->availableYears = $this->service()->availableYears();
+        $this->refreshYears();
         // Expand the most recent year by default.
         if (! empty($this->availableYears)) {
             $this->expandYear($this->availableYears[0]);
         }
+    }
+
+    /** Years to show = years with journal data ∪ years with uploaded EDS documents. */
+    private function refreshYears(): void
+    {
+        $journal  = $this->service()->availableYears();
+        $docYears = GidDocument::query()->distinct()->pluck('year')->all();
+
+        $this->availableYears = collect($journal)
+            ->merge($docYears)
+            ->map(fn ($y) => (int) $y)
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
     }
 
     private function service(): GidDeclarationService
@@ -114,31 +131,64 @@ class AnnualDeclaration extends Page
         $this->loadYear($year);
     }
 
-    // ── EDS import ────────────────────────────────────────────────
+    // ── EDS document upload (global, multi-file, any kind/year) ────
 
-    public function updatedEds(mixed $value, string $key): void
+    /**
+     * Process the dropped EDS files: each is classified and filed under its own tax
+     * year automatically (GID XML also populates the comparison + field mapping).
+     */
+    public function updatedDocs(): void
     {
-        $year = (int) $key;
-        $file = $this->eds[$year] ?? null;
-        if (! $file) {
+        $files = array_filter(is_array($this->docs) ? $this->docs : [$this->docs]);
+        $ok = 0;
+        $years = [];
+
+        foreach ($files as $file) {
+            try {
+                $doc = $this->service()->storeUpload($file);
+                $years[$doc->year] = true;
+                $ok++;
+            } catch (\Throwable $e) {
+                Notification::make()
+                    ->title('Neizdevās: '.$file->getClientOriginalName())
+                    ->body($e->getMessage())
+                    ->danger()->send();
+            }
+        }
+
+        $this->docs = [];
+        $this->refreshYears();
+        foreach (array_keys($years) as $year) {
+            $this->expandYear((int) $year);
+        }
+
+        if ($ok > 0) {
+            Notification::make()->title("Augšupielādēti {$ok} dokumenti")->success()->send();
+        }
+    }
+
+    public function deleteDocument(int $id): void
+    {
+        $doc = GidDocument::find($id);
+        if (! $doc) {
             return;
         }
 
-        try {
-            $path  = $file->getRealPath();
-            $count = count($this->service()->importEds($year, $path, $file->getClientOriginalName()));
-            $this->loadYear($year);
-            Notification::make()
-                ->title("EDS deklarācija ielādēta ({$count} lauki)")
-                ->success()->send();
-        } catch (\Throwable $e) {
-            Notification::make()
-                ->title('Neizdevās nolasīt EDS XML')
-                ->body($e->getMessage())
-                ->danger()->send();
-        } finally {
-            unset($this->eds[$year]);
-        }
+        $year = $doc->year;
+        $this->service()->deleteDocument($doc);
+        $this->loadYear($year);
+        $this->refreshYears();
+
+        Notification::make()->title('Dokuments dzēsts')->success()->send();
+    }
+
+    /** Uploaded documents for a year (newest kind order), for the view. */
+    public function documentsFor(int $year): Collection
+    {
+        return GidDocument::where('year', $year)
+            ->orderByRaw("array_position(ARRAY['gid_xml','gid_html','gid_pdf','iin_xml']::text[], kind)")
+            ->orderBy('filename')
+            ->get();
     }
 
     public function adoptField(int $year, string $field): void
