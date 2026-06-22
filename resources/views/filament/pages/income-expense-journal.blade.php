@@ -775,7 +775,18 @@
                         {{ $showOnlyInvalid ? 'Rādīt visus' : 'Nekartētie' }}
                     </x-filament::button>
                     {{-- Kolonu rādīšana/slēpšana (pārskatāmākam skatam) --}}
-                    <div class="relative" x-data="{ open: false }">
+                    <div class="relative" x-data="{ open: false,
+                        w: Object.assign({ doc: 80, partner: 140, desc: 240 }, JSON.parse(localStorage.getItem('jnlWidths') || '{}')),
+                        applyW() {
+                            const t = document.querySelector('.jnl-table');
+                            if (t) {
+                                t.style.setProperty('--w-doc', this.w.doc + 'px');
+                                t.style.setProperty('--w-partner', this.w.partner + 'px');
+                                t.style.setProperty('--w-desc', this.w.desc + 'px');
+                            }
+                            localStorage.setItem('jnlWidths', JSON.stringify(this.w));
+                        },
+                        init() { this.applyW(); } }">
                         <button type="button" @click="open = !open"
                             class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -795,6 +806,21 @@
                                 <input type="checkbox" wire:model.live="showAnalysis" class="rounded border-gray-300 dark:border-gray-600">
                                 Analīzes kolonas (žurnāla ailes)
                             </label>
+                            <div class="pt-2 mt-1 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                                <div class="font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase">Iesaldēto kolonu platums</div>
+                                <label class="block">
+                                    <span class="text-xs text-gray-600 dark:text-gray-300">Apraksts: <span x-text="w.desc"></span> px</span>
+                                    <input type="range" min="100" max="400" x-model.number="w.desc" @input="applyW()" class="w-full">
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs text-gray-600 dark:text-gray-300">Partneris: <span x-text="w.partner"></span> px</span>
+                                    <input type="range" min="70" max="280" x-model.number="w.partner" @input="applyW()" class="w-full">
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs text-gray-600 dark:text-gray-300">Dok. nr.: <span x-text="w.doc"></span> px</span>
+                                    <input type="range" min="50" max="240" x-model.number="w.doc" @input="applyW()" class="w-full">
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <x-filament::button wire:click="mountAction('manageFlags')" color="gray" icon="heroicon-o-flag">
@@ -978,6 +1004,14 @@
             .jnl-table thead th { position: sticky; z-index: 12; }
             .jnl-table thead th.sticky { z-index: 22; }
             [x-cloak] { display: none !important; }
+            /* Frozen (sticky-left) name columns — widths are CSS vars so they can be
+               resized via the "Kolonas" sliders; left offsets recompute with calc(). */
+            .jnl-table { --w-doc: 80px; --w-partner: 140px; --w-desc: 240px; }
+            .jfrz { position: sticky; z-index: 10; }
+            .jnl-table thead th.jfrz { z-index: 22; }
+            .jfrz-doc     { left: 133px;                                         width: var(--w-doc);     min-width: var(--w-doc);     max-width: var(--w-doc); }
+            .jfrz-partner { left: calc(133px + var(--w-doc));                     width: var(--w-partner); min-width: var(--w-partner); max-width: var(--w-partner); }
+            .jfrz-desc    { left: calc(133px + var(--w-doc) + var(--w-partner));  width: var(--w-desc);    min-width: var(--w-desc);    max-width: var(--w-desc); }
         </style>
         <div class="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm"
              x-data="{
@@ -1010,24 +1044,34 @@
                              top += tr.offsetHeight;
                          });
                      } catch (e) {}
+                 },
+                 applyWidths() {
+                     try {
+                         const t = this.$refs.journalThead ? this.$refs.journalThead.closest('table') : null;
+                         if (!t) return;
+                         const w = JSON.parse(localStorage.getItem('jnlWidths') || '{}');
+                         if (w.doc)     t.style.setProperty('--w-doc', w.doc + 'px');
+                         if (w.partner) t.style.setProperty('--w-partner', w.partner + 'px');
+                         if (w.desc)    t.style.setProperty('--w-desc', w.desc + 'px');
+                     } catch (e) {}
                  }
              }"
              x-init="
                  if (!Alpine.store('journal')) { Alpine.store('journal', { expandedRows: [] }); }
                  const cmp = $data;
-                 $nextTick(() => { cmp.initSortable(); cmp.initStickyHead(); });
+                 $nextTick(() => { cmp.initSortable(); cmp.initStickyHead(); cmp.applyWidths(); });
                  window.addEventListener('resize', () => cmp.initStickyHead());
              "
-             @journal-rows-updated.window="const cmp = $data; $nextTick(() => { cmp.initSortable(); cmp.initStickyHead(); })">
+             @journal-rows-updated.window="const cmp = $data; $nextTick(() => { cmp.initSortable(); cmp.initStickyHead(); cmp.applyWidths(); })">
             <table class="jnl-table w-full border-collapse border border-gray-300 dark:border-gray-700 text-xs">
                 <thead x-ref="journalThead">
                     <tr class="bg-gray-100 dark:bg-gray-800 text-center text-[10px] font-semibold">
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-0 bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 28px;" title="Karodziņi">⚑</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[28px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 40px;">Nr.</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[68px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="min-width: 65px;">Datums</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[133px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="width:80px; min-width:80px; max-width:80px;">Dok. nr.<br>un datums</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[213px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="width:95px; min-width:95px; max-width:95px;">Partneris</th>
-                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom sticky left-[308px] bg-gray-100 dark:bg-gray-800 z-10 text-gray-900 dark:text-gray-100" style="width:120px; min-width:120px; max-width:120px;">Apraksts</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom jfrz jfrz-doc bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Dok. nr.<br>un datums</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom jfrz jfrz-partner bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Partneris</th>
+                        <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom jfrz jfrz-desc bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">Apraksts</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 80px;">Kategorija</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100">Sasaite</th>
                         <th rowspan="2" class="px-1 py-1 border border-gray-300 dark:border-gray-700 align-bottom text-gray-900 dark:text-gray-100" style="min-width: 40px;">Statuss</th>
@@ -1086,9 +1130,9 @@
                         <th class="border border-gray-300 dark:border-gray-700 sticky left-0 z-20 bg-gray-100 dark:bg-gray-800">0</th>
                         <th class="border border-gray-300 dark:border-gray-700 sticky left-[28px] z-20 bg-gray-100 dark:bg-gray-800">1</th>
                         <th class="border border-gray-300 dark:border-gray-700 sticky left-[68px] z-20 bg-gray-100 dark:bg-gray-800">2</th>
-                        <th class="border border-gray-300 dark:border-gray-700 sticky left-[133px] z-20 bg-gray-100 dark:bg-gray-800">3</th>
-                        <th class="border border-gray-300 dark:border-gray-700 sticky left-[213px] z-20 bg-gray-100 dark:bg-gray-800">4</th>
-                        <th class="border border-gray-300 dark:border-gray-700 sticky left-[308px] z-20 bg-gray-100 dark:bg-gray-800">5</th>
+                        <th class="border border-gray-300 dark:border-gray-700 jfrz jfrz-doc bg-gray-100 dark:bg-gray-800">3</th>
+                        <th class="border border-gray-300 dark:border-gray-700 jfrz jfrz-partner bg-gray-100 dark:bg-gray-800">4</th>
+                        <th class="border border-gray-300 dark:border-gray-700 jfrz jfrz-desc bg-gray-100 dark:bg-gray-800">5</th>
                         <th class="border border-gray-300 dark:border-gray-700">6</th>
                         <th class="border border-gray-300 dark:border-gray-700">7</th>
                         <th class="border border-gray-300 dark:border-gray-700">8</th>
@@ -1188,9 +1232,9 @@
                                 </div>
                             </td>
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 whitespace-nowrap sticky left-[68px] z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['date'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all align-top sticky left-[133px] z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" style="width:80px; min-width:80px; max-width:80px;">{{ $row['document_details'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top sticky left-[213px] z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" style="width:95px; min-width:95px; max-width:95px;" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
-                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top sticky left-[308px] z-10 bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" style="width:120px; min-width:120px; max-width:120px;" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] break-all align-top jfrz jfrz-doc bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100">{{ $row['document_details'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top jfrz jfrz-partner bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="{{ $row['partner'] }}">{{ $row['partner'] }}</td>
+                            <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] whitespace-normal break-words align-top jfrz jfrz-desc bg-white dark:bg-gray-900 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 text-gray-900 dark:text-gray-100" title="{{ $row['description'] }}">{{ $row['description'] }}</td>
 
                             {{-- Kategorija (Interactive) --}}
                             <td class="px-1 py-1 border border-gray-300 dark:border-gray-700 text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 text-primary-600 dark:text-primary-400 cursor-pointer"
