@@ -187,7 +187,70 @@ class GidDeclarationService
         $rec->eds_meta = ['filename' => $filename, 'imported_at' => now()->toDateTimeString()];
         $rec->save();
 
+        // Auto-map the journal-derived D3 income/expense fields so the comparison
+        // works out of the box (the rest stay manually assignable in the UI).
+        $this->applyAutoMap($year, $flat);
+
         return $flat;
+    }
+
+    /**
+     * Resolve the EDS XML paths for the D3 income/expense fields from flattened EDS
+     * data. The GID schema version (DokIINGDv2…v11) and field codes differ every year:
+     *   - income   : PielikumsD3/A09 (2014–2017) or /A11 (2018+)
+     *   - expenses : PielikumsD3/A10 (2014–2017) or /A121 | /A122 (2018+, by method)
+     * so the codes are resolved from the actual data, preferring a non-zero value when
+     * several candidate codes are present.
+     *
+     * @param  array<string,string>  $flat
+     * @return array<string,string> field key => eds path
+     */
+    public static function resolveD3Map(array $flat): array
+    {
+        $pick = static function (array $codes) use ($flat): ?string {
+            $firstPresent = null;
+            foreach ($codes as $code) {
+                foreach ($flat as $path => $val) {
+                    if (preg_match('~/PielikumsD3/'.preg_quote($code, '~').'$~', $path)) {
+                        $firstPresent ??= $path;
+                        if (abs(self::toFloat($val)) > 0.0) {
+                            return $path; // prefer a code that actually carries a value
+                        }
+                    }
+                }
+            }
+            return $firstPresent;
+        };
+
+        $map = [];
+        if ($p = $pick(['A09', 'A11']))           { $map['d3_income'] = $p; }
+        if ($p = $pick(['A10', 'A121', 'A122']))  { $map['d3_expenses'] = $p; }
+
+        return $map;
+    }
+
+    /**
+     * Persist the auto-resolved D3 mapping into the per-year EDS map (merged with any
+     * existing user assignments; existing keys are kept).
+     *
+     * @param  array<string,string>  $flat
+     * @return array<string,string> the field=>path entries that were applied
+     */
+    public function applyAutoMap(int $year, array $flat): array
+    {
+        $map = self::resolveD3Map($flat);
+        if (empty($map)) {
+            return [];
+        }
+
+        $rec  = GidDeclaration::firstOrNew(['year' => $year]);
+        $data = $rec->data ?? [];
+        // User-assigned paths win over the auto-resolved ones.
+        $data['_eds_map'] = array_merge($map, $data['_eds_map'] ?? []);
+        $rec->data = $data;
+        $rec->save();
+
+        return $map;
     }
 
     /**

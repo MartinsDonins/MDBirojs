@@ -28,3 +28,8 @@ Thumbs.db
 
 # Sample files
 /Failu_paraugi
+
+# Personal signed EDS tax declarations (private data — never commit)
+/BRAIN/GID-*.xml
+/BRAIN/IIN-*.xml
+/BRAIN/EDS_file
